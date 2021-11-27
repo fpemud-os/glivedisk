@@ -176,7 +176,7 @@ class arch_power8le(arch_ppc64le):
 def register():
     "Inform main catalyst program of the contents of this plugin."
     return ({
-		"970":        arch_970,
+		"970":       arch_970,
 		"cell":      arch_cell,
 		"g3":        arch_g3,
 		"g4":        arch_g4,
