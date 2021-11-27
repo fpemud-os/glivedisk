@@ -13,6 +13,4 @@ class arch_arm64(builder.generic):
 
 def register():
     "Inform main catalyst program of the contents of this plugin."
-    return ({
-        "arm64": arch_arm64
-    }, ("aarch64", "arm64", ))
+    return ({"arm64": arch_arm64}, ("aarch64", "arm64", ))

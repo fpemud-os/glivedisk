@@ -1,13 +1,16 @@
 
 from .. import builder
 
+
 class arch_ia64(builder.generic):
-	"builder class for ia64"
-	def __init__(self,myspec):
-		builder.generic.__init__(self,myspec)
-		self.settings["COMMON_FLAGS"]="-O2 -pipe"
-		self.settings["CHOST"]="ia64-unknown-linux-gnu"
+    "builder class for ia64"
+
+    def __init__(self, myspec):
+        builder.generic.__init__(self, myspec)
+        self.settings["COMMON_FLAGS"] = "-O2 -pipe"
+        self.settings["CHOST"] = "ia64-unknown-linux-gnu"
+
 
 def register():
-	"Inform main catalyst program of the contents of this plugin."
-	return ({ "ia64":arch_ia64 }, ("ia64", ))
+    "Inform main catalyst program of the contents of this plugin."
+    return ({"ia64": arch_ia64}, ("ia64", ))
