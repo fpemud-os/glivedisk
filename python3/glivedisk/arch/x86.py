@@ -145,8 +145,7 @@ class arch_athlon_xp(generic_x86):
     def __init__(self, myspec):
         generic_x86.__init__(self, myspec)
         self.settings["COMMON_FLAGS"] = "-O2 -march=athlon-xp -pipe"
-        self.settings["HOSTUSEEXPAND"] = {
-            "CPU_FLAGS_X86": ["mmx", "3dnow", "sse"]}
+        self.settings["HOSTUSEEXPAND"] = {"CPU_FLAGS_X86": ["mmx", "3dnow", "sse"]}
 
 
 def register():
