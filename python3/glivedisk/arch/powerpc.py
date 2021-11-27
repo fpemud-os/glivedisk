@@ -1,6 +1,6 @@
 import platform
 
-from catalyst import builder
+from .. import builder
 
 class generic_ppc(builder.generic):
 	"abstract base class for all 32-bit powerpc builders"

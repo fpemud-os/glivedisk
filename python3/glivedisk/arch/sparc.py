@@ -1,6 +1,6 @@
 import platform
 
-from catalyst import builder
+from .. import builder
 
 class generic_sparc(builder.generic):
 	"abstract base class for all sparc builders"

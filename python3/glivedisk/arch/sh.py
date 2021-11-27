@@ -1,5 +1,5 @@
 
-from catalyst import builder
+from .. import builder
 
 class generic_sh(builder.generic):
 	"Abstract base class for all sh builders [Little-endian]"

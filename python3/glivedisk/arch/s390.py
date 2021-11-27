@@ -1,5 +1,5 @@
 
-from catalyst import builder
+from .. import builder
 
 class generic_s390(builder.generic):
 	"abstract base class for all s390 builders"

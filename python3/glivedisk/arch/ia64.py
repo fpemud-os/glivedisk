@@ -1,5 +1,5 @@
 
-from catalyst import builder
+from .. import builder
 
 class arch_ia64(builder.generic):
 	"builder class for ia64"

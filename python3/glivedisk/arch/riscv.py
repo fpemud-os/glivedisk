@@ -1,5 +1,5 @@
 
-from catalyst import builder
+from .. import builder
 
 class generic_riscv(builder.generic):
 	"abstract base class for all riscv builders"

@@ -28,6 +28,8 @@ class arch_nocona(generic_amd64):
         # self.settings["HOSTUSEEXPAND"]={"CPU_FLAGS_X86":["mmx","sse","sse2"]}
 
 # Requires gcc 4.3 to use this class
+
+
 class arch_core2(generic_amd64):
     "Intel Core 2 CPU with 64-bit extensions, MMX, SSE, SSE2, SSE3 and SSSE3 support"
 
@@ -76,17 +78,17 @@ class arch_x32(generic_amd64):
 def register():
     "Inform main catalyst program of the contents of this plugin."
     return ({
-        "amd64"         : arch_amd64,
-        "k8"            : arch_k8,
-        "opteron"       : arch_k8,
-        "athlon64"      : arch_k8,
-        "athlonfx"      : arch_k8,
-        "nocona"        : arch_nocona,
-        "core2"         : arch_core2,
-        "k8-sse3"       : arch_k8_sse3,
-        "opteron-sse3"  : arch_k8_sse3,
-        "athlon64-sse3" : arch_k8_sse3,
-        "amdfam10"      : arch_amdfam10,
-        "barcelona"     : arch_amdfam10,
-        "x32"           : arch_x32,
+        "amd64":         arch_amd64,
+        "k8":            arch_k8,
+        "opteron":       arch_k8,
+        "athlon64":      arch_k8,
+        "athlonfx":      arch_k8,
+        "nocona":        arch_nocona,
+        "core2":         arch_core2,
+        "k8-sse3":       arch_k8_sse3,
+        "opteron-sse3":  arch_k8_sse3,
+        "athlon64-sse3": arch_k8_sse3,
+        "amdfam10":      arch_amdfam10,
+        "barcelona":     arch_amdfam10,
+        "x32":           arch_x32,
     }, ("x86_64", "amd64", "nocona"))

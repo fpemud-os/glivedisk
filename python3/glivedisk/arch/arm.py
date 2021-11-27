@@ -146,18 +146,18 @@ class arch_armv5teb(generic_armeb):
 def register():
     "Inform main catalyst program of the contents of this plugin."
     return ({
-        "arm"           : arch_arm,
-        "armv4l"        : arch_armv4l,
-        "armv4tl"       : arch_armv4tl,
-        "armv5tl"       : arch_armv5tl,
-        "armv5tel"      : arch_armv5tel,
-        "armv5tejl"     : arch_armv5tejl,
-        "armv6j"        : arch_armv6j,
-        "armv6z"        : arch_armv6z,
-        "armv6zk"       : arch_armv6zk,
-        "armv7a"        : arch_armv7a,
-        "armv6j_hardfp" : arch_armv6j_hardfp,
-        "armv7a_hardfp" : arch_armv7a_hardfp,
-        "armeb"         : arch_armeb,
-        "armv5teb"      : arch_armv5teb
+        "arm":           arch_arm,
+        "armv4l":        arch_armv4l,
+        "armv4tl":       arch_armv4tl,
+        "armv5tl":       arch_armv5tl,
+        "armv5tel":      arch_armv5tel,
+        "armv5tejl":     arch_armv5tejl,
+        "armv6j":        arch_armv6j,
+        "armv6z":        arch_armv6z,
+        "armv6zk":       arch_armv6zk,
+        "armv7a":        arch_armv7a,
+        "armv6j_hardfp": arch_armv6j_hardfp,
+        "armv7a_hardfp": arch_armv7a_hardfp,
+        "armeb":         arch_armeb,
+        "armv5teb":      arch_armv5teb
     }, ("arm", "armv4l", "armv4tl", "armv5tl", "armv5tel", "armv5tejl", "armv6l", "armv7l", "armeb", "armv5teb"))

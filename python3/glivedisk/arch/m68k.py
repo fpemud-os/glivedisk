@@ -1,5 +1,5 @@
 
-from catalyst import builder
+from .. import builder
 
 class generic_m68k(builder.generic):
 	"abstract base class for all m68k builders"
