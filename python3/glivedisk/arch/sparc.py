@@ -1,5 +1,6 @@
-import platform
+#!/usr/bin/env python3
 
+import platform
 from .. import builder
 
 
