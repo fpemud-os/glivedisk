@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import os
 import sys
+import email.utils
 import distutils.util
 try:
     # First try to load most advanced setuptools setup.
@@ -8,10 +10,8 @@ try:
 except:
     # Fall back if setuptools is not installed.
     from distutils.core import setup
-from glivedisk import __version__, __maintainer__
+from glivedisk import __package__, __version__, __author__, __maintainer__
 
-
-__package_name__ = 'glidevdisk'
 
 # check linux platform
 platform = distutils.util.get_platform()
@@ -21,9 +21,11 @@ if not platform.startswith('linux'):
 
 # Do setup
 setup(
-	name=__package_name__,
+	name=__package__,
 	version=__version__,
 	description="A simple python module for gentoo live disk building.",
+    author=email.utils.parseaddr(__author__)[0],
+    author_email=email.utils.parseaddr(__author__)[1],
 	maintainer=email.utils.parseaddr(__maintainer__)[0],
 	maintainer_email=email.utils.parseaddr(__maintainer__)[1],
 	url='https://github.com/fpemud-os/glivedisk',
@@ -40,12 +42,12 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules',
 		],
 	packages=[
-		__package_name__,
-		'{0}.arch'.format(__package_name__),
-		'{0}.base'.format(__package_name__),
-		'{0}.targets'.format(__package_name__),
+		__package__,
+		'{0}.arch'.format(__package__),
+		'{0}.base'.format(__package__),
+		'{0}.targets'.format(__package__),
 		],
     package_dir={
-        __package_name__: os.path.join('python3', __package_name__),
+        __package__: os.path.join('python3', __package__),
     },
 )
