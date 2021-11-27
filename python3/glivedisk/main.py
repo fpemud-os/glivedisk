@@ -14,8 +14,7 @@ import sys
 from snakeoil import process
 from snakeoil.process import namespaces
 
-from DeComp.definitions import (COMPRESS_DEFINITIONS, DECOMPRESS_DEFINITIONS,
-	CONTENTS_DEFINITIONS)
+from DeComp.definitions import (COMPRESS_DEFINITIONS, DECOMPRESS_DEFINITIONS, CONTENTS_DEFINITIONS)
 from DeComp.contents import ContentsMap
 
 from catalyst import log
