@@ -18,6 +18,10 @@ class CatalystError(Exception):
 			log.error('CatalystError: %s', message, exc_info=print_traceback)
 
 
+def get_modules(dirpath):
+	return [x[:-3] for x in os.listdir(dipath) if x.endswith(".py") and x != "__init__.py"]
+
+
 def cmd(mycmd, env=None, debug=False, fail_func=None):
 	"""Run the external |mycmd|.
 
@@ -201,23 +205,6 @@ def ismount(path):
 		if pathcompare(path,mysplit[2]):
 			return 1
 	return 0
-
-
-def addl_arg_parse(myspec,addlargs,requiredspec,validspec):
-	"helper function to help targets parse additional arguments"
-	messages = []
-	for x in addlargs.keys():
-		if x not in validspec and x not in valid_config_file_values and x not in requiredspec:
-			messages.append("Argument \""+x+"\" not recognized.")
-		else:
-			myspec[x]=addlargs[x]
-
-	for x in requiredspec:
-		if x not in myspec:
-			messages.append("Required argument \""+x+"\" not specified.")
-
-	if messages:
-		raise CatalystError('\n\tAlso: '.join(messages))
 
 
 def countdown(secs=5, doing="Starting"):

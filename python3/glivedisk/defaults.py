@@ -34,11 +34,8 @@ else:
 	TAR = 'bsd'
 
 
-required_config_file_values = ["storedir", "sharedir", "distdir", "portdir"]
-
-valid_config_file_values = required_config_file_values[:]
+valid_config_file_values = ["storedir", "sharedir", "distdir", "portdir"]
 valid_config_file_values.extend([
-	"distcc", "envscript",
 	"options", "DEBUG", "VERBOSE",
 	"snapshot_cache", "hash_function", "digests", "contents", "compressor_arch",
 	"compression_mode", "compressor_options", "decompressor_search_order",
@@ -62,7 +59,6 @@ confdefaults={
 	"decompressor_search_order": DECOMPRESSOR_SEARCH_ORDER,
 	"distdir": DISTDIR[:],
 	"hash_function": "crc32",
-	"icecream": "/var/cache/icecream",
 	'list_xattrs_opt': LIST_XATTRS_OPTIONS[TAR],
 	"local_overlay": REPODIR[:] + "/local",
 	"port_conf": "/etc/portage",
@@ -74,7 +70,6 @@ confdefaults={
 	"PythonDir": "./catalyst",
 	"repo_basedir": REPODIR[:],
 	"repo_name": MAINREPO[:],
-	"sed": "sed",
 	"sharedir": "/usr/share/catalyst",
 	"shdir": "/usr/share/catalyst/targets/",
 	"snapshot_cache": "/var/tmp/catalyst/snapshot_cache",
@@ -85,17 +80,13 @@ confdefaults={
 	"target_pkgdir": PKGDIR[:],
 }
 
-DEFAULT_CONFIG_FILE = '/etc/catalyst/catalyst.conf'
-
 PORT_LOGDIR_CLEAN = \
 	'find "${PORT_LOGDIR}" -type f ! -name "summary.log*" -mtime +30 -delete'
 
 TARGET_MOUNT_DEFAULTS = {
-	"ccache": "/var/tmp/ccache",
 	"dev": "/dev",
 	"devpts": "/dev/pts",
 	"distdir": DISTDIR[:],
-	"icecream": "/usr/lib/icecc/bin",
 	"kerncache": "/tmp/kerncache",
 	"packagedir": PKGDIR[:],
 	"portdir": PORTDIR[:],
@@ -120,11 +111,8 @@ SOURCE_MOUNT_DEFAULTS = {
 # legend:  key: message
 option_messages = {
 	"autoresume": "Autoresuming support enabled.",
-	"ccache": "Compiler cache support enabled.",
 	"clear-autoresume": "Cleaning autoresume flags support enabled.",
 	#"compress": "Compression enabled.",
-	"distcc": "Distcc support enabled.",
-	"icecream": "Icecream compiler cluster support enabled.",
 	"kerncache": "Kernel cache support enabled.",
 	"pkgcache": "Package cache support enabled.",
 	"purge": "Purge support enabled.",

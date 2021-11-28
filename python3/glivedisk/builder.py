@@ -33,6 +33,7 @@ from snakeoil import fileutils
 from DeComp.compress import CompressMap
 
 from . import log
+from . import support
 from .defaults import (SOURCE_MOUNT_DEFAULTS, TARGET_MOUNT_DEFAULTS, PORT_LOGDIR_CLEAN)
 from .support import (CatalystError, file_locate, normpath, cmd, read_makeconf, ismount, file_check, addl_arg_parse)
 from .fileops import ensure_dirs, clear_dir, clear_path
@@ -45,80 +46,81 @@ class Builder:
 	the driver class for pretty much everything that glivedisk does.
 	"""
 
-	def __init__(self,myspec,addlargs):
-		self.required_values.extend(["version_stamp", "target", "subarch",
-			"rel_type", "profile", "snapshot", "source_subpath"])
+	required_values = [
+		"storedir",
+		"sharedir",
+		"distdir",
+		"portdir",
+		"version_stamp",
+		"target",
+		"subarch",
+		"rel_type",
+		"profile",
+		"snapshot",
+		"source_subpath"
+	]
 
-		self.valid_values.extend(["version_stamp", "target", "subarch",
-			"rel_type", "profile", "snapshot", "source_subpath",
-			"portage_confdir", "portage_prefix", "portage_overlay",
-			"cflags", "cxxflags", "fcflags", "fflags", "ldflags", "asflags",
-			"common_flags", "cbuild", "hostuse", "catalyst_use",
-			"distcc_hosts", "makeopts", "pkgcache_path", "kerncache_path",
-			"compression_mode", "decompression_mode", "interpreter"])
+	valid_values = [
+		"portage_confdir",
+		"portage_prefix",
+		"portage_overlay",
+		"cflags",
+		"cxxflags",
+		"fcflags",
+		"fflags",
+		"ldflags",
+		"asflags",
+		"common_flags",
+		"cbuild",
+		"hostuse",
+		"catalyst_use",
+		"distcc_hosts",
+		"makeopts",
+		"pkgcache_path",
+		"kerncache_path",
+		"compression_mode",
+		"decompression_mode",
+		"interpreter"
+	]
 
-		self.set_valid_build_kernel_vars(addlargs)
+	def __init__(self, settings):
+		self.set_valid_build_kernel_vars(settings)
+		self._addl_arg_parse(settings)
 
-		addl_arg_parse(myspec,addlargs,self.required_values,self.valid_values)
-		self.settings=myspec
+		self.settings = settings
 		self.env = {
 			'PATH': '/bin:/sbin:/usr/bin:/usr/sbin',
 			'TERM': os.getenv('TERM', 'dumb'),
-			}
+		}
+
 		self.resume = None
 
-		# The semantics of subarchmap and machinemap changed a bit in 2.0.3 to
-		# work better with vapier's CBUILD stuff. I've removed the "monolithic"
-		# machinemap from this file and split up its contents amongst the
-		# various arch/foo.py files.
-		#
-		# When register() is called on each module in the arch/ dir, it now
-		# returns a tuple instead of acting on the subarchmap dict that is
-		# passed to it. The tuple contains the values that were previously
-		# added to subarchmap as well as a new list of CHOSTs that go along
-		# with that arch. This allows us to build machinemap on the fly based
-		# on the keys in subarchmap and the values of the 2nd list returned
-		# (tmpmachinemap).
-		#
-		# Also, after talking with vapier. I have a slightly better idea of what
-		# certain variables are used for and what they should be set to. Neither
-		# 'buildarch' or 'hostarch' are used directly, so their value doesn't
-		# really matter. They are just compared to determine if we are
-		# cross-compiling. Because of this, they are just set to the name of the
-		# module in arch/ that the subarch is part of to make things simpler.
-		# The entire build process is still based off of 'subarch' like it was
-		# previously. -agaffney
-
 		self.makeconf = {}
+
 		self.archmap = {}
 		self.subarchmap = {}
+
 		machinemap = {}
-		arch_dir = self.settings["archdir"] + "/"
+
 		log.debug("Begin loading arch modules...")
-		for x in [
-					x[:-3] for x in os.listdir(arch_dir) if x.endswith(".py")
-					and x != "__init__.py"]:
+		for x in support.get_modules(self.settings["archdir"]):
 			log.debug("\tLoading %s", x)
 			try:
-				fh = open(arch_dir + x + ".py")
-				# This next line loads the plugin as a module and
-				# assigns it to archmap[x]
-				self.archmap[x] = imp.load_module(x, fh, arch_dir + x + ".py",
-					(".py", "r", imp.PY_SOURCE))
-				# This next line registers all the subarches
-				# supported in the plugin
-				tmpsubarchmap, tmpmachinemap = self.archmap[x].register()
-				self.subarchmap.update(tmpsubarchmap)
-				for machine in tmpmachinemap:
-					machinemap[machine] = x
-				for subarch in tmpsubarchmap:
-					machinemap[subarch] = x
-				fh.close()
+				with open(os.path.join(self.settings["archdir"], x + ".py")) as fh:
+					# This next line loads the plugin as a module and assigns it to archmap[x]
+					self.archmap[x] = imp.load_module(x, fh, os.path.join(self.settings["archdir"], x + ".py"), (".py", "r", imp.PY_SOURCE))
+					# This next line registers all the subarches supported in the plugin
+					tmpsubarchmap, tmpmachinemap = self.archmap[x].register()
+					self.subarchmap.update(tmpsubarchmap)
+					for machine in tmpmachinemap:
+						machinemap[machine] = x
+					for subarch in tmpsubarchmap:
+						machinemap[subarch] = x
 			except IOError:
 				# This message should probably change a bit, since everything in
 				# the dir should load just fine. If it doesn't, it's probably a
 				# syntax error in the module
-				log.warning("Can't find/load %s.py plugin in %s", x, arch_dir)
+				log.warning("Can't find/load %s.py plugin in %s", x, self.settings["archdir"])
 			log.debug("Loaded arch module: %s", self.archmap[x])
 
 		if "chost" in self.settings:
@@ -138,8 +140,7 @@ class Builder:
 		if buildmachine not in machinemap:
 			raise CatalystError("Unknown build machine type " + buildmachine)
 		self.settings["buildarch"] = machinemap[buildmachine]
-		self.settings["crosscompile"] = (self.settings["hostarch"] != \
-			self.settings["buildarch"])
+		self.settings["crosscompile"] = (self.settings["hostarch"] != self.settings["buildarch"])
 
 		# Call arch constructor, pass our settings
 		try:
@@ -171,15 +172,13 @@ class Builder:
 			search_order = self.settings["decompressor_search_order"],
 			comp_prog = self.settings["comp_prog"],
 			decomp_opt = self.settings["decomp_opt"])
-		self.accepted_extensions = self.decompressor.search_order_extensions(
-			self.settings["decompressor_search_order"])
+		self.accepted_extensions = self.decompressor.search_order_extensions(self.settings["decompressor_search_order"])
 		log.notice("Source file specification matching setting is: %s", self.settings["source_matching"])
 		log.notice("Accepted source file extensions search order: %s", self.accepted_extensions)
 		# save resources, it is not always needed
 		self.compressor = None
 
 		# Define all of our core variables
-		self.set_target_profile()
 		self.set_target_subpath()
 		self.set_source_subpath()
 
@@ -234,8 +233,7 @@ class Builder:
 		# update these from settings
 		self.mountmap["portdir"] = self.settings["portdir"]
 		self.mountmap["distdir"] = self.settings["distdir"]
-		self.target_mounts["portdir"] = normpath(self.settings["repo_basedir"] +
-			"/" + self.settings["repo_name"])
+		self.target_mounts["portdir"] = normpath(self.settings["repo_basedir"] + "/" + self.settings["repo_name"])
 		self.target_mounts["distdir"] = self.settings["target_distdir"]
 		self.target_mounts["packagedir"] = self.settings["target_pkgdir"]
 		if "snapcache" not in self.settings["options"]:
@@ -253,8 +251,7 @@ class Builder:
 
 		self.set_mounts()
 
-		# Configure any user specified options (either in catalyst.conf or on
-		# the command line).
+		# Configure any user specified options (either in catalyst.conf or on the command line).
 		if "pkgcache" in self.settings["options"]:
 			self.set_pkgcache_path()
 			log.info('Location of the package cache is %s', self.settings['pkgcache_path'])
@@ -267,66 +264,11 @@ class Builder:
 			self.mounts.append("kerncache")
 			self.mountmap["kerncache"] = self.settings["kerncache_path"]
 
-		if "ccache" in self.settings["options"]:
-			if "CCACHE_DIR" in os.environ:
-				ccdir = os.environ["CCACHE_DIR"]
-				del os.environ["CCACHE_DIR"]
-			else:
-				ccdir = "/var/tmp/ccache"
-			if not os.path.isdir(ccdir):
-				raise CatalystError(
-					"Compiler cache support can't be enabled (can't find " + ccdir+")")
-			self.mounts.append("ccache")
-			self.mountmap["ccache"] = ccdir
-			# for the chroot:
-			self.env["CCACHE_DIR"] = self.target_mounts["ccache"]
-
-		if "icecream" in self.settings["options"]:
-			self.mounts.append("icecream")
-			self.mountmap["icecream"] = self.settings["icecream"]
-			self.env["PATH"] = self.target_mounts["icecream"] + ":" + self.env["PATH"]
-
 		if "port_logdir" in self.settings:
 			self.mounts.append("port_logdir")
 			self.mountmap["port_logdir"] = self.settings["port_logdir"]
 			self.env["PORT_LOGDIR"] = self.settings["port_logdir"]
 			self.env["PORT_LOGDIR_CLEAN"] = PORT_LOGDIR_CLEAN
-
-	def override_cbuild(self):
-		if "CBUILD" in self.makeconf:
-			self.settings["CBUILD"] = self.makeconf["CBUILD"]
-
-	def override_chost(self):
-		if "CHOST" in self.makeconf:
-			self.settings["CHOST"] = self.makeconf["CHOST"]
-
-	def override_cflags(self):
-		if "CFLAGS" in self.makeconf:
-			self.settings["CFLAGS"] = self.makeconf["CFLAGS"]
-
-	def override_cxxflags(self):
-		if "CXXFLAGS" in self.makeconf:
-			self.settings["CXXFLAGS"] = self.makeconf["CXXFLAGS"]
-
-	def override_fcflags(self):
-		if "FCFLAGS" in self.makeconf:
-			self.settings["FCFLAGS"] = self.makeconf["FCFLAGS"]
-
-	def override_fflags(self):
-		if "FFLAGS" in self.makeconf:
-			self.settings["FFLAGS"] = self.makeconf["FFLAGS"]
-
-	def override_ldflags(self):
-		if "LDFLAGS" in self.makeconf:
-			self.settings["LDFLAGS"] = self.makeconf["LDFLAGS"]
-
-	def override_asflags(self):
-		if "ASFLAGS" in self.makeconf:
-			self.settings["ASFLAGS"] = self.makeconf["ASFLAGS"]
-
-	def override_common_flags(self):
-		if "COMMON_FLAGS" in self.makeconf:
-			self.settings["COMMON_FLAGS"] = self.makeconf["COMMON_FLAGS"]
 
 	def set_install_mask(self):
 		if "install_mask" in self.settings:
@@ -337,19 +279,10 @@ class Builder:
 	def set_spec_prefix(self):
 		self.settings["spec_prefix"] = self.settings["target"]
 
-	def set_target_profile(self):
-		self.settings["target_profile"] = self.settings["profile"]
-
 	def set_target_subpath(self):
-		common = self.settings["rel_type"] + "/" + \
-				self.settings["target"] + "-" + self.settings["subarch"]
-		self.settings["target_subpath"] = \
-				common + \
-				"-" + self.settings["version_stamp"] + \
-				"/"
-		self.settings["target_subpath_unversioned"] = \
-				common + \
-				"/"
+		common = self.settings["rel_type"] + "/" + self.settings["target"] + "-" + self.settings["subarch"]
+		self.settings["target_subpath"] = common + "-" + self.settings["version_stamp"] + "/"
+		self.settings["target_subpath_unversioned"] = common + "/"
 
 	def set_source_subpath(self):
 		if not isinstance(self.settings['source_subpath'], str):
@@ -452,16 +385,11 @@ class Builder:
 				del self.settings[self.settings["spec_prefix"] + "/fsops"]
 
 	def set_source_path(self):
-		if "seedcache" in self.settings["options"]\
-			and os.path.isdir(normpath(self.settings["storedir"] + "/tmp/" +
-				self.settings["source_subpath"] + "/")):
-			self.settings["source_path"] = normpath(self.settings["storedir"] +
-				"/tmp/" + self.settings["source_subpath"] + "/")
+		if "seedcache" in self.settings["options"] and os.path.isdir(normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")):
+			self.settings["source_path"] = normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")
 			log.debug("source_subpath is: %s", self.settings["source_path"])
 		else:
-			log.debug('Checking source path existence and '
-				'get the final filepath. subpath: %s',
-				self.settings["source_subpath"])
+			log.debug('Checking source path existence and get the final filepath. subpath: %s', self.settings["source_subpath"])
 			self.settings["source_path"] = file_check(
 				normpath(self.settings["storedir"] + "/builds/" +
 					self.settings["source_subpath"]),
@@ -481,8 +409,7 @@ class Builder:
 
 	def set_dest_path(self):
 		if "root_path" in self.settings:
-			self.settings["destpath"] = normpath(self.settings["chroot_path"] +
-				self.settings["root_path"])
+			self.settings["destpath"] = normpath(self.settings["chroot_path"] + self.settings["root_path"])
 		else:
 			self.settings["destpath"] = normpath(self.settings["chroot_path"])
 
@@ -923,7 +850,7 @@ class Builder:
 				self.settings['port_conf'] + '/make.profile')
 			ensure_dirs(self.settings['chroot_path'] + self.settings['port_conf'])
 			cmd(['ln', '-sf',
-				'../..' + self.settings['portdir'] + '/profiles/' + self.settings['target_profile'],
+				'../..' + self.settings['portdir'] + '/profiles/' + self.settings['profile'],
 				self.settings['chroot_path'] + self.settings['port_conf'] + '/make.profile'],
 				env=self.env)
 			self.resume.enable("config_profile_link")
@@ -1037,23 +964,31 @@ class Builder:
 			# if any bind mounts really failed, then we need to raise
 			# this to potentially prevent an upcoming bash stage cleanup script
 			# from wiping our bind mounts.
-			raise CatalystError(
-				"Couldn't umount one or more bind-mounts; aborting for safety.")
+			raise CatalystError("Couldn't umount one or more bind-mounts; aborting for safety.")
 
 	def chroot_setup(self):
-		self.makeconf = read_makeconf(normpath(self.settings["chroot_path"] +
-			self.settings["make_conf"]))
-		self.override_cbuild()
-		self.override_chost()
-		self.override_cflags()
-		self.override_cxxflags()
-		self.override_fcflags()
-		self.override_fflags()
-		self.override_ldflags()
-		self.override_asflags()
-		self.override_common_flags()
-		if "autoresume" in self.settings["options"] \
-			and self.resume.is_enabled("chroot_setup"):
+		self.makeconf = read_makeconf(normpath(self.settings["chroot_path"] + self.settings["make_conf"]))
+
+		if "CBUILD" in self.makeconf:
+			self.settings["CBUILD"] = self.makeconf["CBUILD"]
+		if "CHOST" in self.makeconf:
+			self.settings["CHOST"] = self.makeconf["CHOST"]
+		if "CFLAGS" in self.makeconf:
+			self.settings["CFLAGS"] = self.makeconf["CFLAGS"]
+		if "CXXFLAGS" in self.makeconf:
+			self.settings["CXXFLAGS"] = self.makeconf["CXXFLAGS"]
+		if "FCFLAGS" in self.makeconf:
+			self.settings["FCFLAGS"] = self.makeconf["FCFLAGS"]
+		if "FFLAGS" in self.makeconf:
+			self.settings["FFLAGS"] = self.makeconf["FFLAGS"]
+		if "LDFLAGS" in self.makeconf:
+			self.settings["LDFLAGS"] = self.makeconf["LDFLAGS"]
+		if "ASFLAGS" in self.makeconf:
+			self.settings["ASFLAGS"] = self.makeconf["ASFLAGS"]
+		if "COMMON_FLAGS" in self.makeconf:
+			self.settings["COMMON_FLAGS"] = self.makeconf["COMMON_FLAGS"]
+
+		if "autoresume" in self.settings["options"] and self.resume.is_enabled("chroot_setup"):
 			log.notice('Resume point detected, skipping chroot_setup operation...')
 		else:
 			log.notice('Setting up chroot...')
@@ -1083,25 +1018,7 @@ class Builder:
 					shutil.copy(myi,
 						self.settings['chroot_path'] + '/' + myi)
 
-			# Copy over the envscript, if applicable
-			if "envscript" in self.settings:
-				if not os.path.exists(self.settings["envscript"]):
-					raise CatalystError(
-						"Can't find envscript " + self.settings["envscript"],
-						print_traceback=True)
-
-				log.warning(
-					'Overriding certain env variables may cause catastrophic failure.\n'
-					'If your build fails look here first as the possible problem.\n'
-					'Catalyst assumes you know what you are doing when setting these variables.\n'
-					'Catalyst Maintainers use VERY minimal envscripts, if used at all.\n'
-					'You have been warned.')
-
-				shutil.copy(self.settings['envscript'],
-					self.settings['chroot_path'] + '/tmp/envscript')
-
-			# Copy over /etc/hosts from the host in case there are any
-			# specialties in there
+			# Copy over /etc/hosts from the host in case there are any specialties in there
 			hosts_file = self.settings['chroot_path'] + '/etc/hosts'
 			if os.path.exists(hosts_file):
 				os.rename(hosts_file, hosts_file + '.catalyst')
@@ -1568,22 +1485,6 @@ class Builder:
 							env=self.env)
 				self.resume.enable("setup_overlay")
 
-	def create_iso(self):
-		if "autoresume" in self.settings["options"] \
-			and self.resume.is_enabled("create_iso"):
-			log.notice('Resume point detected, skipping create_iso operation...')
-		else:
-			# Create the ISO
-			if "iso" in self.settings:
-				cmd([self.settings['controller_file'], 'iso', self.settings['iso']],
-					env=self.env)
-				self.gen_contents_file(self.settings["iso"])
-				self.gen_digest_file(self.settings["iso"])
-				self.resume.enable("create_iso")
-			else:
-				log.warning('livecd/iso was not defined.  '
-					'An ISO Image will not be created.')
-
 	def build_packages(self):
 		build_packages_resume = os.path.join(self.settings["autoresume_path"],
 			"build_packages")
@@ -1832,7 +1733,20 @@ class Builder:
 			log.notice('purge(); clearing kerncache ...')
 			self.clear_kerncache(remove)
 
+	def _addl_arg_parse(self, myspec):
+		"helper function to help targets parse additional arguments"
+		messages = []
 
+		for x in myspec:
+			if x not in self.valid_values and x not in self.required_values:
+				messages.append(f"Argument \"{x}\" not recognized.")
+
+		for x in self.required_values:
+			if x not in myspec:
+				messages.append(f"Required argument \"{x}\" not specified.")
+
+		if len(messages) > 0:
+			raise CatalystError('\n\tAlso: '.join(messages))
 
 
 
