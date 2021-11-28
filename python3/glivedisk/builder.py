@@ -46,6 +46,9 @@ class Builder:
 	the driver class for pretty much everything that glivedisk does.
 	"""
 
+    def get(self, settings):
+        pass
+
 	required_values = [
 		"storedir",
 		"sharedir",
@@ -57,7 +60,7 @@ class Builder:
 		"rel_type",
 		"profile",
 		"snapshot",
-		"source_subpath"
+		"source_subpath",
 	]
 
 	valid_values = [
@@ -80,7 +83,18 @@ class Builder:
 		"kerncache_path",
 		"compression_mode",
 		"decompression_mode",
-		"interpreter"
+		"interpreter",
+		"fstype",
+		"fsopts",
+		"options",
+		"snapshot_cache",
+		"hash_function",
+		"digests",
+		"contents",
+		"compressor_arch",
+		"compression_mode",
+		"compressor_options",
+		"decompressor_search_order",
 	]
 
 	def __init__(self, settings):
@@ -198,20 +212,14 @@ class Builder:
 		self.set_use()
 		self.set_catalyst_use()
 		self.set_cleanables()
-		self.set_iso_volume_id()
 		self.set_build_kernel_vars()
-		self.set_fsscript()
 		self.set_install_mask()
 		self.set_rcadd()
 		self.set_rcdel()
 		self.set_cdtar()
-		self.set_fstype()
-		self.set_fsops()
-		self.set_iso()
 		self.set_packages()
 		self.set_rm()
 		self.set_linuxrc()
-		self.set_busybox_config()
 		self.set_overlay()
 		self.set_portage_overlay()
 		self.set_root_overlay()
@@ -233,14 +241,14 @@ class Builder:
 		# update these from settings
 		self.mountmap["portdir"] = self.settings["portdir"]
 		self.mountmap["distdir"] = self.settings["distdir"]
-		self.target_mounts["portdir"] = normpath(self.settings["repo_basedir"] + "/" + self.settings["repo_name"])
+		self.target_mounts["portdir"] = support.normpath(self.settings["repo_basedir"] + "/" + self.settings["repo_name"])
 		self.target_mounts["distdir"] = self.settings["target_distdir"]
 		self.target_mounts["packagedir"] = self.settings["target_pkgdir"]
 		if "snapcache" not in self.settings["options"]:
 			self.mounts.remove("portdir")
 			self.mountmap["portdir"] = None
 		else:
-			self.mountmap["portdir"] = normpath("/".join([
+			self.mountmap["portdir"] = support.normpath("/".join([
 				self.settings["snapshot_cache_path"],
 				self.settings["repo_name"],
 				]))
@@ -294,43 +302,35 @@ class Builder:
 		if "pkgcache_path" in self.settings:
 			if not isinstance(self.settings['pkgcache_path'], str):
 				self.settings["pkgcache_path"] = \
-					normpath(self.settings["pkgcache_path"])
+					support.normpath(self.settings["pkgcache_path"])
 		elif "versioned_cache" in self.settings["options"]:
 			self.settings["pkgcache_path"] = \
-				normpath(self.settings["storedir"] + "/packages/" + \
+				support.normpath(self.settings["storedir"] + "/packages/" + \
 				self.settings["target_subpath"] + "/")
 		else:
 			self.settings["pkgcache_path"] = \
-				normpath(self.settings["storedir"] + "/packages/" + \
+				support.normpath(self.settings["storedir"] + "/packages/" + \
 				self.settings["target_subpath_unversioned"] + "/")
 
 	def set_kerncache_path(self):
 		if "kerncache_path" in self.settings:
 			if not isinstance(self.settings['kerncache_path'], str):
 				self.settings["kerncache_path"] = \
-					normpath(self.settings["kerncache_path"])
+					support.normpath(self.settings["kerncache_path"])
 		elif "versioned_cache" in self.settings["options"]:
-			self.settings["kerncache_path"] = normpath(self.settings["storedir"] + \
+			self.settings["kerncache_path"] = support.normpath(self.settings["storedir"] + \
 				"/kerncache/" + self.settings["target_subpath"])
 		else:
-			self.settings["kerncache_path"] = normpath(self.settings["storedir"] + \
+			self.settings["kerncache_path"] = support.normpath(self.settings["storedir"] + \
 				"/kerncache/" + self.settings["target_subpath_unversioned"])
 
 	def set_target_path(self):
-		self.settings["target_path"] = normpath(self.settings["storedir"] + \
-			"/builds/" + self.settings["target_subpath"])
-		if "autoresume" in self.settings["options"]\
-			and self.resume.is_enabled("setup_target_path"):
+		self.settings["target_path"] = support.normpath(os.path.join(self.settings["storedir"], "builds", self.settings["target_subpath"]))
+		if "autoresume" in self.settings["options"] and self.resume.is_enabled("setup_target_path"):
 			log.notice('Resume point detected, skipping target path setup operation...')
 		else:
 			self.resume.enable("setup_target_path")
-			ensure_dirs(self.settings["storedir"] + "/builds")
-
-	def set_fsscript(self):
-		if self.settings["spec_prefix"] + "/fsscript" in self.settings:
-			self.settings["fsscript"] = \
-				self.settings[self.settings["spec_prefix"] + "/fsscript"]
-			del self.settings[self.settings["spec_prefix"] + "/fsscript"]
+			ensure_dirs(os.path.join(self.settings["storedir"] + "builds"))
 
 	def set_rcadd(self):
 		if self.settings["spec_prefix"] + "/rcadd" in self.settings:
@@ -347,51 +347,17 @@ class Builder:
 	def set_cdtar(self):
 		if self.settings["spec_prefix"] + "/cdtar" in self.settings:
 			self.settings["cdtar"] = \
-				normpath(self.settings[self.settings["spec_prefix"] + "/cdtar"])
+				support.normpath(self.settings[self.settings["spec_prefix"] + "/cdtar"])
 			del self.settings[self.settings["spec_prefix"] + "/cdtar"]
 
-	def set_iso(self):
-		if self.settings["spec_prefix"] + "/iso" in self.settings:
-			if self.settings[self.settings["spec_prefix"] + "/iso"].startswith('/'):
-				self.settings["iso"] = \
-					normpath(self.settings[self.settings["spec_prefix"] + "/iso"])
-			else:
-				# This automatically prepends the build dir to the ISO output path
-				# if it doesn't start with a /
-				self.settings["iso"] = normpath(self.settings["storedir"] + \
-					"/builds/" + self.settings["rel_type"] + "/" + \
-					self.settings[self.settings["spec_prefix"] + "/iso"])
-			del self.settings[self.settings["spec_prefix"] + "/iso"]
-
-	def set_fstype(self):
-		if self.settings["spec_prefix"] + "/fstype" in self.settings:
-			self.settings["fstype"] = \
-				self.settings[self.settings["spec_prefix"] + "/fstype"]
-			del self.settings[self.settings["spec_prefix"] + "/fstype"]
-
-		if "fstype" not in self.settings:
-			self.settings["fstype"] = "normal"
-			for x in self.valid_values:
-				if x ==  self.settings["spec_prefix"] + "/fstype":
-					log.info('%s/fstype is being set to the default of "normal"',
-						self.settings['spec_prefix'])
-
-	def set_fsops(self):
-		if "fstype" in self.settings:
-			self.valid_values.append("fsops")
-			if self.settings["spec_prefix"] + "/fsops" in self.settings:
-				self.settings["fsops"] = \
-					self.settings[self.settings["spec_prefix"] + "/fsops"]
-				del self.settings[self.settings["spec_prefix"] + "/fsops"]
-
 	def set_source_path(self):
-		if "seedcache" in self.settings["options"] and os.path.isdir(normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")):
-			self.settings["source_path"] = normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")
+		if "seedcache" in self.settings["options"] and os.path.isdir(support.normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")):
+			self.settings["source_path"] = support.normpath(self.settings["storedir"] + "/tmp/" + self.settings["source_subpath"] + "/")
 			log.debug("source_subpath is: %s", self.settings["source_path"])
 		else:
 			log.debug('Checking source path existence and get the final filepath. subpath: %s', self.settings["source_subpath"])
 			self.settings["source_path"] = file_check(
-				normpath(self.settings["storedir"] + "/builds/" +
+				support.normpath(self.settings["storedir"] + "/builds/" +
 					self.settings["source_subpath"]),
 				self.accepted_extensions,
 				self.settings["source_matching"] in ["strict"]
@@ -409,9 +375,9 @@ class Builder:
 
 	def set_dest_path(self):
 		if "root_path" in self.settings:
-			self.settings["destpath"] = normpath(self.settings["chroot_path"] + self.settings["root_path"])
+			self.settings["destpath"] = support.normpath(self.settings["chroot_path"] + self.settings["root_path"])
 		else:
-			self.settings["destpath"] = normpath(self.settings["chroot_path"])
+			self.settings["destpath"] = support.normpath(self.settings["chroot_path"])
 
 	def set_cleanables(self):
 		self.settings["cleanables"] = ["/etc/machine-id", "/etc/resolv.conf", "/var/tmp/*", "/tmp/*",
@@ -420,7 +386,7 @@ class Builder:
 
 	def set_snapshot_path(self):
 		self.settings["snapshot_path"] = file_check(
-			normpath(self.settings["storedir"] +
+			support.normpath(self.settings["storedir"] +
 				"/snapshots/" + self.settings["snapshot_name"] +
 				self.settings["snapshot"]),
 			self.accepted_extensions,
@@ -434,11 +400,11 @@ class Builder:
 
 	def set_snapcache_path(self):
 		self.settings["snapshot_cache_path"] = \
-			normpath(os.path.join(self.settings["snapshot_cache"],
+			support.normpath(os.path.join(self.settings["snapshot_cache"],
 				self.settings["snapshot"]))
 		if "snapcache" in self.settings["options"]:
 			self.settings["snapshot_cache_path"] = \
-				normpath(os.path.join(self.settings["snapshot_cache"],
+				support.normpath(os.path.join(self.settings["snapshot_cache"],
 					self.settings["snapshot"]))
 			log.info('Setting snapshot cache to %s', self.settings['snapshot_cache_path'])
 
@@ -447,11 +413,11 @@ class Builder:
 		NOTE: the trailing slash has been removed
 		Things *could* break if you don't use a proper join()
 		"""
-		self.settings["chroot_path"] = normpath(self.settings["storedir"] +
+		self.settings["chroot_path"] = support.normpath(self.settings["storedir"] +
 			"/tmp/" + self.settings["target_subpath"].rstrip('/'))
 
 	def set_autoresume_path(self):
-		self.settings["autoresume_path"] = normpath(os.path.join(
+		self.settings["autoresume_path"] = support.normpath(os.path.join(
 			self.settings["storedir"], "tmp", self.settings["rel_type"],
 			".autoresume-%s-%s-%s"
 			%(self.settings["target"], self.settings["subarch"],
@@ -462,19 +428,9 @@ class Builder:
 		self.resume = AutoResume(self.settings["autoresume_path"], mode=0o755)
 
 	def set_controller_file(self):
-		self.settings["controller_file"] = normpath(self.settings["sharedir"] +
+		self.settings["controller_file"] = support.normpath(self.settings["sharedir"] +
 			"/targets/" + self.settings["target"] + "/" + self.settings["target"]
 			+ "-controller.sh")
-
-	def set_iso_volume_id(self):
-		if self.settings["spec_prefix"] + "/volid" in self.settings:
-			self.settings["iso_volume_id"] = \
-				self.settings[self.settings["spec_prefix"] + "/volid"]
-			if len(self.settings["iso_volume_id"]) > 32:
-				raise CatalystError(
-					"ISO volume ID must not exceed 32 characters.")
-		else:
-			self.settings["iso_volume_id"] = "catalyst "+self.settings["snapshot"]
 
 	def set_default_action_sequence(self):
 		""" Default action sequence for run method.
@@ -535,7 +491,7 @@ class Builder:
 			self.settings["catalyst_use"].append("bindist")
 
 	def set_stage_path(self):
-		self.settings["stage_path"] = normpath(self.settings["chroot_path"])
+		self.settings["stage_path"] = support.normpath(self.settings["chroot_path"])
 
 	def set_mounts(self):
 		pass
@@ -555,13 +511,6 @@ class Builder:
 				self.settings["linuxrc"] = \
 					self.settings[self.settings["spec_prefix"] + "/linuxrc"]
 				del self.settings[self.settings["spec_prefix"] + "/linuxrc"]
-
-	def set_busybox_config(self):
-		if self.settings["spec_prefix"] + "/busybox_config" in self.settings:
-			if isinstance(self.settings[self.settings['spec_prefix'] + '/busybox_config'], str):
-				self.settings["busybox_config"] = \
-					self.settings[self.settings["spec_prefix"] + "/busybox_config"]
-				del self.settings[self.settings["spec_prefix"] + "/busybox_config"]
 
 	def set_portage_overlay(self):
 		if "portage_overlay" in self.settings:
@@ -627,7 +576,7 @@ class Builder:
 		# Force environment variables to be exported so script can see them
 		self.setup_environment()
 
-		killcmd = normpath(self.settings["sharedir"] +
+		killcmd = support.normpath(self.settings["sharedir"] +
 			self.settings["shdir"] + "/support/kill-chroot-pids.sh")
 		if os.path.exists(killcmd):
 			cmd([killcmd], env = self.env)
@@ -644,7 +593,7 @@ class Builder:
 
 		log.debug('self.mounts = %s', self.mounts)
 		for x in self.mounts:
-			target = normpath(self.settings["chroot_path"] + self.target_mounts[x])
+			target = support.normpath(self.settings["chroot_path"] + self.target_mounts[x])
 			log.debug('mount_safety_check() x = %s %s', x, target)
 			if not os.path.exists(target):
 				continue
@@ -788,7 +737,7 @@ class Builder:
 			other_options = self.settings["compressor_options"],
 			)
 
-		target_portdir = normpath(self.settings["chroot_path"] +
+		target_portdir = support.normpath(self.settings["chroot_path"] +
 			self.settings["repo_basedir"] + "/" + self.settings["repo_name"])
 		log.info('%s', self.settings['chroot_path'])
 		log.info('unpack_snapshot(), target_portdir = %s', target_portdir)
@@ -809,7 +758,7 @@ class Builder:
 		else:
 			cleanup_msg = \
 				'Cleaning up existing portage tree (this can take a long time)...'
-			unpack_info['destination'] = normpath(
+			unpack_info['destination'] = support.normpath(
 				self.settings["chroot_path"] + self.settings["repo_basedir"])
 			unpack_info['mode'] = self.decompressor.determine_mode(
 				unpack_info['source'])
@@ -862,7 +811,7 @@ class Builder:
 		else:
 			if "portage_confdir" in self.settings:
 				log.info('Configuring %s...', self.settings['port_conf'])
-				dest = normpath(self.settings['chroot_path'] + '/' + self.settings['port_conf'])
+				dest = support.normpath(self.settings['chroot_path'] + '/' + self.settings['port_conf'])
 				ensure_dirs(dest)
 				# The trailing slashes on both paths are important:
 				# We want to make sure rsync copies the dirs into each
@@ -898,7 +847,7 @@ class Builder:
 	def bind(self):
 		for x in self.mounts:
 			log.debug('bind(); x = %s', x)
-			target = normpath(self.settings["chroot_path"] + self.target_mounts[x])
+			target = support.normpath(self.settings["chroot_path"] + self.target_mounts[x])
 			ensure_dirs(target, mode=0o755)
 
 			if not os.path.exists(self.mountmap[x]):
@@ -938,7 +887,7 @@ class Builder:
 		myrevmounts.reverse()
 		# Unmount in reverse order for nested bind-mounts
 		for x in myrevmounts:
-			target = normpath(mypath + self.target_mounts[x])
+			target = support.normpath(mypath + self.target_mounts[x])
 			if not os.path.exists(target):
 				log.notice('%s does not exist. Skipping', target)
 				continue
@@ -967,7 +916,7 @@ class Builder:
 			raise CatalystError("Couldn't umount one or more bind-mounts; aborting for safety.")
 
 	def chroot_setup(self):
-		self.makeconf = read_makeconf(normpath(self.settings["chroot_path"] + self.settings["make_conf"]))
+		self.makeconf = read_makeconf(support.normpath(self.settings["chroot_path"] + self.settings["make_conf"]))
 
 		if "CBUILD" in self.makeconf:
 			self.settings["CBUILD"] = self.makeconf["CBUILD"]
@@ -1028,13 +977,13 @@ class Builder:
 				self.write_make_conf(setup=True)
 			except OSError as e:
 				raise CatalystError('Could not write %s: %s' % (
-					normpath(self.settings["chroot_path"] +
+					support.normpath(self.settings["chroot_path"] +
 						self.settings["make_conf"]), e))
 			self.resume.enable("chroot_setup")
 
 	def write_make_conf(self, setup=True):
 		# Modify and write out make.conf (for the chroot)
-		makepath = normpath(self.settings["chroot_path"] +
+		makepath = support.normpath(self.settings["chroot_path"] +
 			self.settings["make_conf"])
 		clear_path(makepath)
 		with open(makepath, "w") as myf:
@@ -1111,7 +1060,7 @@ class Builder:
 					myf.write(hostuseexpand + '="' +
 						' '.join(myuseexpandvars[hostuseexpand]) + '"\n')
 			# write out a shipable version
-			target_portdir = normpath(self.settings["repo_basedir"] + "/" +
+			target_portdir = support.normpath(self.settings["repo_basedir"] + "/" +
 				self.settings["repo_name"])
 
 			myf.write('PORTDIR="%s"\n' % target_portdir)
@@ -1128,18 +1077,6 @@ class Builder:
 				'# This sets the language of build output to English.\n'
 				'# Please keep this setting intact when reporting bugs.\n'
 				'LC_MESSAGES=C\n')
-
-
-	def fsscript(self):
-		if "autoresume" in self.settings["options"] \
-			and self.resume.is_enabled("fsscript"):
-			log.notice('Resume point detected, skipping fsscript operation...')
-		else:
-			if "fsscript" in self.settings:
-				if os.path.exists(self.settings["controller_file"]):
-					cmd([self.settings['controller_file'], 'fsscript'],
-						env=self.env)
-					self.resume.enable("fsscript")
 
 	def rcupdate(self):
 		if "autoresume" in self.settings["options"] \
@@ -1158,7 +1095,7 @@ class Builder:
 		else:
 			for x in self.settings["cleanables"]:
 				log.notice('Cleaning chroot: %s', x)
-				clear_path(normpath(self.settings["destpath"] + x))
+				clear_path(support.normpath(self.settings["destpath"] + x))
 
 		# Put /etc/hosts back into place
 		hosts_file = self.settings['chroot_path'] + '/etc/hosts'
@@ -1197,7 +1134,7 @@ class Builder:
 			clear_path(target)
 
 		# Remove our overlay
-		overlay = normpath(self.settings["chroot_path"] + self.settings["local_overlay"])
+		overlay = support.normpath(self.settings["chroot_path"] + self.settings["local_overlay"])
 		if os.path.exists(overlay):
 			clear_path(overlay)
 
@@ -1238,24 +1175,19 @@ class Builder:
 			self.resume.enable("empty")
 
 	def remove(self):
-		if "autoresume" in self.settings["options"] \
-			and self.resume.is_enabled("remove"):
-			log.notice('Resume point detected, skipping remove operation...')
-		else:
-			if self.settings["spec_prefix"] + "/rm" in self.settings:
-				for x in self.settings[self.settings["spec_prefix"] + "/rm"]:
-					# We're going to shell out for all these cleaning
-					# operations, so we get easy glob handling.
-					log.notice('livecd: removing %s', x)
-					clear_path(self.settings["chroot_path"] + x)
-				try:
-					if os.path.exists(self.settings["controller_file"]):
-						cmd([self.settings['controller_file'], 'clean'],
-							env=self.env)
-						self.resume.enable("remove")
-				except:
-					self.unbind()
-					raise
+		if self.settings["spec_prefix"] + "/rm" in self.settings:
+			for x in self.settings[self.settings["spec_prefix"] + "/rm"]:
+				# We're going to shell out for all these cleaning
+				# operations, so we get easy glob handling.
+				log.notice('livecd: removing %s', x)
+				clear_path(self.settings["chroot_path"] + x)
+			try:
+				if os.path.exists(self.settings["controller_file"]):
+					cmd([self.settings['controller_file'], 'clean'], env=self.env)
+					self.resume.enable("remove")
+			except:
+				self.unbind()
+				raise
 
 	def preclean(self):
 		if "autoresume" in self.settings["options"] \

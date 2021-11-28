@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,32 +21,12 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
+class Exporter:
 
-__version__ = '0.0.1'
+    def get(self, exporter_name, settings):
+        pass
 
-__author__ = 'Fpemud <fpemud@sina.com>'
+    def __init__(self, settings):
+        self.settings = settings
 
-__maintainer__ = 'Fpemud <fpemud@sina.com>'
 
-
-class Param:
-
-    def __init__(self):
-        self.subarch = None
-        self.profile = None
-        self.use = None             # list?
-        self.packages = None        # list?
-        self.unmerge = None         # list?
-        self.rm = None              # list?
-        self.vol_id = None
-
-        # FIXME
-        self.empty = None
-        self.target = None          # FIXME
-        self.rel_type = None        # FIXME
-        
-
-from .builder import Builder
-from .purger import Purger
-from .exporter import Exporter

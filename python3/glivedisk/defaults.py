@@ -34,13 +34,6 @@ else:
 	TAR = 'bsd'
 
 
-valid_config_file_values = ["storedir", "sharedir", "distdir", "portdir"]
-valid_config_file_values.extend([
-	"options", "DEBUG", "VERBOSE",
-	"snapshot_cache", "hash_function", "digests", "contents", "compressor_arch",
-	"compression_mode", "compressor_options", "decompressor_search_order",
-])
-
 # set our base defaults here to keep them in one location.
 BASE_GENTOO_DIR = "/var/gentoo"
 REPODIR = BASE_GENTOO_DIR + "/repos"
@@ -78,6 +71,7 @@ confdefaults={
 	"storedir": "/var/tmp/catalyst",
 	"target_distdir": DISTDIR[:],
 	"target_pkgdir": PKGDIR[:],
+	"fstype": "normal",
 }
 
 PORT_LOGDIR_CLEAN = \

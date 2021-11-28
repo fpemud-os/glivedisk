@@ -7,7 +7,6 @@ import time
 from subprocess import Popen
 
 from catalyst import log
-from catalyst.defaults import valid_config_file_values
 
 BASH_BINARY             = "/bin/bash"
 
