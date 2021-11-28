@@ -15,11 +15,10 @@ import os
 import shutil
 from stat import ST_UID, ST_GID, ST_MODE
 
-# NOTE: pjoin and listdir_files are imported here for export
+# NOTE: os.path.join and listdir_files are imported here for export
 # to other catalyst modules
 # pylint: disable=unused-import
-from snakeoil.osutils import (ensure_dirs as snakeoil_ensure_dirs,
-	pjoin, listdir_files)
+from snakeoil.osutils import (ensure_dirs as snakeoil_ensure_dirs, os.path.join, listdir_files)
 # pylint: enable=unused-import
 
 from catalyst import log

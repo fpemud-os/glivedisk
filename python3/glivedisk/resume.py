@@ -16,7 +16,7 @@ import os
 from snakeoil import fileutils
 
 from catalyst import log
-from catalyst.fileops import ensure_dirs, pjoin, listdir_files, clear_dir
+from catalyst.fileops import ensure_dirs, os.path.join, listdir_files, clear_dir
 
 
 class AutoResume(object):
@@ -38,7 +38,7 @@ class AutoResume(object):
 		'''
 		existing = listdir_files(self.basedir, False)
 		for point in existing:
-			self._points[point] = pjoin(self.basedir, point)
+			self._points[point] = os.path.join(self.basedir, point)
 
 
 	def enable(self, point, data=None):
@@ -50,7 +50,7 @@ class AutoResume(object):
 		'''
 		if point in self._points and not data:
 			return True
-		fname = pjoin(self.basedir, point)
+		fname = os.path.join(self.basedir, point)
 		if data:
 			with open(fname,"w") as myf:
 				myf.write(data)

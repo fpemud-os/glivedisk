@@ -32,11 +32,11 @@ from snakeoil import fileutils
 
 from DeComp.compress import CompressMap
 
-from catalyst import log
-from catalyst.defaults import (SOURCE_MOUNT_DEFAULTS, TARGET_MOUNT_DEFAULTS, PORT_LOGDIR_CLEAN)
-from catalyst.support import (CatalystError, file_locate, normpath, cmd, read_makeconf, ismount, file_check, addl_arg_parse)
-from catalyst.fileops import ensure_dirs, pjoin, clear_dir, clear_path
-from catalyst.base.resume import AutoResume
+from . import log
+from .defaults import (SOURCE_MOUNT_DEFAULTS, TARGET_MOUNT_DEFAULTS, PORT_LOGDIR_CLEAN)
+from .support import (CatalystError, file_locate, normpath, cmd, read_makeconf, ismount, file_check, addl_arg_parse)
+from .fileops import ensure_dirs, clear_dir, clear_path
+from .resume import AutoResume
 
 
 class Builder:
@@ -173,10 +173,8 @@ class Builder:
 			decomp_opt = self.settings["decomp_opt"])
 		self.accepted_extensions = self.decompressor.search_order_extensions(
 			self.settings["decompressor_search_order"])
-		log.notice("Source file specification matching setting is: %s",
-			self.settings["source_matching"])
-		log.notice("Accepted source file extensions search order: %s",
-			self.accepted_extensions)
+		log.notice("Source file specification matching setting is: %s", self.settings["source_matching"])
+		log.notice("Accepted source file extensions search order: %s", self.accepted_extensions)
 		# save resources, it is not always needed
 		self.compressor = None
 
@@ -509,11 +507,11 @@ class Builder:
 
 	def set_snapcache_path(self):
 		self.settings["snapshot_cache_path"] = \
-			normpath(pjoin(self.settings["snapshot_cache"],
+			normpath(os.path.join(self.settings["snapshot_cache"],
 				self.settings["snapshot"]))
 		if "snapcache" in self.settings["options"]:
 			self.settings["snapshot_cache_path"] = \
-				normpath(pjoin(self.settings["snapshot_cache"],
+				normpath(os.path.join(self.settings["snapshot_cache"],
 					self.settings["snapshot"]))
 			log.info('Setting snapshot cache to %s', self.settings['snapshot_cache_path'])
 
@@ -526,7 +524,7 @@ class Builder:
 			"/tmp/" + self.settings["target_subpath"].rstrip('/'))
 
 	def set_autoresume_path(self):
-		self.settings["autoresume_path"] = normpath(pjoin(
+		self.settings["autoresume_path"] = normpath(os.path.join(
 			self.settings["storedir"], "tmp", self.settings["rel_type"],
 			".autoresume-%s-%s-%s"
 			%(self.settings["target"], self.settings["subarch"],
@@ -868,7 +866,7 @@ class Builder:
 		log.info('%s', self.settings['chroot_path'])
 		log.info('unpack_snapshot(), target_portdir = %s', target_portdir)
 		if "snapcache" in self.settings["options"]:
-			snapshot_cache_hash_path = pjoin(
+			snapshot_cache_hash_path = os.path.join(
 				self.settings['snapshot_cache_path'], 'catalyst-hash')
 			snapshot_cache_hash = fileutils.readfile(snapshot_cache_hash_path, True)
 			unpack_info['mode'] = self.decompressor.determine_mode(
@@ -1269,14 +1267,14 @@ class Builder:
 			"sticky-config" not in self.settings["options"]):
 			log.debug("clean(), portage_preix = %s, no sticky-config", self.settings["portage_prefix"])
 			for _dir in "package.accept_keywords", "package.keywords", "package.mask", "package.unmask", "package.use", "package.env", "env":
-				target = pjoin(self.settings["destpath"],
+				target = os.path.join(self.settings["destpath"],
 					"etc/portage/%s" % _dir,
 					self.settings["portage_prefix"])
 				log.notice("Clearing portage_prefix target: %s", target)
 				clear_path(target)
 
 		# Remove hacks that should *never* go into stages
-		target = pjoin(self.settings["destpath"], "etc/portage/patches")
+		target = os.path.join(self.settings["destpath"], "etc/portage/patches")
 		if os.path.exists(target):
 			log.warning("You've been hacking. Clearing target patches: %s", target)
 			clear_path(target)
@@ -1587,7 +1585,7 @@ class Builder:
 					'An ISO Image will not be created.')
 
 	def build_packages(self):
-		build_packages_resume = pjoin(self.settings["autoresume_path"],
+		build_packages_resume = os.path.join(self.settings["autoresume_path"],
 			"build_packages")
 		if "autoresume" in self.settings["options"] \
 			and self.resume.is_enabled("build_packages"):
@@ -1854,8 +1852,7 @@ class generic:
         Useful for building x86-on-amd64 and such.
         """
         if os.uname()[0] == 'Linux':
-            self.settings['CHROOT'] = 'setarch %s %s' % (
-                arch, self.settings['CHROOT'])
+            self.settings['CHROOT'] = 'setarch %s %s' % (arch, self.settings['CHROOT'])
 
     def mount_safety_check(self):
         """

@@ -1,3 +1,25 @@
+#!/usr/bin/env python3
+
+# Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 
 import os
 
@@ -12,27 +34,17 @@ else:
 	TAR = 'bsd'
 
 
-# these should never be touched
-required_build_targets = ["targetbase", "generic_stage_target"]
-
-# new build types should be added here
-valid_build_targets = ["stage1_target", "stage2_target", "stage3_target",
-	"stage4_target", "grp_target", "livecd_stage1_target", "livecd_stage2_target",
-	"embedded_target", "tinderbox_target", "snapshot_target", "netboot_target",
-	"netboot2_target"
-	]
-
 required_config_file_values = ["storedir", "sharedir", "distdir", "portdir"]
 
 valid_config_file_values = required_config_file_values[:]
-valid_config_file_values.extend([ "distcc", "envscript",
+valid_config_file_values.extend([
+	"distcc", "envscript",
 	"options", "DEBUG", "VERBOSE",
 	"snapshot_cache", "hash_function", "digests", "contents", "compressor_arch",
 	"compression_mode", "compressor_options", "decompressor_search_order",
-	])
+])
 
-# set our base defaults here to keep
-# them in one location.
+# set our base defaults here to keep them in one location.
 BASE_GENTOO_DIR = "/var/gentoo"
 REPODIR = BASE_GENTOO_DIR + "/repos"
 DISTDIR = BASE_GENTOO_DIR + "/distfiles"
@@ -71,7 +83,7 @@ confdefaults={
 	"storedir": "/var/tmp/catalyst",
 	"target_distdir": DISTDIR[:],
 	"target_pkgdir": PKGDIR[:],
-	}
+}
 
 DEFAULT_CONFIG_FILE = '/etc/catalyst/catalyst.conf'
 
@@ -92,7 +104,7 @@ TARGET_MOUNT_DEFAULTS = {
 	"proc": "/proc",
 	"shm": "/dev/shm",
 	"run": "/run",
-	}
+}
 
 SOURCE_MOUNT_DEFAULTS = {
 	"dev": "/dev",
@@ -103,7 +115,7 @@ SOURCE_MOUNT_DEFAULTS = {
 	"proc": "/proc",
 	"shm": "shmfs",
 	"run": "tmpfs",
-	}
+}
 
 # legend:  key: message
 option_messages = {
@@ -119,4 +131,4 @@ option_messages = {
 	"seedcache": "Seed cache support enabled.",
 	"snapcache": "Snapshot cache support enabled.",
 	#"tarball": "Tarball creation enabled.",
-	}
+}
