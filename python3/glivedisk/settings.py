@@ -82,6 +82,20 @@ class BuildOptions:
         self.asflags = None
 
 
+class HostInfo:
+
+    def __init__(self):
+        self.distfiles_dir = None    # distfiles directory in host system, will be bind mounted in target system
+                                     # default: None, means there's no such a directory in host system
+
+        self.repositories = None     # repository in host system, will be bind mounted in target system
+
+
+class HostRepository:
+
+    def __init__(self):
+        self.name = None
+        self.host_dir = None
 
 
 class ChrootInfo:
@@ -110,15 +124,6 @@ class ChrootInfo:
 
     def conv_uid_gid(self, uid, gid):
         return (self.conv_uid(uid), self.conv_gid(gid))
-
-
-
-
-class HostInfo:
-
-    def __init__(self):
-        self.host_distfiles_cache_dir = None    # distfiles cache directory in host system, will be bind mounted as "/var/cache/portage/distfiles" in target system
-                                                # default: None, means there's no such 
 
 
 

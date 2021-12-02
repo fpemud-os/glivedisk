@@ -21,16 +21,21 @@
 # THE SOFTWARE.
 
 
+import pickle
+
+
 class Util:
 
     def saveObj(filepath, obj):
-        pass
+        with open(filepath, 'wb') as fh:
+            pickle.dump(obj, fh)
 
-    def loadObj(filepath):
-        pass
+    def loadObj(filepath, klass):
+        with open(filepath, "rb") as fh:
+            return pickle.load(fh)
 
     def saveEnum(filepath, obj):
-        pass
+        Util.saveObj(filepath, obj)
 
     def loadEnum(filepath, klass):
-        pass
+        return Util.loadObj(filepath)
