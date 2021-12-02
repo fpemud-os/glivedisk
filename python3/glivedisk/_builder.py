@@ -219,22 +219,27 @@ class Builder:
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
-        with ChrootMount(self):
-            pass
+        cfgprotect = "CONFIG_PROTECT=\"-* /.glivedisk\""    # the latter is for eliminating "!!! CONFIG_PROTECT is empty" message
+        with self._cm as m:
+            m.runCmd("", "/usr/bin/emerge -s non-exist-package", flags="stdout")                    # eliminate "Performing Global Updates"
+            m.runCmd("", "/usr/bin/eselect news read all", flags="stdout")                          # eliminate gentoo news notification
+            m.runCmd(cfgprotect, "/usr/bin/emerge --autounmask-only -uDN @world", flags="stdout")
+            m.runCmd(cfgprotect, "/usr/bin/emerge --keep-going -uDN @world")
+            m.runCmd(cfgprotect, "/usr/sbin/perl-cleaner --all")
 
     @Action(BuildProgress.STEP_SYSTEM_UPDATED)
     def action_install_packages(self):
-        with ChrootMount(self):
+        with self._cm:
             pass
 
     @Action(BuildProgress.STEP_PACKAGES_INSTALLED)
     def action_gen_kernel_and_initramfs(self):
-        with ChrootMount(self):
+        with self._cm:
             pass
 
     @Action(BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED)
     def action_solder_system(self):
-        with ChrootMount(self):
+        with self._cm:
             pass
 
 
