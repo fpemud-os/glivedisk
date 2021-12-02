@@ -68,7 +68,7 @@ class Builder:
         ret._target = target
         ret._hostInfo = host_info
         ret._chroot = Chroot(chroot_info)
-        ret._progress = BuildProgress.INIT
+        ret._progress = BuildProgress.STEP_INIT
 
         # initialize work_dir
         if not os.path.exists(ret._workDir):
@@ -143,8 +143,8 @@ class Builder:
     def support_rollback(self):
         return False        # FIXME: support rollback through bcachefs non-priviledged snapshot
 
-    def rollback_to(self, step):
-        assert isinstance(step, BuildProgress) and step < self._progress
+    def rollback_to(self, progress_step):
+        assert isinstance(progress_step, BuildProgress) and progress_step < self._progress
         assert False        # FIXME: support rollback through bcachefs non-priviledged snapshot
 
     def dispose(self):
@@ -158,33 +158,34 @@ class Builder:
         self._tf = None
 
     def action_unpack(self):
-        pass
+        assert self._progress == BuildProgress.STEP_INIT
+        self._tf.extractall(self._workDir)
 
     def action_init_repositories(self):
-        pass
+        assert self._progress == BuildProgress.STEP_UNPACKED
 
     def action_init_confdir(self):
-        pass
+        assert self._progress == BuildProgress.STEP_REPOSITORIES_INITIALIZED
 
     def action_update_system(self):
-        pass
+        assert self._progress == BuildProgress.STEP_CONFDIR_INITIALIZED
 
     def action_install_packages(self):
-        pass
+        assert self._progress == BuildProgress.STEP_SYSTEM_UPDATED
 
     def action_gen_kernel_and_initramfs(self):
-        pass
+        assert self._progress == BuildProgress.STEP_PACKAGES_INSTALLED
 
     def action_solder_system(self):
-        pass
+        assert self._progress == BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED
 
 
 class BuildProgress(enum.Enum):
-    INIT = enum.auto()
-    UNPACKED = enum.auto()
-    REPOSITORIES_INITIALIZED = enum.auto()
-    CONFDIR_INITIALIZED = enum.auto()
-    SYSTEM_UPDATED = enum.auto()
-    PACKAGES_INSTALLED = enum.auto()
-    KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
-    SYSTEM_SOLDERED = enum.auto()
+    STEP_INIT = enum.auto()
+    STEP_UNPACKED = enum.auto()
+    STEP_REPOSITORIES_INITIALIZED = enum.auto()
+    STEP_CONFDIR_INITIALIZED = enum.auto()
+    STEP_SYSTEM_UPDATED = enum.auto()
+    STEP_PACKAGES_INSTALLED = enum.auto()
+    STEP_KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
+    STEP_SYSTEM_SOLDERED = enum.auto()
