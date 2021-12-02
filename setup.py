@@ -14,6 +14,7 @@ except:
 # package metadata
 __package__ = 'glivedisk'
 __version__ = '0.0.1'
+__author__ = 'Fpemud <fpemud@sina.com>'
 
 # check linux platform
 platform = distutils.util.get_platform()
@@ -28,8 +29,6 @@ setup(
 	description="A simple python module for gentoo live disk building.",
     author=email.utils.parseaddr(__author__)[0],
     author_email=email.utils.parseaddr(__author__)[1],
-	maintainer=email.utils.parseaddr(__maintainer__)[0],
-	maintainer_email=email.utils.parseaddr(__maintainer__)[1],
 	url='https://github.com/fpemud-os/glivedisk',
 	license='GNU General Public License (GPL)',
 	platforms=['Linux'],

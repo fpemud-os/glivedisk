@@ -21,14 +21,27 @@
 # THE SOFTWARE.
 
 
+import os
 import abc
+import sys
+import pkgutil
 
 
 def get_exporter(name, work_dir, target, **kwargs):
-    pass
+    for mod in pkgutil.iter_modules([".export_target"]):
+        if mod.ExporterImpl.name == name:
+            return mod.ExporterImpl(work_dir, target, **kwargs)
+    assert False        
 
 
 class Exporter(abc.ABC):
+
+    @classmethod
+    @property
+    def name(cls):
+        fn = sys.modules.get(cls.__module__).__file__
+        fn = os.path.basename(fn).replace(".py", "")
+        return fn.replace("_", "-")
 
     @abc.abstractmethod
     def export(self):
