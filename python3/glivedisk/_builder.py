@@ -25,7 +25,6 @@ import os
 import enum
 import robust_layer.simple_fops
 from ._util import Util
-from ._support import Chroot
 from ._errors import WorkDirVerifyError
 from . import settings
 
@@ -105,7 +104,7 @@ class Builder:
         ret._workDir = work_dir
         ret._target = target
         ret._hostInfo = host_info
-        ret._chroot = Chroot(chroot_info)
+        ret._chrootInfo = chroot_info
         ret._progress = BuildProgress.STEP_INIT
 
         # initialize work_dir
@@ -153,7 +152,7 @@ class Builder:
 
         fullfn = os.path.join(ret._workDir, "chroot_info.json")
         try:
-            ret._chroot = Chroot(Util.loadObj(fullfn))
+            ret._chrootInfo = Util.loadObj(fullfn)
         except:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
 
@@ -173,10 +172,12 @@ class Builder:
         self._workDir = None
         self._target = None
         self._hostInfo = None
-        self._chroot = None
+        self._chrootInfo = None
 
         self._progress = None
         self._chrootDir = None
+
+        self._cm = ChrootMount(self)
 
     def get_progress(self):
         return self._progress
@@ -192,9 +193,14 @@ class Builder:
         assert False        # FIXME: support rollback through bcachefs non-priviledged snapshot
 
     def dispose(self):
+        if self._cm is not None:
+            assert not self._cm.binded
+            self._cm = None
+
         self._chrootDir = None
         self._progress = None
-        self._chroot = None
+
+        self._chrootInfo = None
         self._hostInfo = None
         self._target = None
         if self._workDir is not None:
@@ -212,26 +218,112 @@ class Builder:
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self, newChrootDir):
-        ConfDir.write_make_conf(self._progName, newChrootDir, self._target)
+        TargetConfDir.write_make_conf(self._progName, newChrootDir, self._target)
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self, newChrootDir):
-        pass
+        with ChrootMount(self, newChrootDir):
+            pass
 
     @Action(BuildProgress.STEP_SYSTEM_UPDATED)
     def action_install_packages(self, newChrootDir):
-        pass
+        with ChrootMount(self, newChrootDir):
+            pass
 
     @Action(BuildProgress.STEP_PACKAGES_INSTALLED)
     def action_gen_kernel_and_initramfs(self, newChrootDir):
-        pass
+        with ChrootMount(self, newChrootDir):
+            pass
 
     @Action(BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED)
     def action_solder_system(self, newChrootDir):
-        pass
+        with ChrootMount(self, newChrootDir):
+            pass
 
 
-class ConfDir:
+class ChrootMount:
+
+    def __init__(self, parent, newChrootDir):
+        self._stdMnts = ["/proc", "/sys", "/dev", "/dev/pts", "/tmp"]
+        self._parent = parent
+        self._dir = newChrootDir
+        self._bBind = False
+
+    def __enter__(self):
+        self.bind()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.unbind()
+
+    @property
+    def binded(self):
+        return self._bBind
+
+    def bind(self):
+        assert not self._bBind
+
+        # check
+        for fn in self._stdMnts + self._getAddlMnts():
+            assert fn.startswith("/")
+            fullfn = os.path.join(self._dir, fn[1:])
+            assert os.path.exists(fullfn)
+            assert not Util.ismount(fullfn)
+
+        # copy resolv.conf
+        Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._dir, "etc")))
+
+        # standard mount point
+        Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._dir, "proc")))
+        Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._dir, "sys")))
+        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._dir, "sys")))
+        Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._dir, "dev")))
+        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._dir, "dev")))
+        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._dir, "dev", "pts")))
+        Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._dir, "tmp")))
+
+        # additional mount point
+        if self._parent._hostInfo.distfiles_dir is not None:
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, os.path.join(self._dir, "var/cache/portage/distfiles")))
+        if self._parent._hostInfo.packages_dir is not None:
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, os.path.join(self._dir, "var/cache/portage/packages")))
+        if self._parent.repositories is not None:
+            for r in self._parent.repositories:
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (r.dirpath, os.path.join(self._dir, "var/db/overlays", r.name)))
+
+        self._bBind = True
+
+    def unbind(self):
+        assert self._bBind
+
+        # no exception is allowed
+        for fn in reversed(self._stdMnts + self._getAddlMnts()):
+            Util.cmdCall("/bin/umount", os.path.join(self._dir, fn))
+        robust_layer.simple_fops.rm(os.path.join(self._dir, "etc", "resolv.conf"))
+        self._bBind = False
+
+    def runCmd(self, envStr, cmdStr, showCmd=True, flags=""):
+        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+        if showCmd:
+            if envStr != "":
+                print("Command: %s %s" % (envStr, cmdStr))
+            else:
+                print("Command: %s" % (cmdStr))
+        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._dir, cmdStr), flags)
+
+    def _getAddlMnts(self):
+        ret = []
+        if self._parent._hostInfo.distfiles_dir is not None:
+            ret.append("/var/cache/portage/distfiles")
+        if self._parent._hostInfo.packages_dir is not None:
+            ret.append("/var/cache/portage/packages")
+        if self._parent.repositories is not None:
+            for r in self._parent.repositories:
+                ret.append(os.path.join("/var/db/overlays", r.name))
+        return ret
+
+
+class TargetConfDir:
 
     @staticmethod
     def write_make_conf(program_name, chroot_path, target):

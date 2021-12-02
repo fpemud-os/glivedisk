@@ -88,6 +88,8 @@ class HostInfo:
         self.distfiles_dir = None    # distfiles directory in host system, will be bind mounted in target system
                                      # default: None, means there's no such a directory in host system
 
+        self.packages_dir = None     # packages directory in host system
+
         self.repositories = None     # repository in host system, will be bind mounted in target system
 
 
@@ -95,7 +97,7 @@ class HostRepository:
 
     def __init__(self):
         self.name = None
-        self.host_dir = None
+        self.dirpath = None
 
 
 class ChrootInfo:

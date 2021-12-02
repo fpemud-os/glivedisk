@@ -20,8 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-
+import os
+import re
+import time
 import pickle
+import subprocess
 
 
 class Util:
@@ -39,3 +42,68 @@ class Util:
 
     def loadEnum(filepath, klass):
         return Util.loadObj(filepath)
+
+    def pathcompare(path1,path2):
+        # Change double slashes to slash
+        path1 = re.sub(r"//",r"/",path1)
+        path2 = re.sub(r"//",r"/",path2)
+        # Removing ending slash
+        path1 = re.sub("/$","",path1)
+        path2 = re.sub("/$","",path2)
+
+        if path1 == path2:
+            return 1
+        return 0
+
+    def ismount(path):
+        """Like os.path.ismount, but also support bind mounts"""
+        if os.path.ismount(path):
+            return 1
+        a=os.popen("mount")
+        mylines=a.readlines()
+        a.close()
+        for line in mylines:
+            mysplit=line.split()
+            if Util.pathcompare(path,mysplit[2]):
+                return 1
+        return 0
+
+    @staticmethod
+    def cmdCall(cmd, *kargs):
+        # call command to execute backstage job
+        #
+        # scenario 1, process group receives SIGTERM, SIGINT and SIGHUP:
+        #   * callee must auto-terminate, and cause no side-effect
+        #   * caller must be terminated by signal, not by detecting child-process failure
+        # scenario 2, caller receives SIGTERM, SIGINT, SIGHUP:
+        #   * caller is terminated by signal, and NOT notify callee
+        #   * callee must auto-terminate, and cause no side-effect, after caller is terminated
+        # scenario 3, callee receives SIGTERM, SIGINT, SIGHUP:
+        #   * caller detects child-process failure and do appopriate treatment
+
+        ret = subprocess.run([cmd] + list(kargs),
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             universal_newlines=True)
+        if ret.returncode > 128:
+            # for scenario 1, caller's signal handler has the oppotunity to get executed during sleep
+            time.sleep(1.0)
+        if ret.returncode != 0:
+            print(ret.stdout)
+            ret.check_returncode()
+        return ret.stdout.rstrip()
+
+    @staticmethod
+    def shellCall(cmd):
+        # call command with shell to execute backstage job
+        # scenarios are the same as FmUtil.cmdCall
+
+        ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             shell=True, universal_newlines=True)
+        if ret.returncode > 128:
+            # for scenario 1, caller's signal handler has the oppotunity to get executed during sleep
+            time.sleep(1.0)
+        if ret.returncode != 0:
+            print(ret.stdout)
+            ret.check_returncode()
+        return ret.stdout.rstrip()
+
