@@ -103,12 +103,12 @@ class CloudGentooStage3:
 
         stage3FileUrl = None
         with urllib.request.urlopen(os.path.join(autoBuildsUrl, indexFileName)) as resp:
-            m = re.search(r'^(\S+) [0-9]+', resp.read(), re.M)
+            m = re.search(r'^(\S+) [0-9]+', resp.read().decode("UTF-8"), re.M)
             stage3FileUrl = os.path.join(autoBuildsUrl, m.group(1))
 
         self._resp = urllib.request.urlopen(stage3FileUrl)
         try:
-            self._tf = tarfile.open(fileobj=resp)
+            self._tf = tarfile.open(fileobj=resp, mode="r:xz")
         except BaseException:
             self._resp.close()
             self._resp = None
