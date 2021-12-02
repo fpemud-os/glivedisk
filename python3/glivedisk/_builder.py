@@ -24,10 +24,10 @@
 import os
 import enum
 import robust_layer.simple_fops
-from .util import Util
-from .support import Chroot
-from .errors import WorkDirVerifyError
-from .setting import Target, HostInfo, ChrootInfo
+from ._util import Util
+from ._support import Chroot
+from ._errors import WorkDirVerifyError
+from . import settings
 
 
 class Builder:
@@ -42,7 +42,7 @@ class Builder:
         assert hasattr(seed_stage_stream, "extractall")
 
         # check target
-        assert isinstance(target, Target)
+        assert isinstance(target, settings.Target)
 
         # check work_dir
         if work_dir is None:
@@ -54,12 +54,12 @@ class Builder:
 
         # check host_info
         if host_info is not None:
-            assert isinstance(host_info, HostInfo)
+            assert isinstance(host_info, settings.HostInfo)
         
         # check chroot_info
         if chroot_info is None:
-            chroot_info = ChrootInfo()
-        assert isinstance(chroot_info, ChrootInfo)
+            chroot_info = settings.ChrootInfo()
+        assert isinstance(chroot_info, settings.ChrootInfo)
 
         # create object
         ret = Builder()

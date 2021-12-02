@@ -33,7 +33,6 @@ __maintainer__ = 'Fpemud <fpemud@sina.com>'
 
 
 from ._seed import verify_seed_stage_dir
-from ._seed import SeedVerifyError
 from ._seed import CloudGentooStage3
 
 from ._builder import Builder
