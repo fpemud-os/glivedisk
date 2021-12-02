@@ -32,10 +32,14 @@ __author__ = 'Fpemud <fpemud@sina.com>'
 __maintainer__ = 'Fpemud <fpemud@sina.com>'
 
 
-from .seed_stage import verify_seed_stage_dir
-from .seed_stage import SeedVerifyError
-from .seed_stage import CloudGentooStage3
+from ._seed import verify_seed_stage_dir
+from ._seed import SeedVerifyError
+from ._seed import CloudGentooStage3
 
+from ._builder import Builder
+from ._builder import BuildProgress
 
-from .builder import Builder
-from .exporter import Exporter
+from ._exporter import Exporter
+
+from ._errors import SeedVerifyError
+from ._errors import WorkDirVerifyError

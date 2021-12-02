@@ -7,3 +7,9 @@ class Util:
 
     def loadObj(filepath):
         pass
+
+    def saveEnum(filepath, obj):
+        pass
+
+    def loadEnum(filepath, klass):
+        pass

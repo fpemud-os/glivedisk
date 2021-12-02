@@ -22,12 +22,12 @@
 
 
 import os
+import enum
 import robust_layer.simple_fops
 from .util import Util
-from .setting import Target, HostInfo, ChrootInfo
-from .errors import WorkDirVerifyError
 from .support import Chroot
-
+from .errors import WorkDirVerifyError
+from .setting import Target, HostInfo, ChrootInfo
 
 
 class Builder:
@@ -68,6 +68,7 @@ class Builder:
         ret._target = target
         ret._hostInfo = host_info
         ret._chroot = Chroot(chroot_info)
+        ret._progress = BuildProgress.INIT
 
         # initialize work_dir
         if not os.path.exists(ret._workDir):
@@ -86,18 +87,43 @@ class Builder:
         Util.saveObj(os.path.join(ret._workDir, "target.json"), target)
         Util.saveObj(os.path.join(ret._workDir, "host_info.json", host_info))
         Util.saveObj(os.path.join(ret._workDir, "chroot_info.json", chroot_info))
+        Util.saveEnum(os.path.join(ret._workDir, "progress", ret._progress))
 
         return ret
 
     @staticmethod
     def revoke(work_dir):
-        # create object
         ret = Builder()
         ret._tf = None
+
+        if not os.path.isdir(work_dir):
+            raise WorkDirVerifyError("invalid directory \"%s\"" % (work_dir))
         ret._workDir = work_dir
-        ret._target = Util.loadObj(os.path.join(ret._workDir, "target.json"))
-        ret._hostInfo = Util.loadObj(os.path.join(ret._workDir, "host_info.json"))
-        ret._chroot = Chroot(Util.loadObj(os.path.join(ret._workDir, "chroot_info.json")))
+
+        fullfn = os.path.join(ret._workDir, "target.json")
+        try:
+            ret._target = Util.loadObj(fullfn)
+        except:
+            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
+
+        fullfn = os.path.join(ret._workDir, "host_info.json")
+        try:
+            ret._hostInfo = Util.loadObj(fullfn)
+        except:
+            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
+
+        fullfn = os.path.join(ret._workDir, "chroot_info.json")
+        try:
+            ret._chroot = Chroot(Util.loadObj(fullfn))
+        except:
+            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
+
+        fullfn = os.path.join(ret._workDir, "progress")
+        try:
+            ret._progress = Util.loadEnum(fullfn, BuildProgress)
+        except:
+            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
+
         return ret
 
     def __init__(self):
@@ -106,16 +132,45 @@ class Builder:
         self._target = None
         self._hostInfo = None
         self._chroot = None
+        self._progress = None
+
+    def get_progress(self):
+        return self._progress
+
+    def get_work_dir(self):
+        return self._workDir
+
+    def dispose(self):
+        pass
+
+    def action_unpack(self):
+        pass
+
+    def action_init_repositories(self):
+        pass
+
+    def action_init_confdir(self):
+        pass
+
+    def action_update_system(self):
+        pass
+
+    def action_install_packages(self):
+        pass
+
+    def action_gen_kernel_and_initramfs(self):
+        pass
+
+    def action_solder_system(self):
+        pass
 
 
-
-
-
-        self.settings = settings
-        self.env = {
-            'PATH': '/bin:/sbin:/usr/bin:/usr/sbin',
-            'TERM': os.getenv('TERM', 'dumb'),
-        }
-
-    def 
-
+class BuildProgress(enum.Enum):
+    INIT = enum.auto()
+    UNPACKED = enum.auto()
+    REPOSITORIES_INITIALIZED = enum.auto()
+    CONFDIR_INITIALIZED = enum.auto()
+    SYSTEM_UPDATED = enum.auto()
+    PACKAGES_INSTALLED = enum.auto()
+    KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
+    SYSTEM_SOLDERED = enum.auto()
