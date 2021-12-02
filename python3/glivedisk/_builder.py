@@ -140,8 +140,22 @@ class Builder:
     def get_work_dir(self):
         return self._workDir
 
+    def support_rollback(self):
+        return False        # FIXME: support rollback through bcachefs non-priviledged snapshot
+
+    def rollback_to(self, step):
+        assert isinstance(step, BuildProgress) and step < self._progress
+        assert False        # FIXME: support rollback through bcachefs non-priviledged snapshot
+
     def dispose(self):
-        pass
+        self._progress = None
+        self._chroot = None
+        self._hostInfo = None
+        self._target = None
+        if self._workDir is not None:
+            robust_layer.simple_fops.rm(self._workDir)
+            self._workDir = None
+        self._tf = None
 
     def action_unpack(self):
         pass
