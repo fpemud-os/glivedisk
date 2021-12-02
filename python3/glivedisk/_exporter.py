@@ -44,5 +44,9 @@ class Exporter(abc.ABC):
         return fn.replace("_", "-")
 
     @abc.abstractmethod
+    def check(self):
+        pass
+
+    @abc.abstractmethod
     def export(self):
         pass

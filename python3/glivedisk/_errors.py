@@ -31,3 +31,7 @@ class SeedVerifyError(Exception):
 
 class WorkDirVerifyError(Exception):
     pass
+
+
+class ExportError(Exception):
+    pass
