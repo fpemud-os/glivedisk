@@ -25,6 +25,8 @@ import os
 from ._errors import SeedVerifyError
 
 
+
+
 class Chroot:
 
     def __init__(self, dirpath, chroot_info):

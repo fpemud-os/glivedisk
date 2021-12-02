@@ -21,6 +21,9 @@
 # THE SOFTWARE.
 
 
+from ._errors import InvalidChrootInfo
+
+
 class Target:
 
     def __init__(self):
@@ -35,6 +38,8 @@ class Target:
         self.repositories = None         # list<Repository>
 
         self.packages = None             # list<Package>
+
+        self.build_opts = None
 
 
 
@@ -68,13 +73,13 @@ class Package:
 class BuildOptions:
 
     def __init__(self):
+        self.common_flags = None
         self.cflags = None
         self.cxxflags = None
         self.fcflags = None
         self.fflags = None
         self.ldflags = None
         self.asflags = None
-        self.common_flags = None
 
 
 
@@ -84,6 +89,27 @@ class ChrootInfo:
     def __init__(self):
         self.uid_map = None
         self.gid_map = None
+
+    def conv_uid(self, uid):
+        if self.uid_map is None:
+            return uid
+        else:
+            if uid not in self.uid_map:
+                raise InvalidChrootInfo("uid %d not found in uid map" % (uid))
+            else:
+                return self.uid_map[uid]
+
+    def conv_gid(self, gid):
+        if self.gid_map is None:
+            return gid
+        else:
+            if gid not in self.gid_map:
+                raise InvalidChrootInfo("gid %d not found in gid map" % (gid))
+            else:
+                return self.gid_map[gid]
+
+    def conv_uid_gid(self, uid, gid):
+        return (self.conv_uid(uid), self.conv_gid(gid))
 
 
 

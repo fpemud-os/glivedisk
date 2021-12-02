@@ -21,6 +21,10 @@
 # THE SOFTWARE.
 
 
+class InvalidChrootInfo(ValueError):
+    pass
+
+
 class SeedVerifyError(Exception):
     pass
     
