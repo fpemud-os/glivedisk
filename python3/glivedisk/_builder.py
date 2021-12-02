@@ -38,17 +38,14 @@ def Action(progress_step):
             # get newChrootDir
             # FIXME: create bcachefs snapshot
             if self._chrootDir is None or self.is_rollback_supported():
-                newChrootDir = os.path.join(self._workDir, "%02d-%s" % (progress_step, progress_step + 1))
-                os.mkdir(newChrootDir)
-            else:
-                newChrootDir = self._chrootDir
+                self._chrootDir = os.path.join(self._workDir, "%02d-%s" % (progress_step, progress_step + 1))
+                os.mkdir(self._chrootDir)
 
             # do work
-            func(self, newChrootDir)
+            self.func()
 
             # do progress
             self._progress = progress_step + 1
-            self._chrootDir = newChrootDir
 
         return wrapper
 
@@ -209,44 +206,43 @@ class Builder:
         self._tf = None
 
     @Action(BuildProgress.STEP_INIT)
-    def action_unpack(self, newChrootDir):
-        self._tf.extractall(newChrootDir)
+    def action_unpack(self):
+        self._tf.extractall()
 
     @Action(BuildProgress.STEP_UNPACKED)
-    def action_init_repositories(self, newChrootDir):
+    def action_init_repositories(self):
         pass
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
-    def action_init_confdir(self, newChrootDir):
-        TargetConfDir.write_make_conf(self._progName, newChrootDir, self._target)
+    def action_init_confdir(self):
+        TargetConfDir.write_make_conf(self._progName, self._target)
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_system(self, newChrootDir):
-        with ChrootMount(self, newChrootDir):
+    def action_update_system(self):
+        with ChrootMount(self):
             pass
 
     @Action(BuildProgress.STEP_SYSTEM_UPDATED)
-    def action_install_packages(self, newChrootDir):
-        with ChrootMount(self, newChrootDir):
+    def action_install_packages(self):
+        with ChrootMount(self):
             pass
 
     @Action(BuildProgress.STEP_PACKAGES_INSTALLED)
-    def action_gen_kernel_and_initramfs(self, newChrootDir):
-        with ChrootMount(self, newChrootDir):
+    def action_gen_kernel_and_initramfs(self):
+        with ChrootMount(self):
             pass
 
     @Action(BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED)
-    def action_solder_system(self, newChrootDir):
-        with ChrootMount(self, newChrootDir):
+    def action_solder_system(self):
+        with ChrootMount(self):
             pass
 
 
 class ChrootMount:
 
-    def __init__(self, parent, newChrootDir):
+    def __init__(self, parent):
         self._stdMnts = ["/proc", "/sys", "/dev", "/dev/pts", "/tmp"]
         self._parent = parent
-        self._dir = newChrootDir
         self._bBind = False
 
     def __enter__(self):
@@ -266,30 +262,30 @@ class ChrootMount:
         # check
         for fn in self._stdMnts + self._getAddlMnts():
             assert fn.startswith("/")
-            fullfn = os.path.join(self._dir, fn[1:])
+            fullfn = os.path.join(self._parent._chrootDir, fn[1:])
             assert os.path.exists(fullfn)
             assert not Util.ismount(fullfn)
 
         # copy resolv.conf
-        Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._dir, "etc")))
+        Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
 
         # standard mount point
-        Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._dir, "proc")))
-        Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._dir, "sys")))
-        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._dir, "sys")))
-        Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._dir, "dev")))
-        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._dir, "dev")))
-        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._dir, "dev", "pts")))
-        Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._dir, "tmp")))
+        Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
+        Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
+        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
+        Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
+        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
+        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev", "pts")))
+        Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
 
         # additional mount point
         if self._parent._hostInfo.distfiles_dir is not None:
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, os.path.join(self._dir, "var/cache/portage/distfiles")))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/distfiles")))
         if self._parent._hostInfo.packages_dir is not None:
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, os.path.join(self._dir, "var/cache/portage/packages")))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/packages")))
         if self._parent.repositories is not None:
             for r in self._parent.repositories:
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (r.dirpath, os.path.join(self._dir, "var/db/overlays", r.name)))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (r.dirpath, os.path.join(self._parent._chrootDir, "var/db/overlays", r.name)))
 
         self._bBind = True
 
@@ -298,8 +294,8 @@ class ChrootMount:
 
         # no exception is allowed
         for fn in reversed(self._stdMnts + self._getAddlMnts()):
-            Util.cmdCall("/bin/umount", os.path.join(self._dir, fn))
-        robust_layer.simple_fops.rm(os.path.join(self._dir, "etc", "resolv.conf"))
+            Util.cmdCall("/bin/umount", os.path.join(self._parent._chrootDir, fn))
+        robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
         self._bBind = False
 
     def runCmd(self, envStr, cmdStr, showCmd=True, flags=""):
@@ -309,7 +305,7 @@ class ChrootMount:
                 print("Command: %s %s" % (envStr, cmdStr))
             else:
                 print("Command: %s" % (cmdStr))
-        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._dir, cmdStr), flags)
+        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr), flags)
 
     def _getAddlMnts(self):
         ret = []
