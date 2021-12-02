@@ -32,23 +32,10 @@ __author__ = 'Fpemud <fpemud@sina.com>'
 __maintainer__ = 'Fpemud <fpemud@sina.com>'
 
 
-class Param:
+from .seed_stage import verify_seed_stage_dir
+from .seed_stage import SeedVerifyError
+from .seed_stage import CloudGentooStage3
 
-    def __init__(self):
-        self.subarch = None
-        self.profile = None
-        self.use = None             # list?
-        self.packages = None        # list?
-        self.unmerge = None         # list?
-        self.rm = None              # list?
-        self.vol_id = None
-
-        # FIXME
-        self.empty = None
-        self.target = None          # FIXME
-        self.rel_type = None        # FIXME
-        
 
 from .builder import Builder
-from .purger import Purger
 from .exporter import Exporter

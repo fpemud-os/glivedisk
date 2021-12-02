@@ -26,19 +26,22 @@ class AutoResume(object):
 
 
 	def __init__(self, basedir, mode=0o755):
-		self.basedir = basedir
+		self._basedir = basedir
 		ensure_dirs(basedir, mode=mode, fatal=True)
 		self._points = {}
 		self._init_points_()
 
+	@property
+	def basedir(self):
+		return self._basedir
 
 	def _init_points_(self):
 		'''Internal function which reads the autoresume directory and
 		for existing autoresume points and adds them to our _points variable
 		'''
-		existing = listdir_files(self.basedir, False)
+		existing = listdir_files(self._basedir, False)
 		for point in existing:
-			self._points[point] = os.path.join(self.basedir, point)
+			self._points[point] = os.path.join(self._basedir, point)
 
 
 	def enable(self, point, data=None):
@@ -50,7 +53,7 @@ class AutoResume(object):
 		'''
 		if point in self._points and not data:
 			return True
-		fname = os.path.join(self.basedir, point)
+		fname = os.path.join(self._basedir, point)
 		if data:
 			with open(fname,"w") as myf:
 				myf.write(data)
@@ -131,7 +134,7 @@ class AutoResume(object):
 		@remove: boolean, passed through to clear_dir()
 		@return boolean
 		'''
-		if clear_dir(self.basedir, mode=0o755, chg_flags=True, remove=remove):
+		if clear_dir(self._basedir, mode=0o755, chg_flags=True, remove=remove):
 			self._points = {}
 			return True
 		return False
