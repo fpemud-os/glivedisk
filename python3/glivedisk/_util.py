@@ -44,13 +44,13 @@ class Util:
     def loadEnum(filepath, klass):
         return Util.loadObj(filepath)
 
-    def pathcompare(path1,path2):
+    def pathcompare(path1, path2):
         # Change double slashes to slash
-        path1 = re.sub(r"//",r"/",path1)
-        path2 = re.sub(r"//",r"/",path2)
+        path1 = re.sub(r"//", r"/", path1)
+        path2 = re.sub(r"//", r"/", path2)
         # Removing ending slash
-        path1 = re.sub("/$","",path1)
-        path2 = re.sub("/$","",path2)
+        path1 = re.sub("/$", "", path1)
+        path2 = re.sub("/$", "", path2)
 
         if path1 == path2:
             return 1
@@ -60,12 +60,12 @@ class Util:
         """Like os.path.ismount, but also support bind mounts"""
         if os.path.ismount(path):
             return 1
-        a=os.popen("mount")
-        mylines=a.readlines()
+        a = os.popen("mount")
+        mylines = a.readlines()
         a.close()
         for line in mylines:
-            mysplit=line.split()
-            if Util.pathcompare(path,mysplit[2]):
+            mysplit = line.split()
+            if Util.pathcompare(path, mysplit[2]):
                 return 1
         return 0
 

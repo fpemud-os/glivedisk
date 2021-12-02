@@ -10,8 +10,10 @@ try:
 except:
     # Fall back if setuptools is not installed.
     from distutils.core import setup
-from glivedisk import __package__, __version__, __author__, __maintainer__
 
+# package metadata
+__package__ = 'glivedisk'
+__version__ = '0.0.1'
 
 # check linux platform
 platform = distutils.util.get_platform()

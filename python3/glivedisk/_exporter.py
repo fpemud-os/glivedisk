@@ -21,12 +21,15 @@
 # THE SOFTWARE.
 
 
-class Exporter:
+import abc
 
-    def get(self, exporter_name, settings):
+
+def get_exporter(name, work_dir, target, **kwargs):
+    pass
+
+
+class Exporter(abc.ABC):
+
+    @abc.abstractmethod
+    def export(self):
         pass
-
-    def __init__(self, settings):
-        self.settings = settings
-
-
