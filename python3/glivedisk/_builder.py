@@ -108,15 +108,9 @@ class Builder:
 
         # initialize work_dir
         if not os.path.exists(ret._workDir):
-            os.mkdir(ret._workDir, mode=0o0700)
+            os.mkdir(ret._workDir, mode=WorkDir.MODE)
         else:
-            s = os.stat(ret._workDir)
-            if s.st_mode != 0o0700:
-                raise WorkDirVerifyError("invalid mode for \"%s\"" % (ret._workDir))
-            if s.st_uid != os.getuid():
-                raise WorkDirVerifyError("invalid uid for \"%s\"" % (ret._workDir))
-            if s.st_gid != os.getgid():
-                raise WorkDirVerifyError("invalid gid for \"%s\"" % (ret._workDir))
+            WorkDir.checkDir(ret._workDir)
             robust_layer.simple_fops.truncate_dir(ret._workDir)
 
         # save parameters
@@ -135,6 +129,7 @@ class Builder:
 
         if not os.path.isdir(work_dir):
             raise WorkDirVerifyError("invalid directory \"%s\"" % (work_dir))
+        WorkDir.checkDir(work_dir)
         ret._workDir = work_dir
 
         fullfn = os.path.join(ret._workDir, "target.json")
@@ -243,6 +238,20 @@ class Builder:
     def action_solder_system(self):
         with self._cm:
             pass
+
+
+class WorkDir:
+
+    MODE = 0o40700
+
+    def checkDir(workDir):
+        s = os.stat(workDir)
+        if s.st_mode != WorkDir.MODE:
+            raise WorkDirVerifyError("invalid mode for \"%s\"" % (workDir))
+        if s.st_uid != os.getuid():
+            raise WorkDirVerifyError("invalid uid for \"%s\"" % (workDir))
+        if s.st_gid != os.getgid():
+            raise WorkDirVerifyError("invalid gid for \"%s\"" % (workDir))
 
 
 class ChrootMount:

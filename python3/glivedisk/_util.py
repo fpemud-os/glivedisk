@@ -27,6 +27,7 @@ import time
 import pickle
 import parted
 import pathlib
+import tempfile
 import subprocess
 
 
@@ -109,22 +110,6 @@ class Util:
             print(ret.stdout)
             ret.check_returncode()
         return ret.stdout.rstrip()
-
-    @staticmethod
-    def isBlkDevUsbStick(devPath):
-        devName = os.path.basename(devPath)
-
-        remfile = "/sys/block/%s/removable" % (devName)
-        if not os.path.exists(remfile):
-            return False
-        if pathlib.Path(remfile).read_text().rstrip("\n") != "1":
-            return False
-
-        ueventFile = "/sys/block/%s/device/uevent" % (devName)
-        if "DRIVER=sd" not in pathlib.Path(ueventFile).read_text().split("\n"):
-            return False
-
-        return True
 
     @staticmethod
     def isBlkDevUsbStick(devPath):
