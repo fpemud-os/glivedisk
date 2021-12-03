@@ -121,9 +121,9 @@ class Builder:
 
         # save parameters
         Util.saveObj(os.path.join(ret._workDir, "target.json"), target)
-        Util.saveObj(os.path.join(ret._workDir, "host_info.json", host_info))
-        Util.saveObj(os.path.join(ret._workDir, "chroot_info.json", chroot_info))
-        Util.saveEnum(os.path.join(ret._workDir, "progress", ret._progress))
+        Util.saveObj(os.path.join(ret._workDir, "host_info.json"), host_info)
+        Util.saveObj(os.path.join(ret._workDir, "chroot_info.json"), chroot_info)
+        Util.saveEnum(os.path.join(ret._workDir, "progress"), ret._progress)
 
         return ret
 
