@@ -204,7 +204,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_INIT)
     def action_unpack(self):
-        self._tf.extractall()
+        self._tf.extractall(self._chrootDir)
 
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_repositories(self):
