@@ -303,39 +303,51 @@ class ChrootMount:
     def bind(self):
         assert not self._bBind
 
-        # check
-        for fn in self._stdMnts + self._getAddlMnts():
-            self._assertDirStatus(fn)
-
         try:
             # copy resolv.conf
             Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
 
+            # mount /proc
+            self._assertDirStatus("/proc")
             Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
+
+            # mount /sys
+            self._assertDirStatus("/sys")
             Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
             Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
+
+            # mount /dev
+            self._assertDirStatus("/dev")
             Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
             Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
             Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev/pts")))
+
+            # mount /tmp
+            self._assertDirStatus("/tmp")
             Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
 
             # distdir and pkgdir mount point
             t = TargetCacheDirs(self._parent._chrootDir)
             if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
+                self._assertDirStatus(t.distdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
             if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
+                self._assertDirStatus(t.pkgdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
             # gentoo repository mount point
             if self._parent._hostInfo.gentoo_repository_dir is not None:
                 t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
+                if os.path.exists(t.datadir_hostpath):
+                    self._assertDirStatus(t.datadir_path)
+                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
 
             # host overlay readonly mount points
             if self._parent._hostInfo.overlays is not None:
                 for o in self._parent._hostInfo.overlays:
                     t = TargetHostOverlay(self._parent._chrootDir, o)
                     if os.path.exists(t.datadir_hostpath):
+                        self._assertDirStatus(t.datadir_path)
                         Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
         except BaseException:
             self._unbind()
@@ -360,6 +372,7 @@ class ChrootMount:
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")
         fullfn = os.path.join(self._parent._chrootDir, dir[1:])
+        print(fullfn)
         assert os.path.exists(fullfn)
         assert not Util.ismount(fullfn)
 
