@@ -89,7 +89,7 @@ class Builder:
         if host_info is None:
             host_info = settings.HostInfo()
         assert isinstance(host_info, settings.HostInfo)
-        
+
         # check chroot_info
         if chroot_info is None:
             chroot_info = settings.ChrootInfo()
@@ -208,7 +208,26 @@ class Builder:
 
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_repositories(self):
-        pass
+        # init gentoo repository
+        t = TargetGentooRepo(self._chrootDir)
+        t.write_repos_conf()
+        t.ensure_datadir()
+        t.ensure_distdir()          # we make distdir part of TargetGentooRepo
+        t.ensure_pkgdir()           # we make pkgdir part of TargetGentooRepo
+
+        # init host overlays
+        if self._hostInfo.overlays is not None:
+            for o in self._hostInfo.overlays:
+                t = TargetHostOverlay(self._chrootDir, o)
+                t.write_repos_conf()
+                t.ensure_datadir()
+
+        with self._cm as m:
+            m.runCmd("/usr/bin/emerge --sync")
+
+            # init overlays
+            # FIXME: use layman
+            pass
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
@@ -296,12 +315,15 @@ class ChrootMount:
 
         # additional mount point
         if self._parent._hostInfo.distfiles_dir is not None:
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/distfiles")))
+            t = TargetGentooRepo(self._parent._chrootDir)
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
         if self._parent._hostInfo.packages_dir is not None:
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/packages")))
-        if self._parent._target.repositories is not None:
-            for r in self._parent._target.repositories:
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (r.dirpath, os.path.join(self._parent._chrootDir, "var/db/overlays", r.name)))
+            t = TargetGentooRepo(self._parent._chrootDir)
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
+        if self._parent._hostInfo.overlays is not None:
+            for o in self._parent._hostInfo.overlays:
+                t = TargetHostOverlay(self._parent._chrootDir, o)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
 
         self._bBind = True
 
@@ -314,25 +336,130 @@ class ChrootMount:
         robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
         self._bBind = False
 
-    def runCmd(self, envStr, cmdStr, showCmd=True, flags=""):
+    def runCmd(self, envStr, cmdStr):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
-        if showCmd:
-            if envStr != "":
-                print("Command: %s %s" % (envStr, cmdStr))
-            else:
-                print("Command: %s" % (cmdStr))
-        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr), flags)
+        if envStr != "":
+            print("%s %s" % (envStr, cmdStr))
+        else:
+            print("%s" % (cmdStr))
+        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
 
     def _getAddlMnts(self):
         ret = []
         if self._parent._hostInfo.distfiles_dir is not None:
-            ret.append("/var/cache/portage/distfiles")
+            t = TargetGentooRepo(self._parent._chrootDir)
+            ret.append(t.distdir_path)
         if self._parent._hostInfo.packages_dir is not None:
-            ret.append("/var/cache/portage/packages")
-        if self._parent._target.repositories is not None:
-            for r in self._parent._target.repositories:
-                ret.append(os.path.join("/var/db/overlays", r.name))
+            t = TargetGentooRepo(self._parent._chrootDir)
+            ret.append(t.pkgdir_path)
+        if self._parent._hostInfo.overlays is not None:
+            for o in self._parent._hostInfo.overlays:
+                t = TargetHostOverlay(self._parent._chrootDir, o)
+                ret.append(t.datadir_path)
         return ret
+
+
+class TargetGentooRepo:
+
+    def __init__(self, chrootDir):
+        self._chroot_path = chrootDir
+
+    @property
+    def repos_conf_file_hostpath(self):
+        return os.path.join(self._chroot_path, self.repos_conf_file_path[1:])
+
+    @property
+    def datadir_hostpath(self):
+        return os.path.join(self._chroot_path, self.datadir_path[1:])
+
+    @property
+    def distdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.distdir_path)
+
+    @property
+    def pkgdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.pkgdir_path)
+
+    @property
+    def repos_conf_file_path(self):
+        return "/etc/portage/repos.conf/gentoo.conf"
+
+    @property
+    def datadir_path(self):
+        return "/var/db/repos/gentoo"
+
+    @property
+    def distdir_path(self):
+        return "/var/cache/portage/distfiles"
+
+    @property
+    def pkgdir_path(self):
+        return "/var/cache/portage/packages"
+
+    def write_repos_conf(self):
+        os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
+        with open(self.repos_conf_file_hostpath, "w") as f:
+            # from Gentoo AMD64 Handbook
+            f.write("[DEFAULT]\n")
+            f.write("main-repo = gentoo\n")
+            f.write("\n")
+            f.write("[gentoo]\n")
+            f.write("location = %s\n" % (self.datadir_path))
+            f.write("sync-type = rsync\n")
+            f.write("sync-uri = rsync://rsync.gentoo.org/gentoo-portage\n")
+            f.write("auto-sync = yes\n")
+            f.write("sync-rsync-verify-jobs = 1\n")
+            f.write("sync-rsync-verify-metamanifest = yes\n")
+            f.write("sync-rsync-verify-max-age = 24\n")
+            f.write("sync-openpgp-key-path = /usr/share/openpgp-keys/gentoo-release.asc\n")
+            f.write("sync-openpgp-key-refresh-retry-count = 40\n")
+            f.write("sync-openpgp-key-refresh-retry-overall-timeout = 1200\n")
+            f.write("sync-openpgp-key-refresh-retry-delay-exp-base = 2\n")
+            f.write("sync-openpgp-key-refresh-retry-delay-max = 60\n")
+            f.write("sync-openpgp-key-refresh-retry-delay-mult = 4\n")
+
+    def ensure_datadir(self):
+        os.makedirs(self.datadir_hostpath)
+
+    def ensure_distdir(self):
+        os.makedirs(self.distdir_hostpath)
+
+    def ensure_pkgdir(self):
+        os.makedirs(self.pkgdir_hostpath)
+
+
+class TargetHostOverlay:
+
+    def __init__(self, chrootDir, hostOverlay):
+        self._chroot_path = chrootDir
+        self._name = hostOverlay.name
+        self._hostDir = hostOverlay.dirpath
+
+    @property
+    def repos_conf_file_hostpath(self):
+        return os.path.join(self._chroot_path, self.repos_conf_file_path[1:])
+
+    @property
+    def datadir_hostpath(self):
+        return os.path.join(self._chroot_path, self.datadir_path[1:])
+
+    @property
+    def repos_conf_file_path(self):
+        return "/etc/portage/repos.conf/overlay-%s.conf" % (self._name)
+
+    @property
+    def datadir_path(self):
+        return "/var/db/overlays/%s" % (self._name)
+
+    def write_repos_conf(self):
+        os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
+        with open(self.repos_conf_file_hostpath, "w") as f:
+            f.write("[gentoo]\n")
+            f.write("auto-sync = no\n")
+            f.write("location = %s\n" % (self.datadir_path))
+
+    def ensure_datadir(self):
+        os.makedirs(self.datadir_hostpath)
 
 
 class TargetConfDir:
@@ -373,5 +500,3 @@ class TargetConfDir:
             myf.write('# This sets the language of build output to English.\n')
             myf.write('# Please keep this setting intact when reporting bugs.\n')
             myf.write('LC_MESSAGES=C\n')
-
-

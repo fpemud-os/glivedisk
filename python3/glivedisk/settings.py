@@ -35,32 +35,23 @@ class Target:
         self.profile = None              # this is the system profile to be used for the live disk
                                          # it is specified as a relative path and must be set to one of the system profiles available at /var/db/repos/gentoo/profiles
 
-        self.repositories = None         # list<Repository>
+        self.overlays = None             # list<Overlay>
 
         self.packages = None             # list<Package>
 
         self.build_opts = None
 
-
-
-
+        # ?????
         self.use = None             # list?
         self.unmerge = None         # list?
         self.rm = None              # list?
         self.vol_id = None
 
-        # FIXME
-        self.empty = None
-        self.target = None          # FIXME
 
-
-
-
-class Repository:
+class Overlay:
 
     def __init__(self):
         self.name = None
-        self.host_dir = None
 
 
 class Package:
@@ -90,10 +81,10 @@ class HostInfo:
 
         self.packages_dir = None     # packages directory in host system
 
-        self.repositories = None     # repository in host system, will be bind mounted in target system
+        self.overlays = None         # overlays in host system, will be bind mounted in target system
 
 
-class HostRepository:
+class HostOverlay:
 
     def __init__(self):
         self.name = None
