@@ -38,7 +38,7 @@ def Action(progress_step):
             # get newChrootDir
             # FIXME: create bcachefs snapshot
             if self._chrootDir is None or self.is_rollback_supported():
-                fn = "%02d-%s" % (progress_step, progress_step + 1)
+                fn = "%02d-%s" % (progress_step.value, (progress_step + 1).name)
                 self._chrootDir = os.path.join(self._workDir, fn)
                 os.mkdir(self._chrootDir)
                 os.symlink(fn, os.path.join(self._workDir, "chroot"))
@@ -47,14 +47,14 @@ def Action(progress_step):
             self.func()
 
             # do progress
-            self._progress = progress_step + 1
+            self._progress += 1
 
         return wrapper
 
     return decorator
 
 
-class BuildProgress(enum.Enum):
+class BuildProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
     STEP_REPOSITORIES_INITIALIZED = enum.auto()
