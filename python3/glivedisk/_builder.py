@@ -299,8 +299,8 @@ class ChrootMount:
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/distfiles")))
         if self._parent._hostInfo.packages_dir is not None:
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, os.path.join(self._parent._chrootDir, "var/cache/portage/packages")))
-        if self._parent.repositories is not None:
-            for r in self._parent.repositories:
+        if self._parent._target.repositories is not None:
+            for r in self._parent._target.repositories:
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (r.dirpath, os.path.join(self._parent._chrootDir, "var/db/overlays", r.name)))
 
         self._bBind = True
@@ -329,8 +329,8 @@ class ChrootMount:
             ret.append("/var/cache/portage/distfiles")
         if self._parent._hostInfo.packages_dir is not None:
             ret.append("/var/cache/portage/packages")
-        if self._parent.repositories is not None:
-            for r in self._parent.repositories:
+        if self._parent._target.repositories is not None:
+            for r in self._parent._target.repositories:
                 ret.append(os.path.join("/var/db/overlays", r.name))
         return ret
 
