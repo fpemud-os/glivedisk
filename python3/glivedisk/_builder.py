@@ -89,9 +89,19 @@ class Builder:
         assert isinstance(target, settings.Target)
 
         # check host_info
-        if host_info is None:
+        if host_info is not None:
+            assert isinstance(host_info, settings.HostInfo)
+        else:
             host_info = settings.HostInfo()
-        assert isinstance(host_info, settings.HostInfo)
+        if host_info.computing_power is not None:
+            assert isinstance(host_info.computing_power.cpu_core_count, int) and host_info.computing_power.cpu_core_count >= 1
+            assert isinstance(host_info.computing_power.memory_size, int) and host_info.computing_power.memory_size >= 1
+            assert isinstance(host_info.computing_power.cooling_level, int) and 1 <= host_info.computing_power.cooling_level <= 10
+        else:
+            host_info.computing_power = settings.HostComputingPower()
+            host_info.computing_power.cpu_core_count = 1        # minimal value
+            host_info.computing_power.memory_size = 1           # minimal value
+            host_info.computing_power.cooling_level = 1         # minimal value
 
         # check chroot_info
         if chroot_info is None:
@@ -111,9 +121,9 @@ class Builder:
 
         # initialize work_dir
         if not os.path.exists(ret._workDir):
-            os.mkdir(ret._workDir, mode=WorkDir.MODE)
+            os.mkdir(ret._workDir, mode=WorkDirUtil.MODE)
         else:
-            WorkDir.checkDir(ret._workDir)
+            WorkDirUtil.checkDir(ret._workDir)
             robust_layer.simple_fops.truncate_dir(ret._workDir)
 
         # save parameters
@@ -132,7 +142,7 @@ class Builder:
 
         if not os.path.isdir(work_dir):
             raise WorkDirVerifyError("invalid directory \"%s\"" % (work_dir))
-        WorkDir.checkDir(work_dir)
+        WorkDirUtil.checkDir(work_dir)
         ret._workDir = work_dir
 
         fullfn = os.path.join(ret._workDir, "target.json")
@@ -227,7 +237,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._progName, self._chrootDir, self._target)
+        t = TargetConfDir(self._progName, self._chrootDir, self._target, self._hostInfo)
         t.write_make_conf()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
@@ -270,13 +280,14 @@ class Builder:
             pass
 
 
-class WorkDir:
+class WorkDirUtil:
 
     MODE = 0o40700
 
+    @staticmethod
     def checkDir(workDir):
         s = os.stat(workDir)
-        if s.st_mode != WorkDir.MODE:
+        if s.st_mode != WorkDirUtil.MODE:
             raise WorkDirVerifyError("invalid mode for \"%s\"" % (workDir))
         if s.st_uid != os.getuid():
             raise WorkDirVerifyError("invalid uid for \"%s\"" % (workDir))
@@ -552,13 +563,36 @@ class TargetHostOverlay:
 
 class TargetConfDir:
 
-    def __init__(self, program_name, chrootDir, target):
+    def __init__(self, program_name, chrootDir, target, hostInfo):
         self._progName = program_name
         self._dir = chrootDir
         self._target = target
+        self._hostInfo = hostInfo
 
     def write_make_conf(self):
-        def __write(flags, value):
+        # determine parallelism parameters
+        paraMakeOpts = None
+        paraEmergeOpts = None
+        if True:
+            if self._hostInfo.computing_power.cooling_level <= 1:
+                jobcountMake = 1
+                jobcountEmerge = 1
+                loadavg = 1
+            else:
+                if self._hostInfo.computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                    jobcountMake = self._hostInfo.cpu_core_count + 2
+                    jobcountEmerge = self._hostInfo.cpu_core_count
+                    loadavg = self._hostInfo.cpu_core_count
+                else:
+                    jobcountMake = self._hostInfo.cpu_core_count
+                    jobcountEmerge = self._hostInfo.cpu_core_count
+                    loadavg = max(1, self._hostInfo.cpu_core_count - 1)
+
+            paraMakeOpts = ["--jobs=%d" % (jobcountMake), "--load-average=%d" % (loadavg), "-j%d" % (jobcountMake), "-l%d" % (loadavg)]     # for bug 559064 and 592660, we need to add -j and -l, it sucks
+            paraEmergeOpts = ["--jobs=%d" % (jobcountEmerge), "--load-average=%d" % (loadavg)]
+
+        # define helper functions
+        def __flagsWrite(flags, value):
             if value is None and self._target.build_opts.common_flags is not None:
                 myf.write('%s="${COMMON_FLAGS}"\n' % (flags))
             else:
@@ -574,21 +608,25 @@ class TargetConfDir:
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
             myf.write("\n")
 
+            # flags
             if self._target.build_opts is not None:
-                # COMMON_FLAGS
                 if self._target.build_opts.common_flags is not None:
                     myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._target.build_opts.common_flags)))
+                __flagsWrite("CFLAGS", self._target.build_opts.cflags)
+                __flagsWrite("CXXFLAGS", self._target.build_opts.cxxflags)
+                __flagsWrite("FCFLAGS", self._target.build_opts.fcflags)
+                __flagsWrite("FFLAGS", self._target.build_opts.fflags)
+                __flagsWrite("LDFLAGS", self._target.build_opts.ldflags)
+                __flagsWrite("ASFLAGS", self._target.build_opts.asflags)
+                myf.write('\n')
 
-                # foobar FLAGS
-                __write("CFLAGS", self._target.build_opts.cflags)
-                __write("CXXFLAGS", self._target.build_opts.cxxflags)
-                __write("FCFLAGS", self._target.build_opts.fcflags)
-                __write("FFLAGS", self._target.build_opts.fflags)
-                __write("LDFLAGS", self._target.build_opts.ldflags)
-                __write("ASFLAGS", self._target.build_opts.asflags)
-
-            # Set default locale for system responses. #478382
-            myf.write('\n')
+            # set default locale for system responses. #478382
             myf.write('# This sets the language of build output to English.\n')
             myf.write('# Please keep this setting intact when reporting bugs.\n')
             myf.write('LC_MESSAGES=C\n')
+            myf.write('\n')
+
+            # set MAKEOPTS and EMERGE_DEFAULT_OPTS
+            myf.write('MAKEOPTS="%s"' % (' '.join(paraMakeOpts)))
+            myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y %s"' % (' '.join(paraEmergeOpts)))
+            myf.write('\n')

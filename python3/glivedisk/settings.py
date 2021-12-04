@@ -34,6 +34,7 @@ class Target:
 
         self.profile = None              # this is the system profile to be used for the live disk
                                          # it is specified as a relative path and must be set to one of the system profiles available at /var/db/repos/gentoo/profiles
+                                         # None means using default profile of the stage3
 
         self.overlays = None             # list<Overlay>
 
@@ -76,6 +77,8 @@ class BuildOptions:
 class HostInfo:
 
     def __init__(self):
+        self.computing_power = None
+
         self.distfiles_dir = None           # distfiles directory in host system, will be bind mounted in target system
                                             # default: None, means there's no such a directory in host system
 
@@ -91,6 +94,14 @@ class HostOverlay:
     def __init__(self):
         self.name = None
         self.dirpath = None
+
+
+class HostComputingPower:
+
+    def __init__(self):
+        self.cpu_core_count = None          # 
+        self.memory_size = None
+        self.cooling_level = None           # 1-10, less is weaker
 
 
 class ChrootInfo:
