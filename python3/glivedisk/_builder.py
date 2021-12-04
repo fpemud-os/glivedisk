@@ -234,9 +234,9 @@ class Builder:
     def action_update_system(self):
         cfgprotect = "CONFIG_PROTECT=\"-* /.glivedisk\""    # the latter is for eliminating "!!! CONFIG_PROTECT is empty" message
         with self._cm as m:
-            m.runCmd("", "/usr/bin/emerge -s non-exist-package", flags="stdout")                    # eliminate "Performing Global Updates"
-            m.runCmd("", "/usr/bin/eselect news read all", flags="stdout")                          # eliminate gentoo news notification
-            m.runCmd(cfgprotect, "/usr/bin/emerge --autounmask-only -uDN @world", flags="stdout")
+            m.runCmd("", "/usr/bin/emerge -s non-exist-package", quiet=True)                    # eliminate "Performing Global Updates"
+            m.runCmd("", "/usr/bin/eselect news read all", quiet=True)                          # eliminate gentoo news notification
+            m.runCmd(cfgprotect, "/usr/bin/emerge --autounmask-only -uDN @world", quiet=True)
             m.runCmd(cfgprotect, "/usr/bin/emerge --keep-going -uDN @world")
             m.runCmd(cfgprotect, "/usr/sbin/perl-cleaner --all")
 
@@ -361,13 +361,16 @@ class ChrootMount:
         self._unbind()
         self._bBind = False
 
-    def runCmd(self, envStr, cmdStr):
+    def runCmd(self, envStr, cmdStr, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
-        if envStr != "":
-            print("%s %s" % (envStr, cmdStr))
+        if not quiet:
+            if envStr != "":
+                print("%s %s" % (envStr, cmdStr))
+            else:
+                print("%s" % (cmdStr))
+            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
         else:
-            print("%s" % (cmdStr))
-        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
+            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
 
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")

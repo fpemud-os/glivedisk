@@ -112,6 +112,13 @@ class Util:
         return ret.stdout.rstrip()
 
     @staticmethod
+    def shellExec(cmd):
+        ret = subprocess.run(cmd, shell=True, universal_newlines=True)
+        if ret.returncode > 128:
+            time.sleep(1.0)
+        ret.check_returncode()
+
+    @staticmethod
     def isBlkDevUsbStick(devPath):
         devName = os.path.basename(devPath)
 
