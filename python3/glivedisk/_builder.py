@@ -307,41 +307,41 @@ class ChrootMount:
         for fn in self._stdMnts + self._getAddlMnts():
             self._assertDirStatus(fn)
 
-        # copy resolv.conf
-        Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
+        try:
+            # copy resolv.conf
+            Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
 
-        Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
-        Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
-        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
-        Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-        Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev/pts")))
-        Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
+            Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
+            Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
+            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
+            Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
+            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
+            Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev/pts")))
+            Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
 
-        # distdir and pkgdir mount point
-        t = TargetCacheDirs(self._parent._chrootDir)
-        if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
-        if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
+            # distdir and pkgdir mount point
+            t = TargetCacheDirs(self._parent._chrootDir)
+            if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
+            if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
-        # host overlay readonly mount points
-        if self._parent._hostInfo.overlays is not None:
-            for o in self._parent._hostInfo.overlays:
-                t = TargetHostOverlay(self._parent._chrootDir, o)
-                if os.path.exists(t.datadir_hostpath):
-                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
+            # host overlay readonly mount points
+            if self._parent._hostInfo.overlays is not None:
+                for o in self._parent._hostInfo.overlays:
+                    t = TargetHostOverlay(self._parent._chrootDir, o)
+                    if os.path.exists(t.datadir_hostpath):
+                        Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
+        except BaseException:
+            self._unbind()
+            raise
 
         # change status
         self._bBind = True
 
     def unbind(self):
         assert self._bBind
-
-        # no exception is allowed
-        for fn in reversed(self._stdMnts + self._getAddlMnts()):
-            Util.cmdCall("/bin/umount", os.path.join(self._parent._chrootDir, fn))
-        robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
+        self._unbind()
         self._bBind = False
 
     def runCmd(self, envStr, cmdStr):
@@ -351,6 +351,12 @@ class ChrootMount:
         else:
             print("%s" % (cmdStr))
         return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
+
+    def _assertDirStatus(self, dir):
+        assert dir.startswith("/")
+        fullfn = os.path.join(self._parent._chrootDir, dir[1:])
+        assert os.path.exists(fullfn)
+        assert not Util.ismount(fullfn)
 
     def _getAddlMnts(self):
         ret = []
@@ -371,11 +377,13 @@ class ChrootMount:
 
         return ret
 
-    def _assertDirStatus(self, dir):
-        assert dir.startswith("/")
-        fullfn = os.path.join(self._parent._chrootDir, dir[1:])
-        assert os.path.exists(fullfn)
-        assert not Util.ismount(fullfn)
+    def _unbind(self):
+        # no exception is allowed
+        for fn in reversed(self._stdMnts + self._getAddlMnts()):
+            fullfn = os.path.join(self._parent._chrootDir, fn[1:])
+            if Util.ismount(fullfn):
+                Util.cmdCall("/bin/umount", fullfn)
+        robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
 
 
 class TargetCacheDirs:
