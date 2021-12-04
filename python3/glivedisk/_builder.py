@@ -184,8 +184,6 @@ class Builder:
         self._progress = None
         self._chrootDir = None
 
-        self._cm = ChrootMount(self)
-
     def get_progress(self):
         return self._progress
 
@@ -200,10 +198,6 @@ class Builder:
         assert False        # FIXME: support rollback through bcachefs non-priviledged snapshot
 
     def dispose(self):
-        if self._cm is not None:
-            assert not self._cm.binded
-            self._cm = None
-
         self._chrootDir = None
         self._progress = None
 
@@ -232,7 +226,7 @@ class Builder:
 
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
-            with self._cm as m:
+            with Chrooter(self) as m:
                 m.runCmd("", "/usr/bin/emerge --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
@@ -243,7 +237,7 @@ class Builder:
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
         cfgprotect = "CONFIG_PROTECT=\"-* /.glivedisk\""    # the latter is for eliminating "!!! CONFIG_PROTECT is empty" message
-        with self._cm as m:
+        with Chrooter(self) as m:
             m.runCmd("", "/usr/bin/emerge -s non-exist-package", quiet=True)                    # eliminate "Performing Global Updates"
             m.runCmd("", "/usr/bin/eselect news read all", quiet=True)                          # eliminate gentoo news notification
             m.runCmd(cfgprotect, "/usr/bin/emerge --autounmask-only -uDN @world", quiet=True)
@@ -260,23 +254,23 @@ class Builder:
                 t.ensure_datadir()
 
         # init overlays
-        with self._cm as m:
+        with Chrooter(self) as m:
             # FIXME: use layman
             pass
 
     @Action(BuildProgress.STEP_OVERLAYS_INITIALIZED)
     def action_install_packages(self):
-        with self._cm:
+        with Chrooter(self):
             pass
 
     @Action(BuildProgress.STEP_PACKAGES_INSTALLED)
     def action_gen_kernel_and_initramfs(self):
-        with self._cm:
+        with Chrooter(self):
             pass
 
     @Action(BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED)
     def action_solder_system(self):
-        with self._cm:
+        with Chrooter(self):
             pass
 
 
@@ -295,7 +289,7 @@ class WorkDirUtil:
             raise WorkDirVerifyError("invalid gid for \"%s\"" % (workDir))
 
 
-class ChrootMount:
+class Chrooter:
 
     def __init__(self, parent):
         self._parent = parent
