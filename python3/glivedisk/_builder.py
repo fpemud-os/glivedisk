@@ -326,6 +326,11 @@ class ChrootMount:
             if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
+            # gentoo repository mount point
+            if self._parent._hostInfo.gentoo_repository_dir is not None:
+                t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
+
             # host overlay readonly mount points
             if self._parent._hostInfo.overlays is not None:
                 for o in self._parent._hostInfo.overlays:
@@ -367,6 +372,11 @@ class ChrootMount:
             ret.append(t.distdir_path)
         if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
             ret.append(t.pkgdir_path)
+
+        # gentoo repository mount point
+        if self._parent._hostInfo.gentoo_repository_dir is not None:
+            t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
+            ret.append(t.datadir_path)
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
