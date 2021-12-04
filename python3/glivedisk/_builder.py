@@ -41,7 +41,7 @@ def Action(progress_step):
                 fn = "%02d-%s" % (self._progress.value, BuildProgress(self._progress + 1).name)
                 self._chrootDir = os.path.join(self._workDir, fn)
                 os.mkdir(self._chrootDir)
-                os.symlink(fn, os.path.join(self._workDir, "chroot"))
+                robust_layer.simple_fops.ln(fn, os.path.join(self._workDir, "chroot"))
 
             # do work
             func(self)
