@@ -225,7 +225,8 @@ class Builder:
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
-        TargetConfDir.write_make_conf(self._progName, self._chrootDir, self._target)
+        t = TargetConfDir(self._progName, self._chrootDir, self._target)
+        t.write_make_conf()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
@@ -464,7 +465,6 @@ class TargetHostOverlay:
     def __init__(self, chrootDir, hostOverlay):
         self._chroot_path = chrootDir
         self._name = hostOverlay.name
-        self._hostDir = hostOverlay.dirpath
 
     @property
     def repos_conf_file_hostpath(self):
@@ -495,10 +495,14 @@ class TargetHostOverlay:
 
 class TargetConfDir:
 
-    @staticmethod
-    def write_make_conf(program_name, chroot_path, target):
+    def __init__(self, program_name, chrootDir, target):
+        self._progName = program_name
+        self._dir = chrootDir
+        self._target = target
+
+    def write_make_conf(self):
         def __write(flags, value):
-            if value is None and target.build_opts.common_flags is not None:
+            if value is None and self._target.build_opts.common_flags is not None:
                 myf.write('%s="${COMMON_FLAGS}"\n' % (flags))
             else:
                 if isinstance(value, list):
@@ -507,24 +511,24 @@ class TargetConfDir:
                     myf.write('%s="%s"\n' % (flags, value))
 
         # Modify and write out make.conf (for the chroot)
-        makepath = os.path.join(chroot_path, "etc", "portage", "make.conf")
+        makepath = os.path.join(self._dir, "etc", "portage", "make.conf")
         with open(makepath, "w") as myf:
-            myf.write("# These settings were set by %s that automatically built this stage.\n" % (program_name))
+            myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._progName))
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
             myf.write("\n")
 
-            if target.build_opts is not None:
+            if self._target.build_opts is not None:
                 # COMMON_FLAGS
-                if target.build_opts.common_flags is not None:
-                    myf.write('COMMON_FLAGS="%s"\n' % (' '.join(target.build_opts.common_flags)))
+                if self._target.build_opts.common_flags is not None:
+                    myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._target.build_opts.common_flags)))
 
                 # foobar FLAGS
-                __write("CFLAGS", target.build_opts.cflags)
-                __write("CXXFLAGS", target.build_opts.cxxflags)
-                __write("FCFLAGS", target.build_opts.fcflags)
-                __write("FFLAGS", target.build_opts.fflags)
-                __write("LDFLAGS", target.build_opts.ldflags)
-                __write("ASFLAGS", target.build_opts.asflags)
+                __write("CFLAGS", self._target.build_opts.cflags)
+                __write("CXXFLAGS", self._target.build_opts.cxxflags)
+                __write("FCFLAGS", self._target.build_opts.fcflags)
+                __write("FFLAGS", self._target.build_opts.fflags)
+                __write("LDFLAGS", self._target.build_opts.ldflags)
+                __write("ASFLAGS", self._target.build_opts.asflags)
 
             # Set default locale for system responses. #478382
             myf.write('\n')
