@@ -37,11 +37,13 @@ def Action(progress_step):
 
             # get newChrootDir
             # FIXME: create bcachefs snapshot
-            if self._chrootDir is None or self.is_rollback_supported():
-                fn = "%02d-%s" % (self._progress.value, BuildProgress(self._progress + 1).name)
-                self._chrootDir = os.path.join(self._workDir, fn)
+            if not self.is_rollback_supported():
+                self._chrootDir = os.path.join(self._workDir, "chroot")
+                robust_layer.simple_fops.mkdir(self._chrootDir)
+            else:
+                self._chrootDir = os.path.join(self._workDir, "%02d-%s" % (self._progress.value, BuildProgress(self._progress + 1).name))
                 os.mkdir(self._chrootDir)
-                robust_layer.simple_fops.ln(fn, os.path.join(self._workDir, "chroot"))
+                robust_layer.simple_fops.ln(os.path.basename(self._chrootDir), os.path.join(self._workDir, "chroot"))
 
             # do work
             func(self)
