@@ -376,7 +376,8 @@ class ChrootMount:
         # gentoo repository mount point
         if self._parent._hostInfo.gentoo_repository_dir is not None:
             t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
-            ret.append(t.datadir_path)
+            if os.path.exists(t.datadir_hostpath):
+                ret.append(t.datadir_path)
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
