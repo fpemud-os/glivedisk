@@ -484,6 +484,8 @@ class TargetGentooRepo:
         return "/var/db/repos/gentoo"
 
     def write_repos_conf(self):
+        url = "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage"
+
         os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
 
         with open(self.repos_conf_file_hostpath, "w") as f:
@@ -499,7 +501,7 @@ class TargetGentooRepo:
                 f.write("[gentoo]\n")
                 f.write("location = %s\n" % (self.datadir_path))
                 f.write("sync-type = rsync\n")
-                f.write("sync-uri = rsync://rsync.gentoo.org/gentoo-portage\n")
+                f.write("sync-uri = %s\n" % (url))
                 f.write("auto-sync = yes\n")
                 f.write("sync-rsync-verify-jobs = 1\n")
                 f.write("sync-rsync-verify-metamanifest = yes\n")
