@@ -38,7 +38,7 @@ def Action(progress_step):
             # get newChrootDir
             # FIXME: create bcachefs snapshot
             if self._chrootDir is None or self.is_rollback_supported():
-                fn = "%02d-%s" % (progress_step.value, (progress_step + 1).name)
+                fn = "%02d-%s" % (self._progress.value, BuildProgress(self._progress + 1).name)
                 self._chrootDir = os.path.join(self._workDir, fn)
                 os.mkdir(self._chrootDir)
                 os.symlink(fn, os.path.join(self._workDir, "chroot"))
@@ -47,7 +47,7 @@ def Action(progress_step):
             func(self)
 
             # do progress
-            self._progress += 1
+            self._progress = BuildProgress(self._progress + 1)
 
         return wrapper
 
