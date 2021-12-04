@@ -285,7 +285,6 @@ class WorkDir:
 class ChrootMount:
 
     def __init__(self, parent):
-        self._stdMnts = ["/proc", "/sys", "/dev", "/dev/pts", "/tmp"]
         self._parent = parent
         self._bBind = False
 
@@ -320,7 +319,6 @@ class ChrootMount:
             self._assertDirStatus("/dev")
             Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
             Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-            Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev/pts")))
 
             # mount /tmp
             self._assertDirStatus("/tmp")
@@ -426,7 +424,6 @@ class ChrootMount:
             _procOne(t.pkgdir_path)
 
         _procOne("/tmp")
-        _procOne("/dev/pts")
         _procOne("/dev")
         _procOne("/sys")
         _procOne("/proc")
