@@ -221,7 +221,7 @@ class Builder:
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
             with self._cm as m:
-                m.runCmd("/usr/bin/emerge --sync")
+                m.runCmd("", "/usr/bin/emerge --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
