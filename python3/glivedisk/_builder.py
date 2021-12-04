@@ -323,7 +323,7 @@ class ChrootMount:
             t = TargetGentooRepo(self._parent._chrootDir)
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
-        # host overlay mount points
+        # host overlay readonly mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
                 t = TargetHostOverlay(self._parent._chrootDir, o)
@@ -351,16 +351,23 @@ class ChrootMount:
 
     def _getAddlMnts(self):
         ret = []
+
+        # distdir mount point
         if self._parent._hostInfo.distfiles_dir is not None:
             t = TargetGentooRepo(self._parent._chrootDir)
             ret.append(t.distdir_path)
+
+        # pkgdir mount point
         if self._parent._hostInfo.packages_dir is not None:
             t = TargetGentooRepo(self._parent._chrootDir)
             ret.append(t.pkgdir_path)
+
+        # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
                 t = TargetHostOverlay(self._parent._chrootDir, o)
                 ret.append(t.datadir_path)
+
         return ret
 
 
