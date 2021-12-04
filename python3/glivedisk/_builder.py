@@ -313,18 +313,23 @@ class ChrootMount:
         Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev", "pts")))
         Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
 
-        # additional mount point
+        # distdir mount point
         if self._parent._hostInfo.distfiles_dir is not None:
             t = TargetGentooRepo(self._parent._chrootDir)
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
+
+        # pkgdir mount point
         if self._parent._hostInfo.packages_dir is not None:
             t = TargetGentooRepo(self._parent._chrootDir)
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
+
+        # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
                 t = TargetHostOverlay(self._parent._chrootDir, o)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
 
+        # change status
         self._bBind = True
 
     def unbind(self):
