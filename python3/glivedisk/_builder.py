@@ -364,10 +364,7 @@ class ChrootMount:
     def runCmd(self, envStr, cmdStr, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
         if not quiet:
-            if envStr != "":
-                print("%s %s" % (envStr, cmdStr))
-            else:
-                print("%s" % (cmdStr))
+            print("%s" % (cmdStr))
             return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
         else:
             return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
