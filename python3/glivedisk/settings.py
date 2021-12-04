@@ -76,12 +76,14 @@ class BuildOptions:
 class HostInfo:
 
     def __init__(self):
-        self.distfiles_dir = None    # distfiles directory in host system, will be bind mounted in target system
-                                     # default: None, means there's no such a directory in host system
+        self.distfiles_dir = None           # distfiles directory in host system, will be bind mounted in target system
+                                            # default: None, means there's no such a directory in host system
 
-        self.packages_dir = None     # packages directory in host system
+        self.packages_dir = None            # packages directory in host system
 
-        self.overlays = None         # overlays in host system, will be bind mounted in target system
+        self.gentoo_repository_dir = None   # gentoo repository directory in host system
+
+        self.overlays = None                # overlays in host system, will be bind mounted in target system
 
 
 class HostOverlay:

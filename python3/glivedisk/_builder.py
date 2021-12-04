@@ -57,9 +57,10 @@ def Action(progress_step):
 class BuildProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
-    STEP_REPOSITORIES_INITIALIZED = enum.auto()
+    STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
     STEP_CONFDIR_INITIALIZED = enum.auto()
     STEP_SYSTEM_UPDATED = enum.auto()
+    STEP_OVERLAYS_INITIALIZED = enum.auto()
     STEP_PACKAGES_INSTALLED = enum.auto()
     STEP_KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
     STEP_SYSTEM_SOLDERED = enum.auto()
@@ -206,30 +207,23 @@ class Builder:
     def action_unpack(self):
         self._tf.extractall(self._chrootDir)
 
+        t = TargetCacheDirs(self._chrootDir)
+        t.ensure_distdir()
+        t.ensure_pkgdir()
+
     @Action(BuildProgress.STEP_UNPACKED)
-    def action_init_repositories(self):
+    def action_init_gentoo_repository(self):
         # init gentoo repository
-        t = TargetGentooRepo(self._chrootDir)
+        t = TargetGentooRepo(self._chrootDir, self._hostInfo.gentoo_repository_dir)
         t.write_repos_conf()
         t.ensure_datadir()
-        t.ensure_distdir()          # we make distdir part of TargetGentooRepo
-        t.ensure_pkgdir()           # we make pkgdir part of TargetGentooRepo
 
-        # init host overlays
-        if self._hostInfo.overlays is not None:
-            for o in self._hostInfo.overlays:
-                t = TargetHostOverlay(self._chrootDir, o)
-                t.write_repos_conf()
-                t.ensure_datadir()
+        # sync gentoo repository
+        if self._hostInfo.gentoo_repository_dir is None:
+            with self._cm as m:
+                m.runCmd("/usr/bin/emerge --sync")
 
-        with self._cm as m:
-            m.runCmd("/usr/bin/emerge --sync")
-
-            # init overlays
-            # FIXME: use layman
-            pass
-
-    @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
+    @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
         TargetConfDir.write_make_conf(self._progName, self._chrootDir, self._target)
 
@@ -244,6 +238,20 @@ class Builder:
             m.runCmd(cfgprotect, "/usr/sbin/perl-cleaner --all")
 
     @Action(BuildProgress.STEP_SYSTEM_UPDATED)
+    def action_init_overlays(self):
+        # init host overlays
+        if self._hostInfo.overlays is not None:
+            for o in self._hostInfo.overlays:
+                t = TargetHostOverlay(self._chrootDir, o)
+                t.write_repos_conf()
+                t.ensure_datadir()
+
+        # init overlays
+        with self._cm as m:
+            # FIXME: use layman
+            pass
+
+    @Action(BuildProgress.STEP_OVERLAYS_INITIALIZED)
     def action_install_packages(self):
         with self._cm:
             pass
@@ -296,38 +304,32 @@ class ChrootMount:
 
         # check
         for fn in self._stdMnts + self._getAddlMnts():
-            assert fn.startswith("/")
-            fullfn = os.path.join(self._parent._chrootDir, fn[1:])
-            assert os.path.exists(fullfn)
-            assert not Util.ismount(fullfn)
+            self._assertDirStatus(fn)
 
         # copy resolv.conf
         Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
 
-        # standard mount point
         Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
         Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
         Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
         Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
         Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev", "pts")))
+        Util.shellCall("/bin/mount -t tmpfs pts \"%s\" -o gid=5,noexec,nosuid,nodev" % (os.path.join(self._parent._chrootDir, "dev/pts")))
         Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
 
-        # distdir mount point
-        if self._parent._hostInfo.distfiles_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir)
+        # distdir and pkgdir mount point
+        t = TargetCacheDirs(self._parent._chrootDir)
+        if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
-
-        # pkgdir mount point
-        if self._parent._hostInfo.packages_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir)
+        if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
         # host overlay readonly mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
                 t = TargetHostOverlay(self._parent._chrootDir, o)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
+                if os.path.exists(t.datadir_hostpath):
+                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
 
         # change status
         self._bBind = True
@@ -352,37 +354,33 @@ class ChrootMount:
     def _getAddlMnts(self):
         ret = []
 
-        # distdir mount point
-        if self._parent._hostInfo.distfiles_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir)
+        # distdir and pkgdir mount point
+        t = TargetCacheDirs(self._parent._chrootDir)
+        if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
             ret.append(t.distdir_path)
-
-        # pkgdir mount point
-        if self._parent._hostInfo.packages_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir)
+        if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
             ret.append(t.pkgdir_path)
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
                 t = TargetHostOverlay(self._parent._chrootDir, o)
-                ret.append(t.datadir_path)
+                if os.path.exists(t.datadir_hostpath):
+                    ret.append(t.datadir_path)
 
         return ret
 
+    def _assertDirStatus(self, dir):
+        assert dir.startswith("/")
+        fullfn = os.path.join(self._parent._chrootDir, dir[1:])
+        assert os.path.exists(fullfn)
+        assert not Util.ismount(fullfn)
 
-class TargetGentooRepo:
+
+class TargetCacheDirs:
 
     def __init__(self, chrootDir):
         self._chroot_path = chrootDir
-
-    @property
-    def repos_conf_file_hostpath(self):
-        return os.path.join(self._chroot_path, self.repos_conf_file_path[1:])
-
-    @property
-    def datadir_hostpath(self):
-        return os.path.join(self._chroot_path, self.datadir_path[1:])
 
     @property
     def distdir_hostpath(self):
@@ -393,14 +391,6 @@ class TargetGentooRepo:
         return os.path.join(self._chroot_path, self.pkgdir_path)
 
     @property
-    def repos_conf_file_path(self):
-        return "/etc/portage/repos.conf/gentoo.conf"
-
-    @property
-    def datadir_path(self):
-        return "/var/db/repos/gentoo"
-
-    @property
     def distdir_path(self):
         return "/var/cache/portage/distfiles"
 
@@ -408,36 +398,65 @@ class TargetGentooRepo:
     def pkgdir_path(self):
         return "/var/cache/portage/packages"
 
-    def write_repos_conf(self):
-        os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
-        with open(self.repos_conf_file_hostpath, "w") as f:
-            # from Gentoo AMD64 Handbook
-            f.write("[DEFAULT]\n")
-            f.write("main-repo = gentoo\n")
-            f.write("\n")
-            f.write("[gentoo]\n")
-            f.write("location = %s\n" % (self.datadir_path))
-            f.write("sync-type = rsync\n")
-            f.write("sync-uri = rsync://rsync.gentoo.org/gentoo-portage\n")
-            f.write("auto-sync = yes\n")
-            f.write("sync-rsync-verify-jobs = 1\n")
-            f.write("sync-rsync-verify-metamanifest = yes\n")
-            f.write("sync-rsync-verify-max-age = 24\n")
-            f.write("sync-openpgp-key-path = /usr/share/openpgp-keys/gentoo-release.asc\n")
-            f.write("sync-openpgp-key-refresh-retry-count = 40\n")
-            f.write("sync-openpgp-key-refresh-retry-overall-timeout = 1200\n")
-            f.write("sync-openpgp-key-refresh-retry-delay-exp-base = 2\n")
-            f.write("sync-openpgp-key-refresh-retry-delay-max = 60\n")
-            f.write("sync-openpgp-key-refresh-retry-delay-mult = 4\n")
-
-    def ensure_datadir(self):
-        os.makedirs(self.datadir_hostpath)
-
     def ensure_distdir(self):
         os.makedirs(self.distdir_hostpath)
 
     def ensure_pkgdir(self):
         os.makedirs(self.pkgdir_hostpath)
+
+
+class TargetGentooRepo:
+
+    def __init__(self, chrootDir, hostGentooRepoDir):
+        self._chrootDir = chrootDir
+        self._hostGentooRepoDir = hostGentooRepoDir
+
+    @property
+    def repos_conf_file_hostpath(self):
+        return os.path.join(self._chrootDir, self.repos_conf_file_path[1:])
+
+    @property
+    def datadir_hostpath(self):
+        return os.path.join(self._chrootDir, self.datadir_path[1:])
+
+    @property
+    def repos_conf_file_path(self):
+        return "/etc/portage/repos.conf/gentoo.conf"
+
+    @property
+    def datadir_path(self):
+        return "/var/db/repos/gentoo"
+
+    def write_repos_conf(self):
+        os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
+
+        with open(self.repos_conf_file_hostpath, "w") as f:
+            if self._hostGentooRepoDir is not None:
+                f.write("[gentoo]\n")
+                f.write("auto-sync = no\n")
+                f.write("location = %s\n" % (self.datadir_path))
+            else:
+                # from Gentoo AMD64 Handbook
+                f.write("[DEFAULT]\n")
+                f.write("main-repo = gentoo\n")
+                f.write("\n")
+                f.write("[gentoo]\n")
+                f.write("location = %s\n" % (self.datadir_path))
+                f.write("sync-type = rsync\n")
+                f.write("sync-uri = rsync://rsync.gentoo.org/gentoo-portage\n")
+                f.write("auto-sync = yes\n")
+                f.write("sync-rsync-verify-jobs = 1\n")
+                f.write("sync-rsync-verify-metamanifest = yes\n")
+                f.write("sync-rsync-verify-max-age = 24\n")
+                f.write("sync-openpgp-key-path = /usr/share/openpgp-keys/gentoo-release.asc\n")
+                f.write("sync-openpgp-key-refresh-retry-count = 40\n")
+                f.write("sync-openpgp-key-refresh-retry-overall-timeout = 1200\n")
+                f.write("sync-openpgp-key-refresh-retry-delay-exp-base = 2\n")
+                f.write("sync-openpgp-key-refresh-retry-delay-max = 60\n")
+                f.write("sync-openpgp-key-refresh-retry-delay-mult = 4\n")
+
+    def ensure_datadir(self):
+        os.makedirs(self.datadir_hostpath)
 
 
 class TargetHostOverlay:
@@ -466,7 +485,7 @@ class TargetHostOverlay:
     def write_repos_conf(self):
         os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
         with open(self.repos_conf_file_hostpath, "w") as f:
-            f.write("[gentoo]\n")
+            f.write("[%s]\n" % (self._name))
             f.write("auto-sync = no\n")
             f.write("location = %s\n" % (self.datadir_path))
 
