@@ -403,7 +403,7 @@ class ChrootMount:
         def _procOne(fn):
             fullfn = os.path.join(self._parent._chrootDir, fn[1:])
             if os.path.exists(fullfn) and Util.ismount(fullfn):
-                Util.cmdCall("/bin/umount", fullfn)
+                Util.cmdCall("/bin/umount", "-l", fullfn)
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
