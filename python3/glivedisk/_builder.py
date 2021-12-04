@@ -620,12 +620,10 @@ class TargetConfDir:
                 myf.write('\n')
 
             # set default locale for system responses. #478382
-            myf.write('# This sets the language of build output to English.\n')
-            myf.write('# Please keep this setting intact when reporting bugs.\n')
             myf.write('LC_MESSAGES=C\n')
             myf.write('\n')
 
             # set MAKEOPTS and EMERGE_DEFAULT_OPTS
-            myf.write('MAKEOPTS="%s"' % (' '.join(paraMakeOpts)))
-            myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y %s"' % (' '.join(paraEmergeOpts)))
+            myf.write('MAKEOPTS="%s"\n' % (' '.join(paraMakeOpts)))
+            myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y %s"\n' % (' '.join(paraEmergeOpts)))
             myf.write('\n')
