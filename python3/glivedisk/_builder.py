@@ -402,11 +402,35 @@ class ChrootMount:
         return ret
 
     def _unbind(self):
-        # no exception is allowed
-        for fn in reversed(self._stdMnts + self._getAddlMnts()):
+        def _procOne(fn):
             fullfn = os.path.join(self._parent._chrootDir, fn[1:])
-            if Util.ismount(fullfn):
+            if os.path.exists(fullfn) and Util.ismount(fullfn):
                 Util.cmdCall("/bin/umount", fullfn)
+
+        # host overlay mount points
+        if self._parent._hostInfo.overlays is not None:
+            for o in self._parent._hostInfo.overlays:
+                t = TargetHostOverlay(self._parent._chrootDir, o)
+                _procOne(t.datadir_path)
+
+        # gentoo repository mount point
+        if self._parent._hostInfo.gentoo_repository_dir is not None:
+            t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
+            _procOne(t.datadir_path)
+
+        # distdir and pkgdir mount point
+        t = TargetCacheDirs(self._parent._chrootDir)
+        if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
+            _procOne(t.distdir_path)
+        if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
+            _procOne(t.pkgdir_path)
+
+        _procOne("/tmp")
+        _procOne("/dev/pts")
+        _procOne("/dev")
+        _procOne("/sys")
+        _procOne("/proc")
+
         robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
 
 
