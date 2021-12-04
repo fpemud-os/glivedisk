@@ -44,7 +44,7 @@ def Action(progress_step):
                 os.symlink(fn, os.path.join(self._workDir, "chroot"))
 
             # do work
-            self.func()
+            func(self)
 
             # do progress
             self._progress += 1
