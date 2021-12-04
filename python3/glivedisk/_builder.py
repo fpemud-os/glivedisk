@@ -355,17 +355,18 @@ class TargetConfDir:
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
             myf.write("\n")
 
-            # COMMON_FLAGS
-            if target.build_opts.common_flags is not None:
-                myf.write('COMMON_FLAGS="%s"\n' % (' '.join(target.build_opts.common_flags)))
+            if target.build_opts is not None:
+                # COMMON_FLAGS
+                if target.build_opts.common_flags is not None:
+                    myf.write('COMMON_FLAGS="%s"\n' % (' '.join(target.build_opts.common_flags)))
 
-            # foobar FLAGS
-            __write("CFLAGS", target.build_opts.cflags)
-            __write("CXXFLAGS", target.build_opts.cxxflags)
-            __write("FCFLAGS", target.build_opts.fcflags)
-            __write("FFLAGS", target.build_opts.fflags)
-            __write("LDFLAGS", target.build_opts.ldflags)
-            __write("ASFLAGS", target.build_opts.asflags)
+                # foobar FLAGS
+                __write("CFLAGS", target.build_opts.cflags)
+                __write("CXXFLAGS", target.build_opts.cxxflags)
+                __write("FCFLAGS", target.build_opts.fcflags)
+                __write("FFLAGS", target.build_opts.fflags)
+                __write("LDFLAGS", target.build_opts.ldflags)
+                __write("ASFLAGS", target.build_opts.asflags)
 
             # Set default locale for system responses. #478382
             myf.write('\n')
