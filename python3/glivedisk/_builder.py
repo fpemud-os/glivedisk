@@ -212,7 +212,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
-        TargetConfDir.write_make_conf(self._progName, self._progName, self._target)
+        TargetConfDir.write_make_conf(self._progName, self._chrootDir, self._target)
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
