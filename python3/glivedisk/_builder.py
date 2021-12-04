@@ -383,7 +383,6 @@ class ChrootMount:
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")
         fullfn = os.path.join(self._parent._chrootDir, dir[1:])
-        print(fullfn)
         assert os.path.exists(fullfn)
         assert not Util.ismount(fullfn)
 
