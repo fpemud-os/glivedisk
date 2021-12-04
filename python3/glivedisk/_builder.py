@@ -403,11 +403,11 @@ class TargetCacheDirs:
 
     @property
     def distdir_hostpath(self):
-        return os.path.join(self._chroot_path, self.distdir_path)
+        return os.path.join(self._chroot_path, self.distdir_path[1:])
 
     @property
     def pkgdir_hostpath(self):
-        return os.path.join(self._chroot_path, self.pkgdir_path)
+        return os.path.join(self._chroot_path, self.pkgdir_path[1:])
 
     @property
     def distdir_path(self):
