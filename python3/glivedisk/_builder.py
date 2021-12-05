@@ -227,7 +227,7 @@ class Builder:
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
             with Chrooter(self) as m:
-                m.runCmd("", "/usr/bin/emerge --sync")
+                m.runChrootScript("", "/usr/bin/emerge --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
@@ -236,13 +236,9 @@ class Builder:
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
-        cfgprotect = "CONFIG_PROTECT=\"-* /.glivedisk\""    # the latter is for eliminating "!!! CONFIG_PROTECT is empty" message
         with Chrooter(self) as m:
-            m.runCmd("", "/usr/bin/emerge -s non-exist-package", quiet=True)                    # eliminate "Performing Global Updates"
-            m.runCmd("", "/usr/bin/eselect news read all", quiet=True)                          # eliminate gentoo news notification
-            m.runCmd(cfgprotect, "/usr/bin/emerge --autounmask-only -uDN @world", quiet=True)
-            m.runCmd(cfgprotect, "/usr/bin/emerge --keep-going -uDN @world")
-            m.runCmd(cfgprotect, "/usr/sbin/perl-cleaner --all")
+            m.runChrootScript("", "update-system.sh")
+            m.runChrootScript("", "update-world.sh")
 
     @Action(BuildProgress.STEP_SYSTEM_UPDATED)
     def action_init_overlays(self):
@@ -373,6 +369,24 @@ class Chrooter:
             return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
         else:
             return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
+
+    def runChrootScript(self, envStr, cmdStr, quiet=False):
+        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+
+        selfDir = os.path.dirname(os.path.realpath(__file__))
+        chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
+        chrootScriptDstDir = os.path.join(self._parent._chrootDir, "tmp", "glivedisk")
+
+        Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
+        Util.shellCall("/bin/chmod -R %s/*" % (chrootScriptDstDir))
+
+        try:
+            if not quiet:
+                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
+            else:
+                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
+        finally:
+            robust_layer.simple_fops.rm(chrootScriptDstDir)
 
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")
