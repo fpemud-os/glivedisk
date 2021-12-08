@@ -46,7 +46,7 @@ class WorkDir:
 
     @property
     def chroot_dir_path(self):
-        ret = os.path.normpath(os.readlink(os.path.join(self._path, "chroot")))
+        ret = os.path.normpath(os.readlink(self._chroot_link_path()))
         assert os.path.exists(ret)
         return ret
 
@@ -79,12 +79,13 @@ class WorkDir:
         return ret
 
     def create_new_chroot_dir(self, dir_name):
+        linkPath = self._chroot_link_path()
         newChrootDir = os.path.join(self._path, dir_name)
 
-        if not os.path.exists(self.chroot_dir_path):
+        if not os.path.exists(linkPath):
             # create the first chroot directory
             os.mkdir(newChrootDir)
-            os.symlink(dir_name, self.chroot_dir_path)
+            os.symlink(dir_name, linkPath)
         else:
             if self.is_rollback_supported():
                 # snapshot the old chroot directory
@@ -93,7 +94,7 @@ class WorkDir:
                 # move the old chroot directory to new chroot directory, record the old chroot directory as a file
                 oldChrootDir = self.chroot_dir_path
                 os.rename(oldChrootDir, newChrootDir)
-                robust_layer.simple_fops.ln(dir_name, self.chroot_dir_path)
+                robust_layer.simple_fops.ln(dir_name, linkPath)
                 pathlib.Path(oldChrootDir).touch()
 
     def rollback_to_old_chroot_dir(self, dir_name):
@@ -102,6 +103,9 @@ class WorkDir:
 
         # FIXME
         raise NotImplementedError()
+
+    def _chroot_link_path(self):
+        return os.path.join(self._path, "chroot")
 
     def _verify(self):
         # work directory can be a directory or directory symlink
