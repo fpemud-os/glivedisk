@@ -39,8 +39,8 @@ from ._workdir import WorkDirChrooter
 from ._ubuilder import UserSpaceBuilder
 from ._ubuilder import UserSpaceBuildProgress
 
-from ._kbuilder import GenkernelBuilder
-from ._kbuilder import GenkernelBuildProgress
+from ._kbuilder import Genkernel
+from ._kbuilder import GenkernelProgress
 
 from ._exporter import get_exporter
 from ._exporter import Exporter
