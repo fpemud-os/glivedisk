@@ -298,6 +298,12 @@ class _Chrooter:
 
         self._chrooter.unbind()
 
+    def run_cmd(self, env, cmd, quiet=False):
+        return self._chrooter.run_cmd(env, cmd, quiet)
+
+    def run_chroot_script(self, env, cmd, quiet=False):
+        return self._chrooter.run_chroot_script(env, cmd, quiet)
+
     def _unbind(self):
         def _procOne(fn):
             fullfn = os.path.join(self._parent._workDirObj.chroot_dir_path, fn[1:])
