@@ -190,7 +190,7 @@ class WorkDirChrooter:
         chrootScriptDstDir = os.path.join(self._workDirObj.chroot_dir_path, "tmp", "glivecd")
 
         Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
-        Util.shellCall("/bin/chmod -R %s/*" % (chrootScriptDstDir))
+        Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDir))
 
         try:
             if not quiet:
