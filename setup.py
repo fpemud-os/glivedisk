@@ -45,10 +45,11 @@ setup(
 	packages=[
 		__package__,
 		'{0}.export_target'.format(__package__),
-		# '{0}.arch'.format(__package__),
-		# '{0}.base'.format(__package__),
 		],
     package_dir={
         __package__: os.path.join('python3', __package__),
+    },
+	package_data={
+        'glivedisk': ['scripts-in-chroot/*'],
     },
 )
