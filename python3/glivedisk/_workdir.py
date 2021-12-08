@@ -46,7 +46,7 @@ class WorkDir:
 
     @property
     def chroot_dir_path(self):
-        ret = os.path.normpath(os.readlink(self._chroot_link_path()))
+        ret = os.path.realpath(self._chroot_link_path())
         assert os.path.exists(ret)
         return ret
 
