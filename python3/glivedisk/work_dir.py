@@ -107,8 +107,8 @@ class WorkDir:
 
 class WorkDirChrooter:
 
-    def __init__(self, workDirObj):
-        self._workDirObj = workDirObj
+    def __init__(self, work_dir):
+        self._workDirObj = work_dir
         self._bBind = False
 
     def __enter__(self):
