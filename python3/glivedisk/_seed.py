@@ -36,6 +36,10 @@ class CloudGentooStage3:
     def __init__(self, arch, variant):
         self._arch = arch
         self._variant = variant
+
+        self._stage3FileUrl = None
+        self._stage3HashFileUrl = None
+
         self._resp = None
         self._tf = None
 
@@ -101,18 +105,24 @@ class CloudGentooStage3:
         baseUrl = "https://mirrors.tuna.tsinghua.edu.cn/gentoo"
         autoBuildsUrl = os.path.join(baseUrl, "releases", self._arch, "autobuilds")
 
-        stage3FileUrl = None
+        self._stage3FileUrl = None
         with urllib.request.urlopen(os.path.join(autoBuildsUrl, indexFileName)) as resp:
             m = re.search(r'^(\S+) [0-9]+', resp.read().decode("UTF-8"), re.M)
-            stage3FileUrl = os.path.join(autoBuildsUrl, m.group(1))
+            self._stage3FileUrl = os.path.join(autoBuildsUrl, m.group(1))
 
-        self._resp = urllib.request.urlopen(stage3FileUrl)
+        self._stage3HashFileUrl = self._stage3FileUrl + ".DEGISTS"
+
+        self._resp = urllib.request.urlopen(self._stage3FileUrl)
         try:
             self._tf = tarfile.open(fileobj=resp, mode="r:xz")
         except BaseException:
             self._resp.close()
             self._resp = None
             raise
+
+    def get_chksum(self):
+        with urllib.request.urlopen(self._stage3HashFileUrl) as resp:
+            return resp.read()
 
     def extractall(self, target_dir):
         self._tf.extractall(target_dir)

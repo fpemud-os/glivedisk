@@ -67,10 +67,9 @@ class UserSpaceBuilder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    @staticmethod
-    def new(program_name, seed_stage_stream, work_dir, target, host_info=None, chroot_info=None):
+    def __init__(self, program_name, seed_stage_stream, work_dir, target, host_info=None, chroot_info=None):
         # check seed_stage_stream
-        assert hasattr(seed_stage_stream, "extractall")
+        assert hasattr(seed_stage_stream, "get_chksum") and hasattr(seed_stage_stream, "extractall")
 
         # check target
         assert isinstance(target, settings.Target)
@@ -112,69 +111,45 @@ class UserSpaceBuilder:
         assert chroot_info.conv_uid_gid(0, 0) == (os.getuid(), os.getgid())
 
         # create object
-        ret = UserSpaceBuilder()
-        ret._progName = program_name
-        ret._tf = seed_stage_stream
-        ret._workDirObj = work_dir
-        ret._target = target
-        ret._hostInfo = host_info
-        ret._chrootInfo = chroot_info
-        ret._progress = UserSpaceBuildProgress.STEP_INIT
+        self._progName = program_name
+        self._tf = seed_stage_stream
+        self._workDirObj = work_dir
+        self._target = target
+        self._hostInfo = host_info
+        self._chrootInfo = chroot_info
+        self._progress = UserSpaceBuildProgress.STEP_INIT
 
-        # check work_dir and save parameters
-        ret._workDirObj.verify_empty()
-        Util.saveObj(os.path.join(ret._workDirObj.path, "target.json"), target)
-        Util.saveObj(os.path.join(ret._workDirObj.path, "host_info.json"), host_info)
-        Util.saveObj(os.path.join(ret._workDirObj.path, "chroot_info.json"), chroot_info)
-        Util.saveEnum(os.path.join(ret._workDirObj.path, "ubuilder_progress"), ret._progress)
-
-        return ret
-
-    @staticmethod
-    def revoke(program_name, work_dir):
-        ret = UserSpaceBuilder()
-        ret._progName = program_name
-        ret._tf = None
-
-        ret._workDirObj = work_dir
-        ret._workDirObj.verify_existing()
-
-        fullfn = os.path.join(ret._workDirObj.path, "target.json")
-        try:
-            ret._target = Util.loadObj(fullfn)
-        except:
-            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
-
-        fullfn = os.path.join(ret._workDirObj.path, "host_info.json")
-        try:
-            ret._hostInfo = Util.loadObj(fullfn)
-        except:
-            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
-
-        fullfn = os.path.join(ret._workDirObj.path, "chroot_info.json")
-        try:
-            ret._chrootInfo = Util.loadObj(fullfn)
-        except:
-            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
-
-        fullfn = os.path.join(ret._workDirObj.path, "ubuilder_progress")
-        try:
-            ret._progress = Util.loadEnum(fullfn, UserSpaceBuildProgress)
-        except:
-            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
-        if ret._progress < UserSpaceBuildProgress.STEP_UNPACKED:
-            raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))    # FIXME: change error message
-
-        return ret
-
-    def __init__(self):
-        self._progName = None
-        self._tf = None
-        self._workDirObj = None
-        self._target = None
-        self._hostInfo = None
-        self._chrootInfo = None
-        self._progress = None
+        if not os.path.exists(self._workDirObj.path):
+            self._workDirObj.initialize()
+            Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
+            Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
+            Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
+            Util.saveEnum(os.path.join(self._workDirObj.path, "ubuilder_progress"), self._progress)
+        else:
+            try:
+                self._workDirObj.verify_existing()
+                try:
+                    saved_target = Util.loadObj(os.path.join(self._workDirObj.path, "target.json"))
+                    saved_host_info = Util.loadObj(os.path.join(self._workDirObj.path, "host_info.json"))
+                    saved_chroot_info = Util.loadObj(os.path.join(self._workDirObj.path, "chroot_info.json"))
+                    saved_progress = Util.loadObj(os.path.join(self._workDirObj.path, "ubuilder_progress"))
+                except:
+                    raise WorkDirVerifyError("")
+                if target != saved_target:
+                    raise WorkDirVerifyError("")
+                if host_info != saved_host_info:
+                    raise WorkDirVerifyError("")
+                if chroot_info != saved_chroot_info:
+                    raise WorkDirVerifyError("")
+                if saved_progress < UserSpaceBuildProgress.STEP_UNPACKED:
+                    raise WorkDirVerifyError("")
+                self._progress = saved_progress
+            except WorkDirVerifyError:
+                self._workDirObj.initialize()
+                Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
+                Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
+                Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
+                Util.saveEnum(os.path.join(self._workDirObj.path, "ubuilder_progress"), self._progress)
 
     def get_progress(self):
         return self._progress
