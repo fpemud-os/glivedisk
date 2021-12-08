@@ -121,6 +121,7 @@ class UserSpaceBuilder:
 
         if not os.path.exists(self._workDirObj.path):
             self._workDirObj.initialize()
+            Util.saveObj(os.path.join(self._workDirObj.path, "seed_chksum"), self._tf.get_chksum())
             Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
             Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
             Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
@@ -129,11 +130,14 @@ class UserSpaceBuilder:
             try:
                 self._workDirObj.verify_existing()
                 try:
+                    saved_chksum = Util.loadObj(os.path.join(self._workDirObj.path, "seed_chksum"))
                     saved_target = Util.loadObj(os.path.join(self._workDirObj.path, "target.json"))
                     saved_host_info = Util.loadObj(os.path.join(self._workDirObj.path, "host_info.json"))
                     saved_chroot_info = Util.loadObj(os.path.join(self._workDirObj.path, "chroot_info.json"))
                     saved_progress = Util.loadObj(os.path.join(self._workDirObj.path, "ubuilder_progress"))
                 except:
+                    raise WorkDirVerifyError("")
+                if self._tf.get_chksm() != saved_chksum:
                     raise WorkDirVerifyError("")
                 if target != saved_target:
                     raise WorkDirVerifyError("")
@@ -146,6 +150,7 @@ class UserSpaceBuilder:
                 self._progress = saved_progress
             except WorkDirVerifyError:
                 self._workDirObj.initialize()
+                Util.saveObj(os.path.join(self._workDirObj.path, "seed_chksum"), self._tf.get_chksum())
                 Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
                 Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
                 Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
