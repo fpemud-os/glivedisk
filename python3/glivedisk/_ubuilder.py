@@ -37,7 +37,7 @@ def Action(progress_step):
             assert self._progress == progress_step
 
             # create new chroot dir
-            dirName = "%02d-%s" % (self._progress.value, UserSpaceBuildProgress(self._progress + 1).name)
+            dirName = "%02d-%s" % (self._progress.value, UserSpaceBuildProgress(self._progress.value + 1).name)
             self._workDirObj.create_new_chroot_dir(dirName)
 
             # do work
