@@ -27,10 +27,6 @@ import tarfile
 import urllib.request
 
 
-def verify_seed_stage_dir(dirpath):
-    pass
-
-
 class CloudGentooStage3:
 
     def __init__(self, arch, variant):
