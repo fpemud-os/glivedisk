@@ -527,7 +527,7 @@ class TargetConfDir:
             myf.write("*/* compile-locales")
 
             # write cusom USE flags
-            for pkg_wildcard, use_flag_list in self._target.use_flags.items():
+            for pkg_wildcard, use_flag_list in self._target.pkg_use.items():
                 if "-compile-locales" in use_flag_list:
                     raise SettingsError("USE flag \"-compile-locales\" is not allowed")
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(use_flag_list)))
