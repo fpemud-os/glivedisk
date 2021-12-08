@@ -36,8 +36,9 @@ class WorkDir:
 
     MODE = 0o40700
 
-    def __init__(self, path):
+    def __init__(self, path, arch):
         self._path = path
+        self._arch = arch
         self._bPrepared = False
 
     @property
@@ -50,9 +51,14 @@ class WorkDir:
         assert os.path.exists(ret)
         return ret
 
+    @property
+    def arch(self):
+        return self._arch
+
     def initialize(self):
         if not os.path.exists(self._path):
             os.mkdir(self._path, mode=self.MODE)
+            self._save_arch()
         else:
             self.verify_existing()
             robust_layer.simple_fops.truncate_dir(self._path)
@@ -64,6 +70,7 @@ class WorkDir:
 
     def verify_existing(self):
         self._verify()
+        self._verify_arch()
 
     def destroy(self):
         robust_layer.simple_fops.rm(self._path)
@@ -107,6 +114,9 @@ class WorkDir:
     def _chroot_link_path(self):
         return os.path.join(self._path, "chroot")
 
+    def _arch_record_path(self):
+        return os.path.join(self._path, "arch.save")
+
     def _verify(self):
         # work directory can be a directory or directory symlink
         # so here we use os.stat() instead of os.lstat()
@@ -119,6 +129,16 @@ class WorkDir:
             raise WorkDirVerifyError("invalid uid for \"%s\"" % (self._path))
         if s.st_gid != os.getgid():
             raise WorkDirVerifyError("invalid gid for \"%s\"" % (self._path))
+
+    def _save_arch(self):
+        with open(self._arch_record_path(), "w") as f:
+            f.write(self._arch + "\n")
+
+    def _verify_arch(self):
+        if not os.path.exists(self._arch_record_path()):
+            raise WorkDirVerifyError("arch is not saved")
+        if pathlib.Path(self._arch_record_path()).read_text().rstrip("\n") != self._arch:
+            raise WorkDirVerifyError("arch is invalid")
 
 
 class WorkDirChrooter:
