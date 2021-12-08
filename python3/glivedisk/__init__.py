@@ -33,8 +33,8 @@ __author__ = 'Fpemud <fpemud@sina.com>'
 from ._seed import verify_seed_stage_dir
 from ._seed import CloudGentooStage3
 
-from ._work_dir import WorkDir
-from ._work_dir import WorkDirChrooter
+from ._workdir import WorkDir
+from ._workdir import WorkDirChrooter
 
 from ._ubuilder import UserSpaceBuilder
 from ._ubuilder import UserSpaceBuildProgress
