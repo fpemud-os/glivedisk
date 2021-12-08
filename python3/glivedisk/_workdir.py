@@ -178,25 +178,25 @@ class WorkDirChrooter:
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
         if not quiet:
             print("%s" % (cmd))
-            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
+            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
         else:
-            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
+            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
     def run_chroot_script(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
 
         selfDir = os.path.dirname(os.path.realpath(__file__))
         chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
-        chrootScriptDstDir = os.path.join(self._parent._workDir.chroot_dir_path, "tmp", "glivecd")
+        chrootScriptDstDir = os.path.join(self._workDirObj.chroot_dir_path, "tmp", "glivecd")
 
         Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
         Util.shellCall("/bin/chmod -R %s/*" % (chrootScriptDstDir))
 
         try:
             if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
+                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
             else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
+                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 
