@@ -61,7 +61,7 @@ class UserSpaceBuildProgress(enum.IntEnum):
     STEP_WORLD_UPDATED = enum.auto()
 
 
-class UserspaceBuilder:
+class UserSpaceBuilder:
     """
     This class does all of the chroot setup, copying of files, etc.
     It is the driver class for pretty much everything that glivedisk does.
@@ -112,7 +112,7 @@ class UserspaceBuilder:
         assert chroot_info.conv_uid_gid(0, 0) == (os.getuid(), os.getgid())
 
         # create object
-        ret = UserspaceBuilder()
+        ret = UserSpaceBuilder()
         ret._progName = program_name
         ret._tf = seed_stage_stream
         ret._workDirObj = work_dir
@@ -132,7 +132,7 @@ class UserspaceBuilder:
 
     @staticmethod
     def revoke(program_name, work_dir):
-        ret = UserspaceBuilder()
+        ret = UserSpaceBuilder()
         ret._progName = program_name
         ret._tf = None
 
