@@ -158,15 +158,15 @@ class WorkDirChrooter:
         self._unbind()
         self._bBind = False
 
-    def run_cmd(self, envStr, cmdStr, quiet=False):
+    def run_cmd(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
         if not quiet:
-            print("%s" % (cmdStr))
-            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._workDir.chroot_dir_path, cmdStr))
+            print("%s" % (cmd))
+            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
         else:
-            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._workDir.chroot_dir_path, cmdStr))
+            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
 
-    def run_chroot_script(self, envStr, cmdStr, quiet=False):
+    def run_chroot_script(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
 
         selfDir = os.path.dirname(os.path.realpath(__file__))
@@ -178,9 +178,9 @@ class WorkDirChrooter:
 
         try:
             if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._workDir.chroot_dir_path, cmdStr))
+                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
             else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._workDir.chroot_dir_path, cmdStr))
+                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._parent._workDir.chroot_dir_path, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 

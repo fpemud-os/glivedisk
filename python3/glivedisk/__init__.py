@@ -34,9 +34,13 @@ from ._seed import verify_seed_stage_dir
 from ._seed import CloudGentooStage3
 
 from .work_dir import WorkDir
+from .work_dir import WorkDirChrooter
 
 from ._ubuilder import UserspaceBuilder
 from ._ubuilder import UserSpaceBuildProgress
+
+from ._kbuilder import GenkernelBuilder
+from ._kbuilder import GenkernelBuildProgress
 
 from ._exporter import get_exporter
 from ._exporter import Exporter
