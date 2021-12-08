@@ -277,17 +277,17 @@ class _Chrooter:
             # distdir and pkgdir mount point
             t = TargetCacheDirs(self._parent._workDir.chroot_dir_path)
             if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
-                self._assertDirStatus(t.distdir_path)
+                self._chrooter._assertDirStatus(t.distdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
             if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
-                self._assertDirStatus(t.pkgdir_path)
+                self._chrooter._assertDirStatus(t.pkgdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
 
             # gentoo repository mount point
             if self._parent._hostInfo.gentoo_repository_dir is not None:
                 t = TargetGentooRepo(self._parent._workDir.chroot_dir_path, self._parent._hostInfo.gentoo_repository_dir)
                 if os.path.exists(t.datadir_hostpath):
-                    self._assertDirStatus(t.datadir_path)
+                    self._chrooter._assertDirStatus(t.datadir_path)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
 
             # host overlay readonly mount points
@@ -295,7 +295,7 @@ class _Chrooter:
                 for o in self._parent._hostInfo.overlays:
                     t = TargetHostOverlay(self._parent._workDir.chroot_dir_path, o)
                     if os.path.exists(t.datadir_hostpath):
-                        self._assertDirStatus(t.datadir_path)
+                        self._chrooter._assertDirStatus(t.datadir_path)
                         Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
         except BaseException:
             self._unbind()
@@ -309,12 +309,6 @@ class _Chrooter:
         self._bBind = False
 
         self._chrooter.unbind()
-
-    def _assertDirStatus(self, dir):
-        assert dir.startswith("/")
-        fullfn = os.path.join(self._parent._workDir.chroot_dir_path, dir[1:])
-        assert os.path.exists(fullfn)
-        assert not Util.ismount(fullfn)
 
     def _unbind(self):
         def _procOne(fn):
