@@ -24,7 +24,7 @@
 import enum
 
 
-class GenkernelBuildProgress(enum.IntEnum):
+class GenkernelProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
     STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
@@ -36,13 +36,14 @@ class GenkernelBuildProgress(enum.IntEnum):
     STEP_SYSTEM_SOLDERED = enum.auto()
 
 
-class GenkernelBuilder:
+class Genkernel:
     """
     Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
-
-    This class does all of the chroot setup, copying of files, etc. It is
-    the driver class for pretty much everything that glivedisk does.
     """
 
-    pass
+    def __init__(self, program_name, work_dir):
+        self._progName = program_name
+        self._workDirObj = work_dir
 
+    def build(self):
+        pass

@@ -23,6 +23,7 @@
 
 import os
 import stat
+import pathlib
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import WorkDirVerifyError
@@ -70,23 +71,34 @@ class WorkDir:
     def is_rollback_supported(self):
         return False
 
-    def has_chroot_dir(self, dir_name):
-        return os.path.exists(self._path, dir_name)
+    def has_old_chroot_dir(self, dir_name):
+        ret = os.path.exists(self._path, dir_name)
+        if ret:
+            # dir_name should not be the current chroot directory
+            assert dir_name != os.path.basename(self.chroot_dir_path)
+        return ret
 
     def create_new_chroot_dir(self, dir_name):
-        # create the first chroot directory
-        if not os.path.exists(self.chroot_dir_path):
-            os.mkdir(os.path.join(self._path, dir_name))
-            os.symlink(dir_name, self.chroot_dir_path)
-            return
+        newChrootDir = os.path.join(self._path, dir_name)
 
-        # snapshot the previous chroot directory
-        if self.is_rollback_supported():
-            robust_layer.simple_fops.ln(dir_name, self.chroot_dir_path)
+        if not os.path.exists(self.chroot_dir_path):
+            # create the first chroot directory
+            os.mkdir(newChrootDir)
+            os.symlink(dir_name, self.chroot_dir_path)
+        else:
+            if self.is_rollback_supported():
+                # snapshot the old chroot directory
+                assert False
+            else:
+                # move the old chroot directory to new chroot directory, record the old chroot directory as a file
+                oldChrootDir = self.chroot_dir_path
+                os.rename(oldChrootDir, newChrootDir)
+                robust_layer.simple_fops.ln(dir_name, self.chroot_dir_path)
+                pathlib.Path(oldChrootDir).touch()
 
     def rollback_to_old_chroot_dir(self, dir_name):
         assert self.is_rollback_supported()
-        assert self.has_chroot_dir(dir_name) and dir_name != os.path.basename(self.chroot_dir_path)
+        assert self.has_old_chroot_dir(dir_name) and dir_name != os.path.basename(self.chroot_dir_path)
 
         # FIXME
         raise NotImplementedError()
