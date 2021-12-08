@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,24 +21,28 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
-
-__version__ = '0.0.1'
-
-__author__ = 'Fpemud <fpemud@sina.com>'
+import enum
 
 
-from ._seed import verify_seed_stage_dir
-from ._seed import CloudGentooStage3
+class GenkernelBuildProgress(enum.IntEnum):
+    STEP_INIT = enum.auto()
+    STEP_UNPACKED = enum.auto()
+    STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
+    STEP_CONFDIR_INITIALIZED = enum.auto()
+    STEP_SYSTEM_UPDATED = enum.auto()
+    STEP_OVERLAYS_INITIALIZED = enum.auto()
+    STEP_PACKAGES_INSTALLED = enum.auto()
+    STEP_KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
+    STEP_SYSTEM_SOLDERED = enum.auto()
 
-from .work_dir import WorkDir
 
-from ._ubuilder import UserspaceBuilder
-from ._ubuilder import UserSpaceBuildProgress
+class GenkernelBuilder:
+    """
+    Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
 
-from ._exporter import get_exporter
-from ._exporter import Exporter
+    This class does all of the chroot setup, copying of files, etc. It is
+    the driver class for pretty much everything that glivedisk does.
+    """
 
-from ._errors import SettingsError
-from ._errors import SeedVerifyError
-from ._errors import WorkDirVerifyError
+    pass
+

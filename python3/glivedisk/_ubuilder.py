@@ -27,6 +27,7 @@ import enum
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import WorkDirVerifyError, SettingsError
+from .work_dir import WorkDirChrooter
 from . import settings
 
 
@@ -36,40 +37,32 @@ def Action(progress_step):
             # check
             assert self._progress == progress_step
 
-            # get newChrootDir
-            # FIXME: create bcachefs snapshot
-            if not self.is_rollback_supported():
-                self._chrootDir = os.path.join(self._workDir, "chroot")
-                robust_layer.simple_fops.mkdir(self._chrootDir)
-            else:
-                self._chrootDir = os.path.join(self._workDir, "%02d-%s" % (self._progress.value, BuildProgress(self._progress + 1).name))
-                os.mkdir(self._chrootDir)
-                robust_layer.simple_fops.ln(os.path.basename(self._chrootDir), os.path.join(self._workDir, "chroot"))
+            # create new chroot dir
+            dirName = "%02d-%s" % (self._progress.value, UserSpaceBuildProgress(self._progress + 1).name)
+            self._workDir.create_new_chroot_dir(dirName)
 
             # do work
             func(self)
 
             # do progress
-            self._progress = BuildProgress(self._progress + 1)
+            self._progress = UserSpaceBuildProgress(self._progress + 1)
 
         return wrapper
 
     return decorator
 
 
-class BuildProgress(enum.IntEnum):
+class UserSpaceBuildProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
     STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
     STEP_CONFDIR_INITIALIZED = enum.auto()
     STEP_SYSTEM_UPDATED = enum.auto()
     STEP_OVERLAYS_INITIALIZED = enum.auto()
-    STEP_PACKAGES_INSTALLED = enum.auto()
-    STEP_KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
-    STEP_SYSTEM_SOLDERED = enum.auto()
+    STEP_WORLD_UPDATED = enum.auto()
 
 
-class Builder:
+class UserspaceBuilder:
     """
     This class does all of the chroot setup, copying of files, etc. It is
     the driver class for pretty much everything that glivedisk does.
@@ -79,12 +72,6 @@ class Builder:
     def new(program_name, seed_stage_stream, work_dir, target, host_info=None, chroot_info=None):
         # check seed_stage_stream
         assert hasattr(seed_stage_stream, "extractall")
-
-        # check work_dir
-        if os.path.exists(work_dir):
-            assert os.path.isdir(work_dir)
-        else:
-            assert os.path.isdir(os.path.dirname(work_dir))
 
         # check target
         assert isinstance(target, settings.Target)
@@ -126,65 +113,57 @@ class Builder:
         assert chroot_info.conv_uid_gid(0, 0) == (os.getuid(), os.getgid())
 
         # create object
-        ret = Builder()
+        ret = UserspaceBuilder()
         ret._progName = program_name
         ret._tf = seed_stage_stream
         ret._workDir = work_dir
         ret._target = target
         ret._hostInfo = host_info
         ret._chrootInfo = chroot_info
-        ret._progress = BuildProgress.STEP_INIT
+        ret._progress = UserSpaceBuildProgress.STEP_INIT
 
-        # initialize work_dir
-        if not os.path.exists(ret._workDir):
-            os.mkdir(ret._workDir, mode=WorkDirUtil.MODE)
-        else:
-            WorkDirUtil.checkDir(ret._workDir)
-            robust_layer.simple_fops.truncate_dir(ret._workDir)
-
-        # save parameters
-        Util.saveObj(os.path.join(ret._workDir, "target.json"), target)
-        Util.saveObj(os.path.join(ret._workDir, "host_info.json"), host_info)
-        Util.saveObj(os.path.join(ret._workDir, "chroot_info.json"), chroot_info)
-        Util.saveEnum(os.path.join(ret._workDir, "progress"), ret._progress)
+        # check work_dir and save parameters
+        ret._workDir.verify_empty()
+        Util.saveObj(os.path.join(ret._workDir.path, "target.json"), target)
+        Util.saveObj(os.path.join(ret._workDir.path, "host_info.json"), host_info)
+        Util.saveObj(os.path.join(ret._workDir.path, "chroot_info.json"), chroot_info)
+        Util.saveEnum(os.path.join(ret._workDir.path, "progress"), ret._progress)
 
         return ret
 
     @staticmethod
     def revoke(program_name, work_dir):
-        ret = Builder()
+        ret = UserspaceBuilder()
         ret._progName = program_name
         ret._tf = None
 
-        if not os.path.isdir(work_dir):
-            raise WorkDirVerifyError("invalid directory \"%s\"" % (work_dir))
-        WorkDirUtil.checkDir(work_dir)
         ret._workDir = work_dir
+        ret._workDir.verify_existing()
 
-        fullfn = os.path.join(ret._workDir, "target.json")
+        fullfn = os.path.join(ret._workDir.path, "target.json")
         try:
             ret._target = Util.loadObj(fullfn)
         except:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
 
-        fullfn = os.path.join(ret._workDir, "host_info.json")
+        fullfn = os.path.join(ret._workDir.path, "host_info.json")
         try:
             ret._hostInfo = Util.loadObj(fullfn)
         except:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
 
-        fullfn = os.path.join(ret._workDir, "chroot_info.json")
+        fullfn = os.path.join(ret._workDir.path, "chroot_info.json")
         try:
             ret._chrootInfo = Util.loadObj(fullfn)
         except:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
 
-        fullfn = os.path.join(ret._workDir, "progress")
+        fullfn = os.path.join(ret._workDir.path, "progress")
         try:
-            ret._progress = Util.loadEnum(fullfn, BuildProgress)
+            ret._progress = Util.loadEnum(fullfn, UserSpaceBuildProgress)
         except:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))
-        if ret._progress < BuildProgress.STEP_UNPACKED:
+        if ret._progress < UserSpaceBuildProgress.STEP_UNPACKED:
             raise WorkDirVerifyError("invalid parameter file \"%s\"" % (fullfn))    # FIXME: change error message
 
         return ret
@@ -196,58 +175,50 @@ class Builder:
         self._target = None
         self._hostInfo = None
         self._chrootInfo = None
-
         self._progress = None
-        self._chrootDir = None
 
     def get_progress(self):
         return self._progress
 
-    def get_work_dir(self):
-        return self._workDir
-
     def is_rollback_supported(self):
-        return False        # FIXME: support rollback through bcachefs non-priviledged snapshot
+        return self._workDir.is_rollback_supported()
 
     def rollback_to(self, progress_step):
-        assert isinstance(progress_step, BuildProgress) and progress_step < self._progress
-        assert False        # FIXME: support rollback through bcachefs non-priviledged snapshot
+        assert isinstance(progress_step, UserSpaceBuildProgress)
+        dirName = "%02d-%s" % (progress_step.value, UserSpaceBuildProgress(progress_step.value + 1).name)
+        self._workDir.rollback_to_old_chroot_dir(dirName)
 
     def dispose(self):
-        self._chrootDir = None
         self._progress = None
-
         self._chrootInfo = None
         self._hostInfo = None
         self._target = None
-        if self._workDir is not None:
-            robust_layer.simple_fops.rm(self._workDir)
-            self._workDir = None
+        self._workDir = None
         self._tf = None
 
-    @Action(BuildProgress.STEP_INIT)
+    @Action(UserSpaceBuildProgress.STEP_INIT)
     def action_unpack(self):
-        self._tf.extractall(self._chrootDir)
+        self._tf.extractall(self._workDir.chroot_dir_path)
 
-        t = TargetCacheDirs(self._chrootDir)
+        t = TargetCacheDirs(self._workDir.chroot_dir_path)
         t.ensure_distdir()
         t.ensure_pkgdir()
 
-    @Action(BuildProgress.STEP_UNPACKED)
+    @Action(UserSpaceBuildProgress.STEP_UNPACKED)
     def action_init_gentoo_repository(self):
         # init gentoo repository
-        t = TargetGentooRepo(self._chrootDir, self._hostInfo.gentoo_repository_dir)
+        t = TargetGentooRepo(self._workDir.chroot_dir_path, self._hostInfo.gentoo_repository_dir)
         t.write_repos_conf()
         t.ensure_datadir()
 
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
-            with Chrooter(self) as m:
-                m.runChrootScript("", "/usr/bin/emerge --sync")
+            with _Chrooter(self) as m:
+                m.run_chroot_script("", "/usr/bin/emerge --sync")
 
-    @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
+    @Action(UserSpaceBuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._progName, self._chrootDir, self._target, self._hostInfo)
+        t = TargetConfDir(self._progName, self._workDir.chroot_dir_path, self._target, self._hostInfo)
         t.write_make_conf()
         t.write_package_use()
         t.write_package_mask()
@@ -255,61 +226,36 @@ class Builder:
         t.write_package_accept_keyword()
         t.write_package_accept_license()
 
-    @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
+    @Action(UserSpaceBuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
-        with Chrooter(self) as m:
-            m.runChrootScript("", "update-system.sh")
-            m.runChrootScript("", "update-world.sh")
+        with _Chrooter(self) as m:
+            m.run_chroot_script("", "update-system.sh")
 
-    @Action(BuildProgress.STEP_SYSTEM_UPDATED)
+    @Action(UserSpaceBuildProgress.STEP_SYSTEM_UPDATED)
     def action_init_overlays(self):
         # init host overlays
         if self._hostInfo.overlays is not None:
             for o in self._hostInfo.overlays:
-                t = TargetHostOverlay(self._chrootDir, o)
+                t = TargetHostOverlay(self._workDir.chroot_dir_path, o)
                 t.write_repos_conf()
                 t.ensure_datadir()
 
         # init overlays
-        with Chrooter(self) as m:
+        with _Chrooter(self) as m:
             # FIXME: use layman
             pass
 
-    @Action(BuildProgress.STEP_OVERLAYS_INITIALIZED)
+    @Action(UserSpaceBuildProgress.STEP_OVERLAYS_INITIALIZED)
     def action_install_packages(self):
-        with Chrooter(self):
-            pass
-
-    @Action(BuildProgress.STEP_PACKAGES_INSTALLED)
-    def action_gen_kernel_and_initramfs(self):
-        with Chrooter(self):
-            pass
-
-    @Action(BuildProgress.STEP_KERNEL_AND_INITRAMFS_GENERATED)
-    def action_solder_system(self):
-        with Chrooter(self):
-            pass
+        with _Chrooter(self) as m:
+            m.run_chroot_script("", "update-world.sh")
 
 
-class WorkDirUtil:
-
-    MODE = 0o40700
-
-    @staticmethod
-    def checkDir(workDir):
-        s = os.stat(workDir)
-        if s.st_mode != WorkDirUtil.MODE:
-            raise WorkDirVerifyError("invalid mode for \"%s\"" % (workDir))
-        if s.st_uid != os.getuid():
-            raise WorkDirVerifyError("invalid uid for \"%s\"" % (workDir))
-        if s.st_gid != os.getgid():
-            raise WorkDirVerifyError("invalid gid for \"%s\"" % (workDir))
-
-
-class Chrooter:
+class _Chrooter:
 
     def __init__(self, parent):
         self._parent = parent
+        self._chrooter = WorkDirChrooter(self._parent._workDir)
         self._bBind = False
 
     def __enter__(self):
@@ -321,39 +267,15 @@ class Chrooter:
 
     @property
     def binded(self):
-        return self._bBind
+        return self._chrooter.binded
 
     def bind(self):
+        self._chrooter.bind()
+
         assert not self._bBind
-
         try:
-            # modify /etc/locale.gen, emerge may revert it to original default
-            with open(os.path.join(self._parent._chrootDir, "etc", "locale.gen"), "w") as f:
-                f.write("C.UTF8 UTF-8\n")
-
-            # copy resolv.conf
-            Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
-
-            # mount /proc
-            self._assertDirStatus("/proc")
-            Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._parent._chrootDir, "proc")))
-
-            # mount /sys
-            self._assertDirStatus("/sys")
-            Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "sys")))
-
-            # mount /dev
-            self._assertDirStatus("/dev")
-            Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._parent._chrootDir, "dev")))
-
-            # mount /tmp
-            self._assertDirStatus("/tmp")
-            Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._parent._chrootDir, "tmp")))
-
             # distdir and pkgdir mount point
-            t = TargetCacheDirs(self._parent._chrootDir)
+            t = TargetCacheDirs(self._parent._workDir.chroot_dir_path)
             if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
                 self._assertDirStatus(t.distdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
@@ -363,7 +285,7 @@ class Chrooter:
 
             # gentoo repository mount point
             if self._parent._hostInfo.gentoo_repository_dir is not None:
-                t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
+                t = TargetGentooRepo(self._parent._workDir.chroot_dir_path, self._parent._hostInfo.gentoo_repository_dir)
                 if os.path.exists(t.datadir_hostpath):
                     self._assertDirStatus(t.datadir_path)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
@@ -371,15 +293,14 @@ class Chrooter:
             # host overlay readonly mount points
             if self._parent._hostInfo.overlays is not None:
                 for o in self._parent._hostInfo.overlays:
-                    t = TargetHostOverlay(self._parent._chrootDir, o)
+                    t = TargetHostOverlay(self._parent._workDir.chroot_dir_path, o)
                     if os.path.exists(t.datadir_hostpath):
                         self._assertDirStatus(t.datadir_path)
                         Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
         except BaseException:
             self._unbind()
+            self._chrooter.unbind()
             raise
-
-        # change status
         self._bBind = True
 
     def unbind(self):
@@ -387,93 +308,37 @@ class Chrooter:
         self._unbind()
         self._bBind = False
 
-    def runCmd(self, envStr, cmdStr, quiet=False):
-        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
-        if not quiet:
-            print("%s" % (cmdStr))
-            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
-        else:
-            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
-
-    def runChrootScript(self, envStr, cmdStr, quiet=False):
-        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
-
-        selfDir = os.path.dirname(os.path.realpath(__file__))
-        chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
-        chrootScriptDstDir = os.path.join(self._parent._chrootDir, "tmp", "glivedisk")
-
-        Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
-        Util.shellCall("/bin/chmod -R %s/*" % (chrootScriptDstDir))
-
-        try:
-            if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
-            else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (envStr, self._parent._chrootDir, cmdStr))
-        finally:
-            robust_layer.simple_fops.rm(chrootScriptDstDir)
+        self._chrooter.unbind()
 
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")
-        fullfn = os.path.join(self._parent._chrootDir, dir[1:])
+        fullfn = os.path.join(self._parent._workDir.chroot_dir_path, dir[1:])
         assert os.path.exists(fullfn)
         assert not Util.ismount(fullfn)
 
-    def _getAddlMnts(self):
-        ret = []
-
-        # distdir and pkgdir mount point
-        t = TargetCacheDirs(self._parent._chrootDir)
-        if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
-            ret.append(t.distdir_path)
-        if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
-            ret.append(t.pkgdir_path)
-
-        # gentoo repository mount point
-        if self._parent._hostInfo.gentoo_repository_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
-            if os.path.exists(t.datadir_hostpath):
-                ret.append(t.datadir_path)
-
-        # host overlay mount points
-        if self._parent._hostInfo.overlays is not None:
-            for o in self._parent._hostInfo.overlays:
-                t = TargetHostOverlay(self._parent._chrootDir, o)
-                if os.path.exists(t.datadir_hostpath):
-                    ret.append(t.datadir_path)
-
-        return ret
-
     def _unbind(self):
         def _procOne(fn):
-            fullfn = os.path.join(self._parent._chrootDir, fn[1:])
+            fullfn = os.path.join(self._parent._workDir.chroot_dir_path, fn[1:])
             if os.path.exists(fullfn) and Util.ismount(fullfn):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
             for o in self._parent._hostInfo.overlays:
-                t = TargetHostOverlay(self._parent._chrootDir, o)
+                t = TargetHostOverlay(self._parent._workDir.chroot_dir_path, o)
                 _procOne(t.datadir_path)
 
         # gentoo repository mount point
         if self._parent._hostInfo.gentoo_repository_dir is not None:
-            t = TargetGentooRepo(self._parent._chrootDir, self._parent._hostInfo.gentoo_repository_dir)
+            t = TargetGentooRepo(self._parent._workDir.chroot_dir_path, self._parent._hostInfo.gentoo_repository_dir)
             _procOne(t.datadir_path)
 
         # distdir and pkgdir mount point
-        t = TargetCacheDirs(self._parent._chrootDir)
+        t = TargetCacheDirs(self._parent._workDir.chroot_dir_path)
         if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
             _procOne(t.distdir_path)
         if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
             _procOne(t.pkgdir_path)
-
-        _procOne("/tmp")
-        _procOne("/dev")
-        _procOne("/sys")
-        _procOne("/proc")
-
-        robust_layer.simple_fops.rm(os.path.join(self._parent._chrootDir, "etc", "resolv.conf"))
 
 
 class TargetCacheDirs:

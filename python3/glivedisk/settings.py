@@ -39,19 +39,23 @@ class Target:
         self.overlays = None             # list<Overlay>
                                          # defaut is empty list
 
-        self.world_packages = None       # package names in world file
+        self.world_packages = None       # package names in world file, None means no world file should exist
                                          # default is empty list
-
-        self.build_opts = None           # we only support global build options, we don't support pkg-wildcard based build options
 
         self.pkg_use = None              # dict<package-wildcard, use-flag-list>
         self.pkg_masks = None            # list<package-wildcard>
         self.pkg_unmasks = None          # list<package-wildcard>
-        self.pkg_accept_keywords = None  # list<package-wildcard,accept-keyword-list>
-        self.pkg_accept_licenses = None  # list<package-wildcard,accept-license-list>
+        self.pkg_accept_keywords = None  # dict<package-wildcard, accept-keyword-list>
+        self.pkg_accept_licenses = None  # dict<package-wildcard, accept-license-list>
 
-        self.locales = None                 # locale list, "*" means all locales
-                                            # default is to build all locales
+        self.install_mask = None         # list<install-mask>
+        self.pkg_install_mask = None     # dict<package-wildcard, install-mask>
+
+        self.build_opts = None           # BuildOptions
+        self.pkg_build_opts = None       # dict<package-wildcard, BuildOptions>
+
+        self.locales = None              # locale list
+                                         # None (default value) means build all locales
 
         self.timezone = None                # timezone
                                             # default is to use UTC
@@ -70,13 +74,6 @@ class Overlay:
 
     def __init__(self):
         self.name = None
-
-
-class Package:
-
-    def __init__(self):
-        self.name = None
-        self.build_opts = None
 
 
 class BuildOptions:
