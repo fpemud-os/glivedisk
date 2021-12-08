@@ -46,5 +46,5 @@ from ._exporter import get_exporter
 from ._exporter import Exporter
 
 from ._errors import SettingsError
-from ._errors import SeedVerifyError
+from ._errors import SeedStageError
 from ._errors import WorkDirVerifyError

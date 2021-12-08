@@ -29,7 +29,7 @@ class InvalidChrootInfo(ValueError):
     pass
 
 
-class SeedVerifyError(Exception):
+class SeedStageError(Exception):
     pass
 
 

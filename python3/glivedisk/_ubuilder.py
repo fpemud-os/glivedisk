@@ -25,8 +25,8 @@ import os
 import copy
 import enum
 from ._util import Util
-from ._errors import WorkDirVerifyError, SettingsError
-from .work_dir import WorkDirChrooter
+from ._errors import SettingsError, SeedStageError, WorkDirVerifyError
+from ._workdir import WorkDirChrooter
 from . import settings
 
 
@@ -245,7 +245,21 @@ class UserSpaceBuilder:
             pass
 
     @Action(UserSpaceBuildProgress.STEP_OVERLAYS_INITIALIZED)
-    def action_install_packages(self):
+    def action_update_world(self):
+        fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
+
+        if self._target.world_packages is None:
+            if os.path.exists(fpath):
+                raise SeedStageError("/var/lib/portage/world should not exist in seed stage")
+            return
+
+        # write world file
+        os.makedirs(os.path.dirname(fpath))
+        with open(fpath, "w") as myf:
+            for pkg in self._target.world_packages:
+                myf.write("%s\n" % (pkg))
+
+        # update world
         with _Chrooter(self) as m:
             m.run_chroot_script("", "update-world.sh")
 
