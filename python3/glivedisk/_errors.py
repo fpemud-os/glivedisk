@@ -21,6 +21,10 @@
 # THE SOFTWARE.
 
 
+class SettingsError(Exception):
+    pass
+
+
 class InvalidChrootInfo(ValueError):
     pass
 

@@ -4,6 +4,20 @@ RUN_DEFAULT_FUNCS="no"
 
 source /tmp/chroot-functions.sh
 
+create_handbook_icon() {
+	# This function creates a local icon to the Gentoo Handbook
+	echo "[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Link
+URL=file:///mnt/cdrom/docs/handbook/html/index.html
+Terminal=false
+Name=Gentoo Linux Handbook
+GenericName=Gentoo Linux Handbook
+Comment=This is a link to the local copy of the Gentoo Linux Handbook.
+Icon=text-editor" > /usr/share/applications/gentoo-handbook.desktop
+}
+
 # Allow root logins to our CD by default
 if [ -e /etc/ssh/sshd_config ]
 then

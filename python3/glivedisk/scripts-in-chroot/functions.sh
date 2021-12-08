@@ -224,14 +224,7 @@ run_merge() {
 	export EPAUSE_IGNORE=0
 	[[ $CONFIG_PROTECT != "-*"* ]] && export CONFIG_PROTECT="-*"
 
-	if [[ "${clst_VERBOSE}" == "true" ]]
-	then
-		echo "ROOT=${ROOT} emerge ${clst_myemergeopts} -pt $@" || exit 1
-		emerge ${clst_myemergeopts} -pt $@ || exit 3
-	fi
-
 	echo "emerge ${clst_myemergeopts} $@" || exit 1
-
 	emerge ${clst_myemergeopts} $@ || exit 1
 }
 
@@ -354,24 +347,6 @@ function copy_file() {
 		copy_symlink ${f}
 	fi
 }
-
-create_handbook_icon() {
-	# This function creates a local icon to the Gentoo Handbook
-	echo "[Desktop Entry]
-Encoding=UTF-8
-Version=1.0
-Type=Link
-URL=file:///mnt/cdrom/docs/handbook/html/index.html
-Terminal=false
-Name=Gentoo Linux Handbook
-GenericName=Gentoo Linux Handbook
-Comment=This is a link to the local copy of the Gentoo Linux Handbook.
-Icon=text-editor" > /usr/share/applications/gentoo-handbook.desktop
-}
-
-readonly locales="
-C.UTF8 UTF-8
-"
 
 # We do this everywhere, so why not put it in this script
 run_default_funcs

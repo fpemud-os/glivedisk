@@ -22,10 +22,11 @@
 
 
 import os
+import copy
 import enum
 import robust_layer.simple_fops
 from ._util import Util
-from ._errors import WorkDirVerifyError
+from ._errors import WorkDirVerifyError, SettingsError
 from . import settings
 
 
@@ -87,6 +88,21 @@ class Builder:
 
         # check target
         assert isinstance(target, settings.Target)
+        target = copy.copy(target)
+        if target.overlays is None:
+            target.overlays = []
+        if target.world_packages is None:
+            target.world_packages = []
+        if target.pkg_use is None:
+            target.pkg_use = dict()
+        if target.pkg_masks is None:
+            target.pkg_masks = []
+        if target.pkg_unmasks is None:
+            target.pkg_unmasks = []
+        if target.pkg_accept_keywords is None:
+            target.pkg_accept_keywords = dict()
+        if target.pkg_accept_licenses is None:
+            target.pkg_accept_licenses = dict()
 
         # check host_info
         if host_info is not None:
@@ -233,6 +249,11 @@ class Builder:
     def action_init_confdir(self):
         t = TargetConfDir(self._progName, self._chrootDir, self._target, self._hostInfo)
         t.write_make_conf()
+        t.write_package_use()
+        t.write_package_mask()
+        t.write_package_unmask()
+        t.write_package_accept_keyword()
+        t.write_package_accept_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system(self):
@@ -306,6 +327,10 @@ class Chrooter:
         assert not self._bBind
 
         try:
+            # modify /etc/locale.gen, emerge may revert it to original default
+            with open(os.path.join(self._parent._chrootDir, "etc", "locale.gen"), "w") as f:
+                f.write("C.UTF8 UTF-8\n")
+
             # copy resolv.conf
             Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._parent._chrootDir, "etc")))
 
@@ -608,7 +633,7 @@ class TargetConfDir:
                 else:
                     myf.write('%s="%s"\n' % (flags, value))
 
-        # Modify and write out make.conf (for the chroot)
+        # Modify and write out make.conf (in chroot)
         makepath = os.path.join(self._dir, "etc", "portage", "make.conf")
         with open(makepath, "w") as myf:
             myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._progName))
@@ -635,3 +660,40 @@ class TargetConfDir:
             myf.write('MAKEOPTS="%s"\n' % (' '.join(paraMakeOpts)))
             myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y %s"\n' % (' '.join(paraEmergeOpts)))
             myf.write('\n')
+
+    def write_package_use(self):
+        # Modify and write out packages.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.use")
+        with open(fpath, "w") as myf:
+            # compile all locales. we use INSTALL_MASK to select locales
+            myf.write("*/* compile-locales")
+
+            # write cusom USE flags
+            for pkg_wildcard, use_flag_list in self._target.use_flags.items():
+                if "-compile-locales" in use_flag_list:
+                    raise SettingsError("USE flag \"-compile-locales\" is not allowed")
+                myf.write("%s %s\n" % (pkg_wildcard, " ".join(use_flag_list)))
+
+    def write_package_mask(self):
+        # Modify and write out packages.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.mask")
+        with open(fpath, "w") as myf:
+            myf.write("")
+
+    def write_package_unmask(self):
+        # Modify and write out packages.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.unmask")
+        with open(fpath, "w") as myf:
+            myf.write("")
+
+    def write_package_accept_keyword(self):
+        # Modify and write out packages.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.accept_keywords")
+        with open(fpath, "w") as myf:
+            myf.write("")
+
+    def write_package_accept_license(self):
+        # Modify and write out packages.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.accept_license")
+        with open(fpath, "w") as myf:
+            myf.write("")

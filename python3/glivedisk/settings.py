@@ -37,13 +37,30 @@ class Target:
                                          # None means using default profile of the stage3
 
         self.overlays = None             # list<Overlay>
+                                         # defaut is empty list
 
-        self.packages = None             # list<Package>
+        self.world_packages = None       # package names in world file
+                                         # default is empty list
 
-        self.build_opts = None
+        self.build_opts = None           # we only support global build options, we don't support pkg-wildcard based build options
 
-        # ?????
-        self.use = None             # list?
+        self.pkg_use = None              # dict<package-wildcard, use-flag-list>
+        self.pkg_masks = None            # list<package-wildcard>
+        self.pkg_unmasks = None          # list<package-wildcard>
+        self.pkg_accept_keywords = None  # list<package-wildcard,accept-keyword-list>
+        self.pkg_accept_licenses = None  # list<package-wildcard,accept-license-list>
+
+        self.locales = None                 # locale list, "*" means all locales
+                                            # default is to build all locales
+
+        self.timezone = None                # timezone
+                                            # default is to use UTC
+
+        self.editors = None                 # editor list
+                                            # default is to install XX, XX, XX, use nano as the default editor
+
+
+        # ???
         self.unmerge = None         # list?
         self.rm = None              # list?
         self.vol_id = None
@@ -87,6 +104,8 @@ class HostInfo:
         self.gentoo_repository_dir = None   # gentoo repository directory in host system
 
         self.overlays = None                # overlays in host system, will be bind mounted in target system
+
+
 
 
 class HostOverlay:
