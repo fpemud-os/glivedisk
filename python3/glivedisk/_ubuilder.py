@@ -104,19 +104,12 @@ class UserSpaceBuilder:
             host_info.computing_power.memory_size = 1           # minimal value
             host_info.computing_power.cooling_level = 1         # minimal value
 
-        # check chroot_info
-        if chroot_info is None:
-            chroot_info = settings.ChrootInfo()
-        assert isinstance(chroot_info, settings.ChrootInfo)
-        assert chroot_info.conv_uid_gid(0, 0) == (os.getuid(), os.getgid())
-
         # create object
         self._progName = program_name
         self._tf = seed_stage_stream
         self._workDirObj = work_dir
         self._target = target
         self._hostInfo = host_info
-        self._chrootInfo = chroot_info
         self._progress = UserSpaceBuildProgress.STEP_INIT
 
         if not os.path.exists(self._workDirObj.path):
@@ -169,7 +162,6 @@ class UserSpaceBuilder:
 
     def dispose(self):
         self._progress = None
-        self._chrootInfo = None
         self._hostInfo = None
         self._target = None
         self._workDirObj = None

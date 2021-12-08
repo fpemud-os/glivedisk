@@ -25,10 +25,6 @@ class SettingsError(Exception):
     pass
 
 
-class InvalidChrootInfo(ValueError):
-    pass
-
-
 class SeedStageError(Exception):
     pass
 

@@ -26,7 +26,7 @@ import stat
 import pathlib
 import robust_layer.simple_fops
 from ._util import Util
-from ._errors import WorkDirVerifyError
+from ._errors import SettingsError, WorkDirVerifyError
 
 
 class WorkDir:
@@ -36,9 +36,28 @@ class WorkDir:
 
     MODE = 0o40700
 
-    def __init__(self, path, arch):
+    def __init__(self, path, arch=None, chroot_uid_map=None, chroot_gid_map=None):
+        assert path is not None
+
         self._path = path
-        self._arch = arch
+
+        if arch is None:
+            self._arch = "amd64"        # FIXME: should be same as the host system
+        else:
+            self._arch = arch
+
+        if chroot_uid_map is None:
+            self._uidMap = None
+        else:
+            assert chroot_uid_map[0] == os.getuid()
+            self._uidMap = chroot_uid_map
+
+        if chroot_gid_map is None:
+            self._gidMap = None
+        else:
+            assert chroot_gid_map[0] == os.getgid()
+            self._gidMap = chroot_gid_map
+
         self._bPrepared = False
 
     @property
@@ -72,8 +91,26 @@ class WorkDir:
         self._verify()
         self._verify_arch()
 
-    def destroy(self):
-        robust_layer.simple_fops.rm(self._path)
+    def chroot_conv_uid(self, uid):
+        if self._uidMap is None:
+            return uid
+        else:
+            if uid not in self._uidMap:
+                raise SettingsError("uid %d not found in uid map" % (uid))
+            else:
+                return self._uidMap[uid]
+
+    def chroot_conv_gid(self, gid):
+        if self._gidMap is None:
+            return gid
+        else:
+            if gid not in self._gidMap:
+                raise SettingsError("gid %d not found in gid map" % (gid))
+            else:
+                return self._gidMap[gid]
+
+    def chroot_conv_uid_gid(self, uid, gid):
+        return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
     def is_rollback_supported(self):
         return False

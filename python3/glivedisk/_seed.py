@@ -23,11 +23,31 @@
 
 import os
 import re
+import abc
 import tarfile
 import urllib.request
 
 
-class CloudGentooStage3:
+class SeedBase(abc.ABC):
+
+    @staticmethod
+    def checkObject(obj):
+        return hasattr(obj, "get_arch") and hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
+
+    @abc.abstractmethod
+    def get_arch(self):
+        pass
+
+    @abc.abstractmethod
+    def get_chksum(self):
+        pass
+
+    @abc.abstractmethod
+    def extractall(self, target_dir):
+        pass
+
+
+class CloudGentooStage3(SeedBase):
 
     def __init__(self, arch, variant):
         self._arch = arch
@@ -115,6 +135,9 @@ class CloudGentooStage3:
             self._resp.close()
             self._resp = None
             raise
+
+    def get_arch(self):
+        return self._arch
 
     def get_chksum(self):
         with urllib.request.urlopen(self._stage3HashFileUrl) as resp:
