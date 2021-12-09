@@ -28,7 +28,7 @@ import tarfile
 import urllib.request
 
 
-class SeedBase(abc.ABC):
+class SeedStageArchive(abc.ABC):
 
     @staticmethod
     def checkObject(obj):
@@ -47,7 +47,7 @@ class SeedBase(abc.ABC):
         pass
 
 
-class CloudGentooStage3(SeedBase):
+class CloudGentooStage3(SeedStageArchive):
 
     def __init__(self, arch, variant):
         self._arch = arch

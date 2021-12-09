@@ -53,8 +53,10 @@ class WorkDir:
             self._uidMap = chroot_uid_map
 
         if chroot_gid_map is None:
+            assert self._uidMap is None
             self._gidMap = None
         else:
+            assert self._uidMap is not None
             assert chroot_gid_map[0] == os.getgid()
             self._gidMap = chroot_gid_map
 
@@ -69,6 +71,16 @@ class WorkDir:
         ret = os.path.realpath(self._chroot_link_path())
         assert os.path.exists(ret)
         return ret
+
+    @property
+    def chroot_uid_map(self):
+        assert self._uidMap is not None
+        return self._uidMap
+
+    @property
+    def chroot_gid_map(self):
+        assert self._gidMap is not None
+        return self._gidMap
 
     @property
     def arch(self):
@@ -91,6 +103,12 @@ class WorkDir:
         self._verify()
         self._verify_arch()
 
+    def is_rollback_supported(self):
+        return False
+
+    def has_uid_gid_map(self):
+        return self._uidMap is not None
+
     def chroot_conv_uid(self, uid):
         if self._uidMap is None:
             return uid
@@ -111,9 +129,6 @@ class WorkDir:
 
     def chroot_conv_uid_gid(self, uid, gid):
         return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
-
-    def is_rollback_supported(self):
-        return False
 
     def has_old_chroot_dir(self, dir_name):
         ret = os.path.exists(self._path, dir_name)

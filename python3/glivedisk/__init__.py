@@ -30,7 +30,7 @@ __version__ = '0.0.1'
 __author__ = 'Fpemud <fpemud@sina.com>'
 
 
-from ._base import SeedBase
+from ._seed import SeedStageArchive
 from ._seed import CloudGentooStage3
 
 from ._workdir import WorkDir
