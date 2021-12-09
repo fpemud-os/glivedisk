@@ -94,13 +94,8 @@ class WorkDir:
             self.verify_existing()
             robust_layer.simple_fops.truncate_dir(self._path)
 
-    def verify_empty(self):
-        self._verify()
-        if len(os.listdir(self._path)) > 0:
-            raise WorkDirVerifyError("\"%s\" is not empty" % (self._path))
-
     def verify_existing(self):
-        self._verify()
+        self._verify_dir()
         self._verify_arch()
 
     def is_rollback_supported(self):
@@ -169,7 +164,7 @@ class WorkDir:
     def _arch_record_path(self):
         return os.path.join(self._path, "arch.save")
 
-    def _verify(self):
+    def _verify_dir(self):
         # work directory can be a directory or directory symlink
         # so here we use os.stat() instead of os.lstat()
         s = os.stat(self._path)
