@@ -298,3 +298,106 @@ class TmpMount:
     def close(self):
         subprocess.run(["/bin/umount", self._tmppath], check=True, universal_newlines=True)
         os.rmdir(self._tmppath)
+
+
+# class NewMountNamespace:
+
+#     _CLONE_NEWNS = 0x00020000               # <linux/sched.h>
+#     _MS_REC = 16384                         # <sys/mount.h>
+#     _MS_PRIVATE = 1 << 18                   # <sys/mount.h>
+#     _libc = None
+#     _mount = None
+#     _setns = None
+#     _unshare = None
+
+#     def __init__(self):
+#         if self._libc is None:
+#             self._libc = ctypes.CDLL('libc.so.6', use_errno=True)
+#             self._mount = self._libc.mount
+#             self._mount.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_ulong, ctypes.c_char_p]
+#             self._mount.restype = ctypes.c_int
+#             self._setns = self._libc.setns
+#             self._unshare = self._libc.unshare
+
+#         self.parentfd = None
+
+#     def open(self):
+#         assert self.parentfd is None
+
+#         self.parentfd = open("/proc/%d/ns/mnt" % (os.getpid()), 'r')
+
+#         # copied from unshare.c of util-linux
+#         try:
+#             if self._unshare(self._CLONE_NEWNS) != 0:
+#                 e = ctypes.get_errno()
+#                 raise OSError(e, errno.errorcode[e])
+
+#             srcdir = ctypes.c_char_p("none".encode("utf_8"))
+#             target = ctypes.c_char_p("/".encode("utf_8"))
+#             if self._mount(srcdir, target, None, (self._MS_REC | self._MS_PRIVATE), None) != 0:
+#                 e = ctypes.get_errno()
+#                 raise OSError(e, errno.errorcode[e])
+#         except BaseException:
+#             self.parentfd.close()
+#             self.parentfd = None
+#             raise
+
+#     def close(self):
+#         assert self.parentfd is not None
+
+#         self._setns(self.parentfd.fileno(), 0)
+#         self.parentfd.close()
+#         self.parentfd = None
+
+#     def __enter__(self):
+#         return self
+
+#     def __exit__(self, *_):
+#         self.close()
+
+
+# class FakeChroot:
+
+#     """
+#     This class use a mounted ext4-fs image, mount/pid/user container to create a building environment
+#     """
+
+#     @staticmethod
+#     def create_image(imageFilePath, imageSize):
+#         assert imageSize % (1024 * 1024) == 0
+#         Util.shellCall("/bin/dd if=/dev/zero of=%s bs=%d count=%d conv=sparse" % (imageFilePath, 1024 * 1024, imageSize // (1024 * 1024)))
+#         Util.shellCall("/sbin/mkfs.ext4 -O ^has_journal %s" % (imageFilePath))
+
+#     def __init__(self, imageFilePath, iAmRoot, mountDir):
+#         self._imageFile = imageFilePath
+#         self._mntdir = mountDir
+#         self._iAmRoot = iAmRoot
+
+#         try:
+#             if self._iAmRoot:
+#                 Util.shellCall("/bin/mount -t ext4 %s %s" % (self._imageFile, self._mntdir))
+#                 self._fuseProc = None
+#             else:
+#                 self._fuseProc = subprocess.Popen(["/bin/fuse2fs", "-f", self._imageFile, self._mntdir])
+#         except BaseException:
+#             self.dispose()
+#             raise
+
+#     def dispose(self):
+#         if self._iAmRoot:
+#             if Util.ismount(self._mntdir):
+#                 Util.shellCall("/bin/umount %s" % (self._mntdir))
+#         else:
+#             if self._fuseProc is not None:
+#                 self._fuseProc.terminate()
+#                 self._fuseProc.wait()
+#                 self._fuseProc = None
+
+#     def run_cmd(self):
+#         pass
+
+#     def __enter__(self):
+#         return self
+
+#     def __exit__(self, type, value, traceback):
+#         self.dispose()
