@@ -96,8 +96,11 @@ class WorkDir:
 
     def verify_existing(self, raise_exception=None):
         assert raise_exception is not None
-        self._verify_dir(raise_exception)
-        self._verify_arch(raise_exception)
+        if not self._verify_dir(raise_exception):
+            return False
+        if not self._verify_arch(raise_exception):
+            return False
+        return True
 
     def is_rollback_supported(self):
         return False
