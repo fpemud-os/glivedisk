@@ -22,12 +22,14 @@
 
 
 import os
+import json
 import copy
 import enum
 from ._util import Util
 from ._errors import SettingsError, SeedStageError, WorkDirVerifyError
-from ._workdir import WorkDirChrooter
-from . import settings
+from ._settings import HostComputingPower
+from ._seed import SeedStageArchive
+from ._workdir import WorkDir, WorkDirChrooter
 
 
 def Action(progress_step):
@@ -67,89 +69,27 @@ class UserSpaceBuilder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, program_name, seed_stage_stream, work_dir, target, host_info=None, chroot_info=None):
-        # check seed_stage_stream
-        assert hasattr(seed_stage_stream, "get_chksum") and hasattr(seed_stage_stream, "extractall")
+    def __init__(self, program_name, host_computing_power, seed_stage_archive, work_dir, settings):
+        assert program_name is not None
+        assert HostComputingPower.check_object(host_computing_power)
+        assert SeedStageArchive.check_object(seed_stage_archive)
+        assert work_dir.verify_existing(raise_exception=False)
+        assert seed_stage_archive.get_arch() == work_dir.arch
 
-        # check target
-        assert isinstance(target, settings.Target)
-        target = copy.copy(target)
-        if target.overlays is None:
-            target.overlays = []
-        if target.world_packages is None:
-            target.world_packages = []
-        if target.pkg_use is None:
-            target.pkg_use = dict()
-        if target.pkg_masks is None:
-            target.pkg_masks = []
-        if target.pkg_unmasks is None:
-            target.pkg_unmasks = []
-        if target.pkg_accept_keywords is None:
-            target.pkg_accept_keywords = dict()
-        if target.pkg_accept_licenses is None:
-            target.pkg_accept_licenses = dict()
+        settings = copy.deepcopy(settings)
 
-        # check host_info
-        if host_info is not None:
-            assert isinstance(host_info, settings.HostInfo)
-        else:
-            host_info = settings.HostInfo()
-        if host_info.computing_power is not None:
-            assert isinstance(host_info.computing_power.cpu_core_count, int) and host_info.computing_power.cpu_core_count >= 1
-            assert isinstance(host_info.computing_power.memory_size, int) and host_info.computing_power.memory_size >= 1
-            assert isinstance(host_info.computing_power.cooling_level, int) and 1 <= host_info.computing_power.cooling_level <= 10
-        else:
-            host_info.computing_power = settings.HostComputingPower()
-            host_info.computing_power.cpu_core_count = 1        # minimal value
-            host_info.computing_power.memory_size = 1           # minimal value
-            host_info.computing_power.cooling_level = 1         # minimal value
-
-        # create object
         self._progName = program_name
-        self._tf = seed_stage_stream
+        self._cpower = host_computing_power
+        self._tf = seed_stage_archive
         self._workDirObj = work_dir
-        self._target = target
-        self._hostInfo = host_info
+        self._target = _SettingTarget(settings)
+        self._hostInfo = _SettingHostInfo(settings)
         self._progress = UserSpaceBuildProgress.STEP_INIT
 
-        if not os.path.exists(self._workDirObj.path):
-            self._workDirObj.initialize()
-            Util.saveObj(os.path.join(self._workDirObj.path, "seed_chksum"), self._tf.get_chksum())
-            Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
-            Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
-            Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
-            Util.saveEnum(os.path.join(self._workDirObj.path, "ubuilder_progress"), self._progress)
-        else:
-            try:
-                self._workDirObj.verify_existing()
-                try:
-                    saved_chksum = Util.loadObj(os.path.join(self._workDirObj.path, "seed_chksum"))
-                    saved_target = Util.loadObj(os.path.join(self._workDirObj.path, "target.json"))
-                    saved_host_info = Util.loadObj(os.path.join(self._workDirObj.path, "host_info.json"))
-                    saved_chroot_info = Util.loadObj(os.path.join(self._workDirObj.path, "chroot_info.json"))
-                    saved_progress = Util.loadObj(os.path.join(self._workDirObj.path, "ubuilder_progress"))
-                except:
-                    raise WorkDirVerifyError("")
-                if self._tf.get_chksm() != saved_chksum:
-                    raise WorkDirVerifyError("")
-                if target != saved_target:
-                    raise WorkDirVerifyError("")
-                if host_info != saved_host_info:
-                    raise WorkDirVerifyError("")
-                if chroot_info != saved_chroot_info:
-                    raise WorkDirVerifyError("")
-                if saved_progress < UserSpaceBuildProgress.STEP_UNPACKED:
-                    raise WorkDirVerifyError("")
-                self._progress = saved_progress
-            except WorkDirVerifyError:
-                self._workDirObj.initialize()
-                Util.saveObj(os.path.join(self._workDirObj.path, "seed_chksum"), self._tf.get_chksum())
-                Util.saveObj(os.path.join(self._workDirObj.path, "target.json"), target)
-                Util.saveObj(os.path.join(self._workDirObj.path, "host_info.json"), host_info)
-                Util.saveObj(os.path.join(self._workDirObj.path, "chroot_info.json"), chroot_info)
-                Util.saveEnum(os.path.join(self._workDirObj.path, "ubuilder_progress"), self._progress)
+        for k in settings:
+            raise SettingsError("redundant key \"%s\" in settings" % (k))
 
-    def get_progress(self):
+    def get_progress(self): 
         return self._progress
 
     def is_rollback_supported(self):
@@ -234,6 +174,187 @@ class UserSpaceBuilder:
         # update world
         with _Chrooter(self) as m:
             m.run_chroot_script("", "update-world.sh")
+
+
+class _SettingTarget:
+
+    def __init__(self, settings):
+        if "profile" in settings:
+            self.profile = settings["profile"]
+            del settings["profile"]
+        else:
+            self.profile = None
+
+        if "overlays" in settings:
+            self.overlays = {k: _SettingOverlay("data of overlay %s" % (k), v) for k, v in settings["overlays"].items()}  # dict<overlay-name, overlay-data>
+            del settings["overlays"]
+        else:
+            self.overlays = dict()
+
+        if "world_packages" in settings:
+            self.world_packages = list(settings["world_packages"])
+            del settings["world_package"] 
+        else:
+            self.world_packages = []
+
+        if "pkg_use" in settings:
+            self.pkg_use = dict(settings["pkg_use"])                        # dict<package-wildcard, use-flag-list>
+            del settings["pkg_use"] 
+        else:
+            self.pkg_use = dict()
+
+        if "pkg_mask" in settings:
+            self.pkg_mask = dict(settings["pkg_mask"])                      # list<package-wildcard>
+            del settings["pkg_mask"] 
+        else:
+            self.pkg_mask = []
+
+        if "pkg_unmask" in settings:
+            self.pkg_unmask = dict(settings["pkg_unmask"])                  # list<package-wildcard>
+            del settings["pkg_unmask"] 
+        else:
+            self.pkg_unmask = []
+
+        if "pkg_accept_keyword" in settings:
+            self.pkg_accept_keyword = dict(settings["pkg_accept_keyword"])  # dict<package-wildcard, accept-keyword-list>
+            del settings["pkg_accept_keyword"] 
+        else:
+            self.pkg_accept_keyword = dict()
+
+        if "pkg_accept_license" in settings:
+            self.pkg_accept_license = dict(settings["pkg_accept_license"])  # dict<package-wildcard, accept-license-list>
+            del settings["pkg_accept_license"] 
+        else:
+            self.pkg_accept_license = dict()
+
+        if "install_mask" in settings:
+            self.install_mask = dict(settings["install_mask"])              # list<install-mask>
+            del settings["install_mask"] 
+        else:
+            self.install_mask = []
+
+        if "pkg_install_mask" in settings:
+            self.pkg_install_mask = dict(settings["pkg_install_mask"])      # dict<package-wildcard, install-mask>
+            del settings["pkg_install_mask"] 
+        else:
+            self.pkg_install_mask = dict()
+
+        if "build_opts" in settings:
+            self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
+            del settings["build_opts"] 
+        else:
+            self.build_opts = []
+
+        if "pkg_build_opts" in settings:
+            self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}   # dict<package-wildcard, build-opts>
+            del settings["pkg_build_opts"] 
+        else:
+            self.pkg_build_opts = dict()
+
+        if "locales" in settings:
+            self.locales = list(settings["locales"])
+            del settings["locales"]
+        else:
+            self.locales = None
+
+        if "timezone" in settings:
+            self.timezone = settings["timezone"]
+            del settings["timezone"]
+        else:
+            self.timezone = "UTC"
+
+        if "editors" in settings:
+            self.editors = settings["editors"]
+            del settings["editors"]
+        else:
+            self.editors = ["app-editors/nano"]
+
+
+class _SettingOverlay:
+
+    def __init__(self, settings):
+        pass
+
+
+class _SettingBuildOptions:
+
+    def __init__(self, name, settings):
+        if "common_flags" in settings:
+            self.common_flags = list(settings["common_flags"])
+            del settings["common_flags"]
+        else:
+            self.common_flags = []
+
+        if "cflags" in settings:
+            self.cflags = list(settings["cflags"])
+            del settings["cflags"]
+        else:
+            self.cflags = []
+
+        if "cxxflags" in settings:
+            self.cxxflags = list(settings["cxxflags"])
+            del settings["cxxflags"]
+        else:
+            self.cflags = []
+
+        if "fcflags" in settings:
+            self.fcflags = list(settings["fcflags"])
+            del settings["fcflags"]
+        else:
+            self.fcflags = []
+
+        if "fflags" in settings:
+            self.fflags = list(settings["fflags"])
+            del settings["fflags"]
+        else:
+            self.fflags = []
+
+        if "ldflags" in settings:
+            self.ldflags = list(settings["ldflags"])
+            del settings["ldflags"]
+        else:
+            self.ldflags = []
+
+        if "asflags" in settings:
+            self.asflags = list(settings["asflags"])
+            del settings["asflags"]
+        else:
+            self.asflags = []
+
+        for k in settings:
+            raise SettingsError("redundant key \"%s\" in %s" % (k, name))
+
+
+class _SettingHostInfo:
+
+    def __init__(self, settings):
+        # distfiles directory in host system, will be bind mounted in target system
+        if "distfiles_dir" in settings:
+            self.distfiles_dir = settings["distfiles_dir"]
+            del settings["distfiles_dir"]
+        else:
+            self.distfiles_dir = None
+
+        # packages directory in host system
+        if "packages_dir" in settings:
+            self.packages_dir = settings["packages_dir"]
+            del settings["packages_dir"]
+        else:
+            self.packages_dir = None
+
+        # gentoo repository directory in host system, will be read-only bind mounted in target system
+        if "gentoo_repository_dir" in settings:
+            self.gentoo_repository_dir = settings["gentoo_repository_dir"]
+            del settings["gentoo_repository_dir"]
+        else:
+            self.gentoo_repository_dir = None
+
+        # overlays in host system, will be read-only bind mounted in target system
+        if "overlays" in settings:
+            self.overlays = dict(settings["overlays"])      # dict<overlay-name, overlay-dir>
+            del settings["overlays"]
+        else:
+            self.overlays = None
 
 
 class _Chrooter:
@@ -547,3 +668,34 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "etc", "portage", "packages.accept_license")
         with open(fpath, "w") as myf:
             myf.write("")
+
+
+
+
+
+
+# self._settingsFile = os.path.join(self._workDirObj.path, "ubuild_settings.save")
+# self._chksumFile = os.path.join(self._workDirObj.path, "ubuild_seed_stage_archive_chksum.save")
+
+# if not os.path.exists(self._settingsFile):
+#     # new directory
+#     if any([x.startswith("ubuild_") for x in self._workDirObj.get_save_files()]):
+#         raise WorkDirVerifyError("no ubuild save file should exist")
+#     if len(self._workDirObj.get_chroot_dir_names()) > 0:
+#         raise WorkDirVerifyError("no chroot directory should exist")
+
+#     self._progress = UserSpaceBuildProgress.STEP_INIT
+# else:
+#     # old directory
+#     with open(self._settingsFile) as f:
+#         if settings != json.load(f):
+#             raise WorkDirVerifyError("settings is not same with the saved data")
+#     if os.path.exists(self._chksumFile):
+#         with open(self._settingsFile) as f:
+#             if self._tf.get_chksum() != f.read().rstrip("\n"):
+#                 raise WorkDirVerifyError("seed stage archive checksum verification failed")
+#         if len(self._workDirObj.get_chroot_dir_names()) == 0:
+#             raise WorkDirVerifyError("no chroot directory found")
+#     else:
+#         if len(self._workDirObj.get_chroot_dir_names()) > 0:
+#             raise WorkDirVerifyError("no chroot directory should exist")

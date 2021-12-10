@@ -31,7 +31,7 @@ import urllib.request
 class SeedStageArchive(abc.ABC):
 
     @staticmethod
-    def checkObject(obj):
+    def check_object(obj):
         return hasattr(obj, "get_arch") and hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
 
     @abc.abstractmethod

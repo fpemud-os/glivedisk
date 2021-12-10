@@ -89,14 +89,15 @@ class WorkDir:
     def initialize(self):
         if not os.path.exists(self._path):
             os.mkdir(self._path, mode=self.MODE)
-            self._save_arch()
         else:
-            self.verify_existing()
+            self._verify_dir(True)
             robust_layer.simple_fops.truncate_dir(self._path)
+        self._save_arch()
 
-    def verify_existing(self):
-        self._verify_dir()
-        self._verify_arch()
+    def verify_existing(self, raise_exception=None):
+        assert raise_exception is not None
+        self._verify_dir(raise_exception)
+        self._verify_arch(raise_exception)
 
     def is_rollback_supported(self):
         return False
@@ -125,12 +126,26 @@ class WorkDir:
     def chroot_conv_uid_gid(self, uid, gid):
         return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
-    def has_old_chroot_dir(self, dir_name):
-        ret = os.path.exists(self._path, dir_name)
-        if ret:
-            # dir_name should not be the current chroot directory
-            assert dir_name != os.path.basename(self.chroot_dir_path)
+    def get_save_files(self):
+        ret = []
+        for fn in os.listdir(self._path):
+            if os.path.isfile(fn) and fn.endswith(".save") and fn != self._arch_record_path():
+                ret.append(fn)
         return ret
+
+    def get_chroot_dir_names(self):
+        linkPath = self._chroot_link_path()
+        if not os.path.exists(linkPath):
+            assert not any([os.path.isdir(x) for x in os.listdir(self._path)])
+            return []
+        else:
+            cur = os.readlink(linkPath)
+            ret = []
+            for fn in os.listdir(self._path):
+                if fn != "chroot" and fn != cur and os.path.isdir(fn):
+                    ret.append(fn)
+            ret.append(cur)
+            return ret
 
     def create_new_chroot_dir(self, dir_name):
         linkPath = self._chroot_link_path()
@@ -153,7 +168,8 @@ class WorkDir:
 
     def rollback_to_old_chroot_dir(self, dir_name):
         assert self.is_rollback_supported()
-        assert self.has_old_chroot_dir(dir_name) and dir_name != os.path.basename(self.chroot_dir_path)
+        dirNames = self.get_chroot_dir_names()
+        assert len(dirNames) > 0 and dir_name in dirNames[:-1]
 
         # FIXME
         raise NotImplementedError()
@@ -164,28 +180,48 @@ class WorkDir:
     def _arch_record_path(self):
         return os.path.join(self._path, "arch.save")
 
-    def _verify_dir(self):
+    def _verify_dir(self, raiseException):
         # work directory can be a directory or directory symlink
         # so here we use os.stat() instead of os.lstat()
         s = os.stat(self._path)
         if not stat.S_ISDIR(s.st_mode):
-            raise WorkDirVerifyError("\"%s\" is not a directory" % (self._path))
+            if raiseException:
+                raise WorkDirVerifyError("\"%s\" is not a directory" % (self._path))
+            else:
+                return False
         if s.st_mode != self.MODE:
-            raise WorkDirVerifyError("invalid mode for \"%s\"" % (self._path))
+            if raiseException:
+                raise WorkDirVerifyError("invalid mode for \"%s\"" % (self._path))
+            else:
+                return False
         if s.st_uid != os.getuid():
-            raise WorkDirVerifyError("invalid uid for \"%s\"" % (self._path))
+            if raiseException:
+                raise WorkDirVerifyError("invalid uid for \"%s\"" % (self._path))
+            else:
+                return False
         if s.st_gid != os.getgid():
-            raise WorkDirVerifyError("invalid gid for \"%s\"" % (self._path))
+            if raiseException:
+                raise WorkDirVerifyError("invalid gid for \"%s\"" % (self._path))
+            else:
+                return False
+        return True
 
     def _save_arch(self):
         with open(self._arch_record_path(), "w") as f:
             f.write(self._arch + "\n")
 
-    def _verify_arch(self):
+    def _verify_arch(self, raiseException):
         if not os.path.exists(self._arch_record_path()):
-            raise WorkDirVerifyError("arch is not saved")
+            if raiseException:
+                raise WorkDirVerifyError("arch is not saved")
+            else:
+                return False
         if pathlib.Path(self._arch_record_path()).read_text().rstrip("\n") != self._arch:
-            raise WorkDirVerifyError("arch is invalid")
+            if raiseException:
+                raise WorkDirVerifyError("arch is invalid")
+            else:
+                return False
+        return True
 
 
 class WorkDirChrooter:
@@ -261,9 +297,9 @@ class WorkDirChrooter:
 
         try:
             if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+                return Util.shellExec("cd %s; %s /usr/bin/chroot \"%s\" %s" % (chrootScriptDstDir, env, self._workDirObj.chroot_dir_path, cmd))
             else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+                return Util.shellCall("cd %s; %s /usr/bin/chroot \"%s\" %s" % (chrootScriptDstDir, env, self._workDirObj.chroot_dir_path, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 
