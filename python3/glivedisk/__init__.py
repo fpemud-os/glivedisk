@@ -30,6 +30,8 @@ __version__ = '0.0.1'
 __author__ = 'Fpemud <fpemud@sina.com>'
 
 
+from ._settings import HostComputingPower
+
 from ._seed import SeedStageArchive
 from ._seed import CloudGentooStage3
 
