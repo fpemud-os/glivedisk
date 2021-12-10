@@ -185,7 +185,7 @@ class _SettingTarget:
             self.profile = None
 
         if "overlays" in settings:
-            self.overlays = {k: _SettingOverlay("data of overlay %s" % (k), v) for k, v in settings["overlays"].items()}  # dict<overlay-name, overlay-data>
+            self.overlays = {k: _SettingTargetOverlay("data of overlay %s" % (k), v) for k, v in settings["overlays"].items()}  # dict<overlay-name, overlay-data>
             del settings["overlays"]
         else:
             self.overlays = dict()
@@ -269,7 +269,7 @@ class _SettingTarget:
             self.editors = ["app-editors/nano"]
 
 
-class _SettingOverlay:
+class _SettingTargetOverlay:
 
     def __init__(self, settings):
         pass
@@ -328,30 +328,30 @@ class _SettingHostInfo:
 
     def __init__(self, settings):
         # distfiles directory in host system, will be bind mounted in target system
-        if "distfiles_dir" in settings:
-            self.distfiles_dir = settings["distfiles_dir"]
-            del settings["distfiles_dir"]
+        if "host_distfiles_dir" in settings:
+            self.distfiles_dir = settings["host_distfiles_dir"]
+            del settings["host_distfiles_dir"]
         else:
             self.distfiles_dir = None
 
         # packages directory in host system
-        if "packages_dir" in settings:
-            self.packages_dir = settings["packages_dir"]
-            del settings["packages_dir"]
+        if "host_packages_dir" in settings:
+            self.packages_dir = settings["host_packages_dir"]
+            del settings["host_packages_dir"]
         else:
             self.packages_dir = None
 
         # gentoo repository directory in host system, will be read-only bind mounted in target system
-        if "gentoo_repository_dir" in settings:
-            self.gentoo_repository_dir = settings["gentoo_repository_dir"]
-            del settings["gentoo_repository_dir"]
+        if "host_gentoo_repository_dir" in settings:
+            self.gentoo_repository_dir = settings["host_gentoo_repository_dir"]
+            del settings["host_gentoo_repository_dir"]
         else:
             self.gentoo_repository_dir = None
 
         # overlays in host system, will be read-only bind mounted in target system
-        if "overlays" in settings:
-            self.overlays = dict(settings["overlays"])      # dict<overlay-name, overlay-dir>
-            del settings["overlays"]
+        if "host_overlays" in settings:
+            self.overlays = dict(settings["host_overlays"])     # dict<overlay-name, overlay-dir>
+            del settings["host_overlays"]
         else:
             self.overlays = None
 
