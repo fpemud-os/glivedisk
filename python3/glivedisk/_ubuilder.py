@@ -22,14 +22,13 @@
 
 
 import os
-import json
 import copy
 import enum
 from ._util import Util
-from ._errors import SettingsError, SeedStageError, WorkDirVerifyError
+from ._errors import SettingsError, SeedStageError
 from ._settings import HostComputingPower
 from ._seed import SeedStageArchive
-from ._workdir import WorkDir, WorkDirChrooter
+from ._workdir import WorkDirChrooter
 
 
 def Action(progress_step):
