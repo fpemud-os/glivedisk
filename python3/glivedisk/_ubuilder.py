@@ -57,9 +57,10 @@ class UserSpaceBuildProgress(enum.IntEnum):
     STEP_UNPACKED = enum.auto()
     STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
     STEP_CONFDIR_INITIALIZED = enum.auto()
-    STEP_SYSTEM_UPDATED = enum.auto()
+    STEP_SYSTEM_SET_UPDATED = enum.auto()
     STEP_OVERLAYS_INITIALIZED = enum.auto()
-    STEP_WORLD_UPDATED = enum.auto()
+    STEP_WORLD_SET_UPDATED = enum.auto()
+    STEP_SYSTEM_CONFIGURED = enum.auto()
 
 
 class UserSpaceBuilder:
@@ -129,11 +130,11 @@ class UserSpaceBuilder:
         t.write_package_accept_license()
 
     @Action(UserSpaceBuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_system(self):
+    def action_update_system_set(self):
         with _Chrooter(self) as m:
-            m.run_chroot_script("", "update-system.sh")
+            m.run_chroot_script("", "update-system-set.sh")
 
-    @Action(UserSpaceBuildProgress.STEP_SYSTEM_UPDATED)
+    @Action(UserSpaceBuildProgress.STEP_SYSTEM_SET_UPDATED)
     def action_init_overlays(self):
         # init host overlays
         if self._hostInfo.overlays is not None:
@@ -148,7 +149,7 @@ class UserSpaceBuilder:
             pass
 
     @Action(UserSpaceBuildProgress.STEP_OVERLAYS_INITIALIZED)
-    def action_update_world(self):
+    def action_update_world_set(self):
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
         if self._target.world_packages is None:
@@ -164,7 +165,19 @@ class UserSpaceBuilder:
 
         # update world
         with _Chrooter(self) as m:
-            m.run_chroot_script("", "update-world.sh")
+            m.run_chroot_script("", "update-world-set.sh")
+
+    @Action(UserSpaceBuildProgress.STEP_WORLD_SET_UPDATED)
+    def action_config_system(self):
+        with _Chrooter(self) as m:
+            # set locale
+            m.run_cmd("", "eselect locale set %s" % (self._target.locale), quiet=True)
+
+            # set timezone
+            m.run_cmd("", "eselect timezone set %s" % (self._target.timezone), quiet=True)
+
+            # set editor
+            m.run_cmd("", "eselect editor set %s" % (self._target.editor), quiet=True)
 
 
 class _SettingTarget:
@@ -244,21 +257,27 @@ class _SettingTarget:
 
         if "locale" in settings:
             self.locale = settings["locale"]
+            if self.locale is None:
+                raise SettingsError("Invalid value for key \"locale\"")
             del settings["locale"]
         else:
-            self.locale = "C.utf-8"
+            self.locale = "C.utf8"
 
         if "timezone" in settings:
             self.timezone = settings["timezone"]
+            if self.timezone is None:
+                raise SettingsError("Invalid value for key \"timezone\"")
             del settings["timezone"]
         else:
             self.timezone = "UTC"
 
         if "editor" in settings:
             self.editor = settings["editor"]
+            if self.editor is None:
+                raise SettingsError("Invalid value for key \"editor\"")
             del settings["editor"]
         else:
-            self.editor = "app-editors/nano"
+            self.editor = "nano"
 
 
 class _SettingTargetOverlay:
