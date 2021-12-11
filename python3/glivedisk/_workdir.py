@@ -265,6 +265,9 @@ class WorkDirChrooter:
             Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "dev")))
             Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "dev")))
 
+            # FIXME: mount /run
+            pass
+
             # mount /tmp
             self._assertDirStatus("/tmp")
             Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "tmp")))
@@ -282,6 +285,10 @@ class WorkDirChrooter:
 
     def run_cmd(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+
+        # FIXME
+        env = "LANG=C.utf8 " + env
+
         if not quiet:
             print("%s" % (cmd))
             return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
@@ -298,11 +305,14 @@ class WorkDirChrooter:
         Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
         Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDir))
 
+        # FIXME
+        env = "LANG=C.utf8 " + env
+
         try:
             if not quiet:
-                return Util.shellExec("cd %s; %s /usr/bin/chroot \"%s\" %s" % (chrootScriptDstDir, env, self._workDirObj.chroot_dir_path, cmd))
+                return Util.shellExec("%s /usr/bin/chroot \"%s\" /bin/bash -c \"cd %s; %s\"" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
             else:
-                return Util.shellCall("cd %s; %s /usr/bin/chroot \"%s\" %s" % (chrootScriptDstDir, env, self._workDirObj.chroot_dir_path, cmd))
+                return Util.shellCall("%s /usr/bin/chroot \"%s\" /bin/bash -c \"cd %s; %s\"" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 

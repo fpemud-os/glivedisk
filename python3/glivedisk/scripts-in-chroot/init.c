@@ -239,88 +239,6 @@ static inline void chmod_err(const char *what, mode_t mode)
     syslog(LOG_ERR, _("chmod (%s, %u) failed: %m"), what, mode);
 }
 
-static void chown_tty(struct login_context *cxt)
-{
-    const char *grname;
-    uid_t uid = cxt->pwd->pw_uid;
-    gid_t gid = cxt->pwd->pw_gid;
-
-    grname = getlogindefs_str("TTYGROUP", TTYGRPNAME);
-    if (grname && *grname) {
-        struct group *gr = getgrnam(grname);
-        if (gr)    /* group by name */
-            gid = gr->gr_gid;
-        else    /* group by ID */
-            gid = (gid_t) getlogindefs_num("TTYGROUP", gid);
-    }
-    if (fchown(0, uid, gid))                /* tty */
-        chown_err(cxt->tty_name, uid, gid);
-    if (fchmod(0, cxt->tty_mode))
-        chmod_err(cxt->tty_name, cxt->tty_mode);
-}
-
-/*
- * Reads the current terminal path and initializes cxt->tty_* variables.
- */
-static void init_tty(struct login_context *cxt)
-{
-    struct stat st;
-    struct termios tt, ttt;
-
-    cxt->tty_mode = (mode_t) getlogindefs_num("TTYPERM", TTY_MODE);
-
-    get_terminal_name(&cxt->tty_path, &cxt->tty_name, &cxt->tty_number);
-
-    /*
-     * In case login is suid it was possible to use a hardlink as stdin
-     * and exploit races for a local root exploit. (Wojciech Purczynski).
-     *
-     * More precisely, the problem is  ttyn := ttyname(0); ...; chown(ttyn);
-     * here ttyname() might return "/tmp/x", a hardlink to a pseudotty.
-     * All of this is a problem only when login is suid, which it isn't.
-     */
-    if (!cxt->tty_path || !*cxt->tty_path ||
-        lstat(cxt->tty_path, &st) != 0 || !S_ISCHR(st.st_mode) ||
-        (st.st_nlink > 1 && strncmp(cxt->tty_path, "/dev/", 5) != 0) ||
-        access(cxt->tty_path, R_OK | W_OK) != 0) {
-
-        syslog(LOG_ERR, _("FATAL: bad tty"));
-        sleepexit(EXIT_FAILURE);
-    }
-
-    tcgetattr(0, &tt);
-    ttt = tt;
-    ttt.c_cflag &= ~HUPCL;
-
-    if ((fchown(0, 0, 0) || fchmod(0, cxt->tty_mode)) && errno != EROFS) {
-
-        syslog(LOG_ERR, _("FATAL: %s: change permissions failed: %m"),
-                cxt->tty_path);
-        sleepexit(EXIT_FAILURE);
-    }
-
-    /* Kill processes left on this tty */
-    tcsetattr(0, TCSANOW, &ttt);
-
-    /*
-     * Let's close file descriptors before vhangup
-     * https://lkml.org/lkml/2012/6/5/145
-     */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
-
-    signal(SIGHUP, SIG_IGN);    /* so vhangup() won't kill us */
-    vhangup();
-    signal(SIGHUP, SIG_DFL);
-
-    /* open stdin,stdout,stderr to the tty */
-    open_tty(cxt->tty_path);
-
-    /* restore tty modes */
-    tcsetattr(0, TCSAFLUSH, &tt);
-}
-
 static void loginpam_err(pam_handle_t *pamh, int retcode)
 {
     const char *msg = pam_strerror(pamh, retcode);
@@ -586,7 +504,6 @@ int main(int argc, char **argv)
     initialize(argc, argv, &cxt);
 
     setpgrp();     /* set pgid to pid this means that setsid() will fail */
-    init_tty(&cxt);
 
     init_loginpam(&cxt);
 
@@ -619,8 +536,6 @@ int main(int argc, char **argv)
     loginpam_session(&cxt);
 
     endpwent();
-
-    chown_tty(&cxt);
 
     if (setgid(pwd->pw_gid) < 0 && pwd->pw_gid) {
         fprintf(stderr, "setgid() failed");
