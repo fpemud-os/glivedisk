@@ -91,14 +91,6 @@ class UserSpaceBuilder:
     def get_progress(self): 
         return self._progress
 
-    def is_rollback_supported(self):
-        return self._workDirObj.is_rollback_supported()
-
-    def rollback_to(self, progress_step):
-        assert isinstance(progress_step, UserSpaceBuildProgress)
-        dirName = "%02d-%s" % (progress_step.value, UserSpaceBuildProgress(progress_step.value + 1).name)
-        self._workDirObj.rollback_to_old_chroot_dir(dirName)
-
     def dispose(self):
         self._progress = None
         self._hostInfo = None
@@ -250,11 +242,11 @@ class _SettingTarget:
         else:
             self.pkg_build_opts = dict()
 
-        if "locales" in settings:
-            self.locales = list(settings["locales"])
-            del settings["locales"]
+        if "locale" in settings:
+            self.locale = settings["locale"]
+            del settings["locale"]
         else:
-            self.locales = None
+            self.locale = "C.utf-8"
 
         if "timezone" in settings:
             self.timezone = settings["timezone"]
@@ -262,11 +254,11 @@ class _SettingTarget:
         else:
             self.timezone = "UTC"
 
-        if "editors" in settings:
-            self.editors = settings["editors"]
-            del settings["editors"]
+        if "editor" in settings:
+            self.editor = settings["editor"]
+            del settings["editor"]
         else:
-            self.editors = ["app-editors/nano"]
+            self.editor = "app-editors/nano"
 
 
 class _SettingTargetOverlay:
@@ -635,11 +627,13 @@ class TargetConfDir:
         # Modify and write out packages.use (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "packages.use")
         with open(fpath, "w") as myf:
-            # compile all locales. we use INSTALL_MASK to select locales
+            # compile all locales
             myf.write("*/* compile-locales")
 
             # write cusom USE flags
             for pkg_wildcard, use_flag_list in self._target.pkg_use.items():
+                if "compile-locales" in use_flag_list:
+                    raise SettingsError("USE flag \"compile-locales\" is not allowed")
                 if "-compile-locales" in use_flag_list:
                     raise SettingsError("USE flag \"-compile-locales\" is not allowed")
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(use_flag_list)))

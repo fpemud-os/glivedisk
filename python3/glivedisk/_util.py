@@ -356,48 +356,48 @@ class TmpMount:
 #         self.close()
 
 
-# class FakeChroot:
+class FakeChroot:
 
-#     """
-#     This class use a mounted ext4-fs image, mount/pid/user container to create a building environment
-#     """
+    """
+    This class use a mounted ext4-fs image, mount/pid/user container to create a chroot environment
+    """
 
-#     @staticmethod
-#     def create_image(imageFilePath, imageSize):
-#         assert imageSize % (1024 * 1024) == 0
-#         Util.shellCall("/bin/dd if=/dev/zero of=%s bs=%d count=%d conv=sparse" % (imageFilePath, 1024 * 1024, imageSize // (1024 * 1024)))
-#         Util.shellCall("/sbin/mkfs.ext4 -O ^has_journal %s" % (imageFilePath))
+    @staticmethod
+    def create_image(imageFilePath, imageSize):
+        assert imageSize % (1024 * 1024) == 0
+        Util.shellCall("/bin/dd if=/dev/zero of=%s bs=%d count=%d conv=sparse" % (imageFilePath, 1024 * 1024, imageSize // (1024 * 1024)))
+        Util.shellCall("/sbin/mkfs.ext4 -O ^has_journal %s" % (imageFilePath))
 
-#     def __init__(self, imageFilePath, iAmRoot, mountDir):
-#         self._imageFile = imageFilePath
-#         self._mntdir = mountDir
-#         self._iAmRoot = iAmRoot
+    def __init__(self, imageFilePath, iAmRoot, mountDir):
+        self._imageFile = imageFilePath
+        self._mntdir = mountDir
+        self._iAmRoot = iAmRoot
 
-#         try:
-#             if self._iAmRoot:
-#                 Util.shellCall("/bin/mount -t ext4 %s %s" % (self._imageFile, self._mntdir))
-#                 self._fuseProc = None
-#             else:
-#                 self._fuseProc = subprocess.Popen(["/bin/fuse2fs", "-f", self._imageFile, self._mntdir])
-#         except BaseException:
-#             self.dispose()
-#             raise
+        try:
+            if self._iAmRoot:
+                Util.shellCall("/bin/mount -t ext4 %s %s" % (self._imageFile, self._mntdir))
+                self._fuseProc = None
+            else:
+                self._fuseProc = subprocess.Popen(["/bin/fuse2fs", "-f", self._imageFile, self._mntdir])
+        except BaseException:
+            self.dispose()
+            raise
 
-#     def dispose(self):
-#         if self._iAmRoot:
-#             if Util.ismount(self._mntdir):
-#                 Util.shellCall("/bin/umount %s" % (self._mntdir))
-#         else:
-#             if self._fuseProc is not None:
-#                 self._fuseProc.terminate()
-#                 self._fuseProc.wait()
-#                 self._fuseProc = None
+    def dispose(self):
+        if self._iAmRoot:
+            if Util.ismount(self._mntdir):
+                Util.shellCall("/bin/umount %s" % (self._mntdir))
+        else:
+            if self._fuseProc is not None:
+                self._fuseProc.terminate()
+                self._fuseProc.wait()
+                self._fuseProc = None
 
-#     def run_cmd(self):
-#         pass
+    def run_cmd(self):
+        pass
 
-#     def __enter__(self):
-#         return self
+    def __enter__(self):
+        return self
 
-#     def __exit__(self, type, value, traceback):
-#         self.dispose()
+    def __exit__(self, type, value, traceback):
+        self.dispose()
