@@ -29,7 +29,7 @@ from .._util import Util
 from .._util import TempChdir
 
 
-class ExporterImpl:
+class SquashfsExporter:
 
     def __init__(self, work_dir, target, **kwargs):
         self.rootfsDir = os.path.join(work_dir, "chroot")

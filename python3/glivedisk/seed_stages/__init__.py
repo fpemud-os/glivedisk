@@ -21,44 +21,4 @@
 # THE SOFTWARE.
 
 
-import os
-import sys
-import abc
-import pkgutil
-
-
-def get_kernel_installer(name, settings, **kwargs):
-    for mod in pkgutil.iter_modules(["._exporter"]):
-        if mod.KernelInstallerImpl.name == name:
-            return mod.KernelInstallerImpl(settings, **kwargs)
-    assert False        
-
-
-class KernelInstaller(abc.ABC):
-
-    @classmethod
-    @property
-    def name(cls):
-        fn = sys.modules.get(cls.__module__).__file__
-        fn = os.path.basename(fn).replace(".py", "")
-        return fn.replace("_", "-")
-
-    @abc.abstractmethod
-    def set_program_name(program_name):
-        pass
-
-    @abc.abstractmethod
-    def set_host_computing_power(host_computing_power):
-        pass
-
-    @abc.abstractmethod
-    def set_work_dir(work_dir):
-        pass
-
-    @abc.abstractmethod
-    def check(self):
-        pass
-
-    @abc.abstractmethod
-    def make(self):
-        pass
+from ._cloud_gentoo_stage3 import CloudGentooStage3

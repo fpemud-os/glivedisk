@@ -21,44 +21,5 @@
 # THE SOFTWARE.
 
 
-import copy
-from . import KernelInstaller
-
-
-class KernelInstallerImpl(KernelInstaller):
-    """
-    Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
-    """
-
-    def __init__(self, settings):
-        settings = copy.deepcopy(settings)
-
-        self._target = _SettingTarget(settings)
-        self._hostInfo = _SettingHostInfo(settings)
-
-    def check(self):
-        with _Chrooter(self) as m:
-            m.run_cmd("")
-
-
-
-    def build(self):
-        pass
-
-
-class _SettingTarget:
-
-    def __init__(self, settings):
-        pass
-
-
-class _SettingHostInfo:
-
-    def __init__(self, settings):
-        pass
-
-
-class _Chrooter(WorkDirChrooter):
-
-    def __init__(self, parent):
-        super().__init__(self._parent._workDirObj)
+from ._removable_media import RemovableMediaExporter
+from ._squashed import SquashfsExporter

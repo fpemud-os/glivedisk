@@ -23,24 +23,9 @@
 
 import os
 import re
-import abc
 import tarfile
 import urllib.request
-
-
-class SeedStageArchive(abc.ABC):
-
-    @staticmethod
-    def check_object(obj):
-        return hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
-
-    @abc.abstractmethod
-    def get_chksum(self):
-        pass
-
-    @abc.abstractmethod
-    def extractall(self, target_dir):
-        pass
+from .. import SeedStageArchive
 
 
 class CloudGentooStage3(SeedStageArchive):

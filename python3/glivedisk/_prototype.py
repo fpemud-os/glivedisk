@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,25 +21,53 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
-
-__version__ = '0.0.1'
-
-__author__ = 'Fpemud <fpemud@sina.com>'
+import abc
 
 
-from ._settings import HostComputingPower
+class SeedStageArchive(abc.ABC):
 
-from ._prototype import SeedStageArchive
-from ._prototype import KernelInstaller
-from ._prototype import Exporter
+    @staticmethod
+    def check_object(obj):
+        return hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
 
-from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
+    @abc.abstractmethod
+    def get_chksum(self):
+        pass
 
-from ._builder import Builder
-from ._builder import BuildProgress
+    @abc.abstractmethod
+    def extractall(self, target_dir):
+        pass
 
-from ._errors import SettingsError
-from ._errors import SeedStageError
-from ._errors import WorkDirVerifyError
+
+class KernelInstaller(abc.ABC):
+
+    @abc.abstractmethod
+    def set_program_name(program_name):
+        pass
+
+    @abc.abstractmethod
+    def set_host_computing_power(host_computing_power):
+        pass
+
+    @abc.abstractmethod
+    def set_work_dir(work_dir):
+        pass
+
+    @abc.abstractmethod
+    def check(self):
+        pass
+
+    @abc.abstractmethod
+    def make(self):
+        pass
+
+
+class Exporter(abc.ABC):
+
+    @abc.abstractmethod
+    def check(self):
+        pass
+
+    @abc.abstractmethod
+    def export(self):
+        pass

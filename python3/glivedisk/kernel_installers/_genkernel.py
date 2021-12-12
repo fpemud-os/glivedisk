@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,25 +21,43 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
-
-__version__ = '0.0.1'
-
-__author__ = 'Fpemud <fpemud@sina.com>'
+import copy
+from .. import KernelInstaller
+from .. import WorkDirChrooter
 
 
-from ._settings import HostComputingPower
+class GenKernel(KernelInstaller):
+    """
+    Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
+    """
 
-from ._prototype import SeedStageArchive
-from ._prototype import KernelInstaller
-from ._prototype import Exporter
+    def __init__(self, settings):
+        settings = copy.deepcopy(settings)
 
-from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
+        self._target = _SettingTarget(settings)
+        self._hostInfo = _SettingHostInfo(settings)
 
-from ._builder import Builder
-from ._builder import BuildProgress
+    def check(self):
+        with _Chrooter(self) as m:
+            m.run_cmd("")
 
-from ._errors import SettingsError
-from ._errors import SeedStageError
-from ._errors import WorkDirVerifyError
+    def build(self):
+        pass
+
+
+class _SettingTarget:
+
+    def __init__(self, settings):
+        pass
+
+
+class _SettingHostInfo:
+
+    def __init__(self, settings):
+        pass
+
+
+class _Chrooter(WorkDirChrooter):
+
+    def __init__(self, parent):
+        super().__init__(self._parent._workDirObj)

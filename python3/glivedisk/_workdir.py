@@ -24,6 +24,7 @@
 import os
 import stat
 import pathlib
+import platform
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError, WorkDirVerifyError
@@ -258,7 +259,7 @@ class WorkDirChrooter:
 
         # FIXME
         env = "LANG=C.utf8 " + env
-        assert self._detectArch() == "amd64"
+        assert self._detectArch() == platform.machine()
 
         if not quiet:
             print("%s" % (cmd))
@@ -278,7 +279,7 @@ class WorkDirChrooter:
 
         # FIXME
         env = "LANG=C.utf8 " + env
-        assert self._detectArch() == "amd64"
+        assert self._detectArch() == platform.machine()
 
         try:
             if not quiet:
@@ -308,4 +309,5 @@ class WorkDirChrooter:
         robust_layer.simple_fops.rm(os.path.join(self._workDirObj.chroot_dir_path, "etc", "resolv.conf"))
 
     def _detectArch(self):
-        return "amd64"
+        # FIXME: use profile function of pkgwh to get arch from CHOST
+        return "x86_64"

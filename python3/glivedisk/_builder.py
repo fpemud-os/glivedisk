@@ -156,19 +156,19 @@ class Builder:
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
         if self._target.world_packages is None:
+            # world file should not exists
             if os.path.exists(fpath):
                 raise SeedStageError("/var/lib/portage/world should not exist in seed stage")
-            return
+        else:
+            # write world file
+            os.makedirs(os.path.dirname(fpath))
+            with open(fpath, "w") as myf:
+                for pkg in self._target.world_packages:
+                    myf.write("%s\n" % (pkg))
 
-        # write world file
-        os.makedirs(os.path.dirname(fpath))
-        with open(fpath, "w") as myf:
-            for pkg in self._target.world_packages:
-                myf.write("%s\n" % (pkg))
-
-        # update world
-        with _Chrooter(self) as m:
-            m.run_chroot_script("", "update-world-set.sh")
+            # update world
+            with _Chrooter(self) as m:
+                m.run_chroot_script("", "update-world-set.sh")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):

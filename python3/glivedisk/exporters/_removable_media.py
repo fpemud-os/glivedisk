@@ -30,7 +30,7 @@ from .._util import TmpMount
 from .._errors import ExportError
 
 
-class ExporterImpl:
+class RemovableMediaExporter:
 
     def __init__(self, work_dir, target, **kwargs):
         self.usbStickMinSize = 1 * 1024 * 1024 * 1024       # 1GiB
