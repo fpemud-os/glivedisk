@@ -283,9 +283,9 @@ class WorkDirChrooter:
 
         try:
             if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" /bin/bash -c \"cd %s; %s\"" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
             else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" /bin/bash -c \"cd %s; %s\"" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 

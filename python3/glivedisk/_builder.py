@@ -27,7 +27,7 @@ import enum
 from ._util import Util
 from ._errors import SettingsError, SeedStageError
 from ._settings import HostComputingPower
-from ._seed import SeedStageArchive
+from ._prototype import SeedStageArchive
 from ._workdir import WorkDirChrooter
 
 
@@ -95,13 +95,6 @@ class Builder:
     def get_progress(self): 
         return self._progress
 
-    def dispose(self):
-        self._progress = None
-        self._hostInfo = None
-        self._target = None
-        self._workDirObj = None
-        self._tf = None
-
     @Action(BuildProgress.STEP_INIT)
     def action_unpack(self):
         self._tf.extractall(self._workDirObj.chroot_dir_path)
@@ -120,7 +113,7 @@ class Builder:
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
             with _Chrooter(self) as m:
-                m.run_chroot_script("", "/usr/bin/emerge --sync")
+                m.run_cmd("", "emerge --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
