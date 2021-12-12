@@ -254,7 +254,20 @@ class WorkDirChrooter:
         self._unbind()
         self._bBind = False
 
-    def run_cmd(self, env, cmd, quiet=False):
+    def interactive_shell(self):
+        cmd = "/bin/bash"       # FIXME: change to read shell
+        return Util.shellExec("/usr/bin/chroot \"%s\" %s" % (self._workDirObj.chroot_dir_path, cmd))
+
+    def shell_call(self, env, cmd):
+        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+
+        # FIXME
+        env = "LANG=C.utf8 " + env
+        assert self._detectArch() == platform.machine()
+
+        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+
+    def shell_exec(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
 
         # FIXME
@@ -263,11 +276,11 @@ class WorkDirChrooter:
 
         if not quiet:
             print("%s" % (cmd))
-            return Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+            Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
         else:
-            return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+            Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
-    def run_chroot_script(self, env, cmd, quiet=False):
+    def script_exec(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
 
         selfDir = os.path.dirname(os.path.realpath(__file__))
@@ -283,9 +296,9 @@ class WorkDirChrooter:
 
         try:
             if not quiet:
-                return Util.shellExec("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                Util.shellExec("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
             else:
-                return Util.shellCall("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                Util.shellCall("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 

@@ -423,10 +423,10 @@ class _Chrooter:
         self._chrooter.unbind()
 
     def run_cmd(self, env, cmd, quiet=False):
-        return self._chrooter.run_cmd(env, cmd, quiet)
+        return self._chrooter.shell_exec(env, cmd, quiet)
 
     def run_chroot_script(self, env, cmd, quiet=False):
-        return self._chrooter.run_chroot_script(env, cmd, quiet)
+        return self._chrooter.script_exec(env, cmd, quiet)
 
     def _unbind(self):
         def _procOne(fn):
