@@ -32,11 +32,7 @@ class SeedStageArchive(abc.ABC):
 
     @staticmethod
     def check_object(obj):
-        return hasattr(obj, "get_arch") and hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
-
-    @abc.abstractmethod
-    def get_arch(self):
-        pass
+        return hasattr(obj, "get_chksum") and hasattr(obj, "extractall")
 
     @abc.abstractmethod
     def get_chksum(self):
@@ -135,9 +131,6 @@ class CloudGentooStage3(SeedStageArchive):
             self._resp.close()
             self._resp = None
             raise
-
-    def get_arch(self):
-        return self._arch
 
     def get_chksum(self):
         with urllib.request.urlopen(self._stage3HashFileUrl) as resp:

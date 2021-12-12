@@ -36,15 +36,10 @@ class WorkDir:
 
     MODE = 0o40700
 
-    def __init__(self, path, arch=None, chroot_uid_map=None, chroot_gid_map=None):
+    def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None):
         assert path is not None
 
         self._path = path
-
-        if arch is None:
-            self._arch = "amd64"        # FIXME: should be same as the host system
-        else:
-            self._arch = arch
 
         if chroot_uid_map is None:
             self._uidMap = None
@@ -82,23 +77,16 @@ class WorkDir:
         assert self._gidMap is not None
         return self._gidMap
 
-    @property
-    def arch(self):
-        return self._arch
-
     def initialize(self):
         if not os.path.exists(self._path):
             os.mkdir(self._path, mode=self.MODE)
         else:
             self._verify_dir(True)
             robust_layer.simple_fops.truncate_dir(self._path)
-        self._save_arch()
 
     def verify_existing(self, raise_exception=None):
         assert raise_exception is not None
         if not self._verify_dir(raise_exception):
-            return False
-        if not self._verify_arch(raise_exception):
             return False
         return True
 
@@ -132,7 +120,7 @@ class WorkDir:
     def get_save_files(self):
         ret = []
         for fn in os.listdir(self._path):
-            if os.path.isfile(fn) and fn.endswith(".save") and fn != self._arch_record_path():
+            if os.path.isfile(fn) and fn.endswith(".save"):
                 ret.append(fn)
         return ret
 
@@ -180,9 +168,6 @@ class WorkDir:
     def _chroot_link_path(self):
         return os.path.join(self._path, "chroot")
 
-    def _arch_record_path(self):
-        return os.path.join(self._path, "arch.save")
-
     def _verify_dir(self, raiseException):
         # work directory can be a directory or directory symlink
         # so here we use os.stat() instead of os.lstat()
@@ -205,23 +190,6 @@ class WorkDir:
         if s.st_gid != os.getgid():
             if raiseException:
                 raise WorkDirVerifyError("invalid gid for \"%s\"" % (self._path))
-            else:
-                return False
-        return True
-
-    def _save_arch(self):
-        with open(self._arch_record_path(), "w") as f:
-            f.write(self._arch + "\n")
-
-    def _verify_arch(self, raiseException):
-        if not os.path.exists(self._arch_record_path()):
-            if raiseException:
-                raise WorkDirVerifyError("arch is not saved")
-            else:
-                return False
-        if pathlib.Path(self._arch_record_path()).read_text().rstrip("\n") != self._arch:
-            if raiseException:
-                raise WorkDirVerifyError("arch is invalid")
             else:
                 return False
         return True
@@ -288,6 +256,7 @@ class WorkDirChrooter:
 
         # FIXME
         env = "LANG=C.utf8 " + env
+        assert self._detectArch() == "amd64"
 
         if not quiet:
             print("%s" % (cmd))
@@ -307,6 +276,7 @@ class WorkDirChrooter:
 
         # FIXME
         env = "LANG=C.utf8 " + env
+        assert self._detectArch() == "amd64"
 
         try:
             if not quiet:
@@ -334,3 +304,6 @@ class WorkDirChrooter:
         _procOne("/proc")
 
         robust_layer.simple_fops.rm(os.path.join(self._workDirObj.chroot_dir_path, "etc", "resolv.conf"))
+
+    def _detectArch(self):
+        return "amd64"

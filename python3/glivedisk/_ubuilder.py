@@ -74,7 +74,6 @@ class UserSpaceBuilder:
         assert HostComputingPower.check_object(host_computing_power)
         assert SeedStageArchive.check_object(seed_stage_archive)
         assert work_dir.verify_existing(raise_exception=False)
-        assert seed_stage_archive.get_arch() == work_dir.arch
 
         settings = copy.deepcopy(settings)
 
