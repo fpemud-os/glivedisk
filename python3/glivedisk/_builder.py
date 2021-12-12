@@ -579,30 +579,30 @@ class TargetHostOverlay:
 
 class TargetConfDir:
 
-    def __init__(self, program_name, chrootDir, target, hostInfo):
+    def __init__(self, program_name, chrootDir, target, host_computing_power):
         self._progName = program_name
         self._dir = chrootDir
         self._target = target
-        self._hostInfo = hostInfo
+        self._computing_power = host_computing_power
 
     def write_make_conf(self):
         # determine parallelism parameters
         paraMakeOpts = None
         paraEmergeOpts = None
         if True:
-            if self._hostInfo.computing_power.cooling_level <= 1:
+            if self._computing_power.cooling_level <= 1:
                 jobcountMake = 1
                 jobcountEmerge = 1
                 loadavg = 1
             else:
-                if self._hostInfo.computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
-                    jobcountMake = self._hostInfo.computing_power.cpu_core_count + 2
-                    jobcountEmerge = self._hostInfo.computing_power.cpu_core_count
-                    loadavg = self._hostInfo.computing_power.cpu_core_count
+                if self._computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                    jobcountMake = self._computing_power.cpu_core_count + 2
+                    jobcountEmerge = self._computing_power.cpu_core_count
+                    loadavg = self._computing_power.cpu_core_count
                 else:
-                    jobcountMake = self._hostInfo.computing_power.cpu_core_count
-                    jobcountEmerge = self._hostInfo.computing_power.cpu_core_count
-                    loadavg = max(1, self._hostInfo.computing_power.cpu_core_count - 1)
+                    jobcountMake = self._computing_power.cpu_core_count
+                    jobcountEmerge = self._computing_power.cpu_core_count
+                    loadavg = max(1, self._computing_power.cpu_core_count - 1)
 
             paraMakeOpts = ["--jobs=%d" % (jobcountMake), "--load-average=%d" % (loadavg), "-j%d" % (jobcountMake), "-l%d" % (loadavg)]     # for bug 559064 and 592660, we need to add -j and -l, it sucks
             paraEmergeOpts = ["--jobs=%d" % (jobcountEmerge), "--load-average=%d" % (loadavg)]
