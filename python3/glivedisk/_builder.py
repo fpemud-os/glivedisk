@@ -113,7 +113,7 @@ class Builder:
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
             with _Chrooter(self) as m:
-                m.run_cmd("", "emerge --sync")
+                m.shell_exec("", "emerge --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
@@ -167,13 +167,13 @@ class Builder:
     def action_config_system(self):
         with _Chrooter(self) as m:
             # set locale
-            m.run_cmd("", "eselect locale set %s" % (self._target.locale), quiet=True)
+            m.shell_call("", "eselect locale set %s" % (self._target.locale))
 
             # set timezone
-            m.run_cmd("", "eselect timezone set %s" % (self._target.timezone), quiet=True)
+            m.shell_call("", "eselect timezone set %s" % (self._target.timezone))
 
             # set editor
-            m.run_cmd("", "eselect editor set %s" % (self._target.editor), quiet=True)
+            m.shell_call("", "eselect editor set %s" % (self._target.editor))
 
 
 class _SettingTarget:
@@ -422,11 +422,14 @@ class _Chrooter:
 
         self._chrooter.unbind()
 
-    def run_cmd(self, env, cmd, quiet=False):
-        return self._chrooter.shell_exec(env, cmd, quiet)
+    def shell_call(self, env, cmd):
+        self._chrooter.shell_call(env, cmd)
 
-    def run_chroot_script(self, env, cmd, quiet=False):
-        return self._chrooter.script_exec(env, cmd, quiet)
+    def shell_exec(self, env, cmd, quiet=False):
+        self._chrooter.shell_exec(env, cmd, quiet)
+
+    def script_exec(self, env, cmd, quiet=False):
+        self._chrooter.script_exec(env, cmd, quiet)
 
     def _unbind(self):
         def _procOne(fn):
