@@ -38,7 +38,7 @@ class GenKernel(KernelInstaller):
         self._hostInfo = _SettingHostInfo(settings)
 
     def install(self, program_name, host_computing_power, work_dir):
-        with _Chrooter(self) as m:
+        with _Chrooter(work_dir) as m:
             m.run_cmd("")
 
 
@@ -56,5 +56,5 @@ class _SettingHostInfo:
 
 class _Chrooter(WorkDirChrooter):
 
-    def __init__(self, parent):
-        super().__init__(self._parent._workDirObj)
+    def __init__(self, workDirObj):
+        super().__init__(workDirObj)
