@@ -135,6 +135,22 @@ class Util:
         return True
 
     @staticmethod
+    def getBlkDevUuid(devPath):
+        """UUID is also called FS-UUID, PARTUUID is another thing"""
+
+        ret = Util.cmdCall("/sbin/blkid", devPath)
+        m = re.search("UUID=\"(\\S*)\"", ret, re.M)
+        if m is not None:
+            return m.group(1)
+        else:
+            return ""
+
+    @staticmethod
+    def getBlkDevSize(devPath):
+        out = Util.cmdCall("/sbin/blockdev", "--getsz", devPath)
+        return int(out) * 512        # unit is byte
+
+    @staticmethod
     def initializeDisk(devPath, partitionTableType, partitionInfoList):
         assert partitionTableType in ["mbr", "gpt"]
         assert len(partitionInfoList) >= 1

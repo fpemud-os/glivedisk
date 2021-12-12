@@ -400,7 +400,7 @@ class _Chrooter:
                 t = TargetGentooRepo(self._parent._workDirObj.chroot_dir_path, self._parent._hostInfo.gentoo_repository_dir)
                 if os.path.exists(t.datadir_hostpath):
                     self._chrooter._assertDirStatus(t.datadir_path)
-                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, t.datadir_hostpath))
+                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, self._parent._hostInfo.gentoo_repository_dir))
 
             # host overlay readonly mount points
             if self._parent._hostInfo.overlays is not None:

@@ -24,32 +24,30 @@
 
 
 import os
+import shutil
 import pathlib
 from .._util import Util
+from .._util import TempChdir
 from .._util import TmpMount
 from .._errors import ExportError
 
 
 class RemovableMediaExporter:
 
-    def __init__(self, work_dir, target, **kwargs):
-        self.usbStickMinSize = 1 * 1024 * 1024 * 1024       # 1GiB
-        self.devPath = kwargs["devpath"]
-
-    def check(self):
-        if not Util.isBlkDevUsbStick(self.devPath):
-            raise ExportError("device %s does not seem to be an usb-stick." % (self.devPath))
-        if Util.getBlkDevSize(self.devPath) < self.usbStickMinSize:
-            raise ExportError("device %s needs to be at least %d GB." % (self.devPath, self.usbStickMinSize / 1024 / 1024 / 1024))
-        if Util.ismount(self.devPath):
-            raise ExportError("device %s or any of its partitions is already mounted, umount it first." % (self.devPath))
+    def __init__(self, program_name, work_dir, devpath):
+        self._usbStickMinSize = 1 * 1024 * 1024 * 1024       # 1GiB
+        self._progName = program_name
+        self._workDirObj = work_dir
+        self._devPath = devpath
 
     def export(self):
+        self._check()
+
         # create partitions
-        Util.initializeDisk(self.devPath, "mbr", [
+        Util.initializeDisk(self._devPath, "mbr", [
             ("*", "vfat"),
         ])
-        partDevPath = self.devPath + "1"
+        partDevPath = self._devPath + "1"
 
         # format the new partition and get its UUID
         Util.cmdCall("/usr/sbin/mkfs.vfat", "-F", "32", "-n", "SYSRESC", partDevPath)
@@ -61,20 +59,42 @@ class RemovableMediaExporter:
             # we need a fresh partition
             assert len(os.listdir(mp.mountpoint)) == 0
 
-            rootfsFn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "airootfs.sfs")
-            rootfsMd5Fn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "airootfs.sha512")
+            rootfsFn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "rootfs.sfs")
+            rootfsMd5Fn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "rootfs.sha512")
             kernelFn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "vmlinuz")
-            initrdFn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "initcpio.img")
+            initrdFn = os.path.join(mp.mountpoint, "rescuedisk", "x86_64", "initramfs.img")
 
             os.makedirs(os.path.join(mp.mountpoint, "rescuedisk", "x86_64"))
-            self.builder.squashRootfs(rootfsFn, rootfsMd5Fn, kernelFn, initrdFn)
+            self._squashRootfs(rootfsFn, rootfsMd5Fn, kernelFn, initrdFn)
 
             # generate grub.cfg
             Util.cmdCall("/usr/sbin/grub-install", "--removable", "--target=x86_64-efi", "--boot-directory=%s" % (os.path.join(mp.mountpoint, "boot")), "--efi-directory=%s" % (mp.mountpoint), "--no-nvram")
-            Util.cmdCall("/usr/sbin/grub-install", "--removable", "--target=i386-pc", "--boot-directory=%s" % (os.path.join(mp.mountpoint, "boot")), self.devPath)
+            Util.cmdCall("/usr/sbin/grub-install", "--removable", "--target=i386-pc", "--boot-directory=%s" % (os.path.join(mp.mountpoint, "boot")), self._devPath)
             with open(os.path.join(mp.mountpoint, "boot", "grub", "grub.cfg"), "w") as f:
                 buf = pathlib.Path(self.grubCfgSrcFile).read_text()
                 buf = buf.replace("%UUID%", uuid)
                 buf = buf.replace("%BASEDIR%", "/rescuedisk")
                 buf = buf.replace("%PREFIX%", "/rescuedisk/x86_64")
                 f.write(buf)
+
+    def _check(self):
+        if not Util.isBlkDevUsbStick(self._devPath):
+            raise ExportError("device %s does not seem to be an usb-stick." % (self._devPath))
+        if Util.getBlkDevSize(self._devPath) < self._usbStickMinSize:
+            raise ExportError("device %s needs to be at least %d GB." % (self._devPath, self._usbStickMinSize / 1024 / 1024 / 1024))
+        if Util.ismount(self._devPath):
+            raise ExportError("device %s or any of its partitions is already mounted, umount it first." % (self._devPath))
+
+    def _squashRootfs(self, rootfsDataFile, rootfsMd5File, kernelFile, initcpioFile):
+        assert rootfsDataFile.startswith("/")
+        assert rootfsMd5File.startswith("/")
+        assert kernelFile.startswith("/")
+        assert initcpioFile.startswith("/")
+
+        Util.cmdCall("/bin/mv", os.path.join(self._workDirObj.chroot_dir_path, "boot", "vmlinuz"), kernelFile)
+        Util.cmdCall("/bin/mv", os.path.join(self._workDirObj.chroot_dir_path, "boot", "initramfs.img"), initcpioFile)
+        shutil.rmtree(os.path.join(self._workDirObj.chroot_dir_path, "boot"))
+
+        Util.cmdExec("/usr/bin/mksquashfs", self._workDirObj.chroot_dir_path, rootfsDataFile, "-no-progress", "-noappend", "-quiet")
+        with TempChdir(os.path.dirname(rootfsDataFile)):
+            Util.shellExec("/usr/bin/sha512sum \"%s\" > \"%s\"" % (os.path.basename(rootfsDataFile), rootfsMd5File))

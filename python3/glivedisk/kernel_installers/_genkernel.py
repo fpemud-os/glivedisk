@@ -41,6 +41,81 @@ class GenKernel(KernelInstaller):
         with _Chrooter(work_dir) as m:
             m.run_cmd("", "")
 
+    def _get_args(self):
+        pass
+
+    # # default genkernel args
+    # GK_ARGS=(
+    #     "${clst_kernel_gk_kernargs[@]}"
+    #     --cachedir=/tmp/kerncache/${clst_kname}-genkernel_cache-${clst_version_stamp}
+    #     --no-mountboot
+    #     --kerneldir=/usr/src/linux
+    #     --modulespackage=/tmp/kerncache/${clst_kname}-modules-${clst_version_stamp}.tar.bz2
+    #     --minkernpackage=/tmp/kerncache/${clst_kname}-kernel-initrd-${clst_version_stamp}.tar.bz2 all
+    # )
+    # # extra genkernel options that we have to test for
+    # if [ -n "${clst_gk_mainargs}" ]
+    # then
+    #     GK_ARGS+=(${clst_gk_mainargs})
+    # fi
+    # if [ -n "${clst_KERNCACHE}" ]
+    # then
+    #     GK_ARGS+=(--kerncache=/tmp/kerncache/${clst_kname}-kerncache-${clst_version_stamp}.tar.bz2)
+    # fi
+    # if [ -e /var/tmp/${clst_kname}.config ]
+    # then
+    #     GK_ARGS+=(--kernel-config=/var/tmp/${clst_kname}.config)
+    # fi
+
+    # if [ -n "${clst_splash_theme}" ]
+    # then
+    #     GK_ARGS+=(--splash=${clst_splash_theme})
+    #     # Setup case structure for livecd_type
+    #     case ${clst_livecd_type} in
+    #         gentoo-release-minimal|gentoo-release-universal)
+    #             case ${clst_hostarch} in
+    #                 amd64|x86)
+    #                     GK_ARGS+=(--splash-res=1024x768)
+    #                 ;;
+    #             esac
+    #         ;;
+    #     esac
+    # fi
+
+    # if [ -d "/tmp/initramfs_overlay/${clst_initramfs_overlay}" ]
+    # then
+    #     GK_ARGS+=(--initramfs-overlay=/tmp/initramfs_overlay/${clst_initramfs_overlay})
+    # fi
+    # if [ -n "${clst_CCACHE}" ]
+    # then
+    #     GK_ARGS+=(--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc)
+    # fi
+
+    # if [ -n "${clst_linuxrc}" ]
+    # then
+    #     GK_ARGS+=(--linuxrc=/tmp/linuxrc)
+    # fi
+
+    # if [ -n "${clst_busybox_config}" ]
+    # then
+    #     GK_ARGS+=(--busybox-config=/tmp/busy-config)
+    # fi
+
+    # if [ "${clst_target}" == "netboot2" ]
+    # then
+    #     GK_ARGS+=(--netboot)
+
+    #     if [ -n "${clst_merge_path}" ]
+    #     then
+    #         GK_ARGS+=(--initramfs-overlay="${clst_merge_path}")
+    #     fi
+    # fi
+
+    # if [[ "${clst_VERBOSE}" == "true" ]]
+    # then
+    #     GK_ARGS+=(--loglevel=2)
+    # fi
+
 
 class _SettingTarget:
 
