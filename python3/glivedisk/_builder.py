@@ -117,7 +117,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._progName, self._workDirObj.chroot_dir_path, self._target, self._hostInfo)
+        t = TargetConfDir(self._progName, self._workDirObj.chroot_dir_path, self._target, self._cpower)
         t.write_make_conf()
         t.write_package_use()
         t.write_package_mask()
@@ -165,10 +165,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
-        kernel_installer.set_host_computing_power(self._cpower)
-        kernel_installer.set_work_dir(self._workDirObj)
-        kernel_installer.check()
-        kernel_installer.install()
+        kernel_installer.install(self._progName, self._cpower, self._workDirObj)
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):

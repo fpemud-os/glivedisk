@@ -42,31 +42,11 @@ class SeedStageArchive(abc.ABC):
 class KernelInstaller(abc.ABC):
 
     @abc.abstractmethod
-    def set_program_name(program_name):
-        pass
-
-    @abc.abstractmethod
-    def set_host_computing_power(host_computing_power):
-        pass
-
-    @abc.abstractmethod
-    def set_work_dir(work_dir):
-        pass
-
-    @abc.abstractmethod
-    def check(self):
-        pass
-
-    @abc.abstractmethod
-    def make(self):
+    def install(self, program_name, host_computing_power, work_dir):
         pass
 
 
 class Exporter(abc.ABC):
-
-    @abc.abstractmethod
-    def check(self):
-        pass
 
     @abc.abstractmethod
     def export(self):

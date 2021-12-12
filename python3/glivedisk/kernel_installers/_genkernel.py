@@ -37,12 +37,9 @@ class GenKernel(KernelInstaller):
         self._target = _SettingTarget(settings)
         self._hostInfo = _SettingHostInfo(settings)
 
-    def check(self):
+    def install(self, program_name, host_computing_power, work_dir):
         with _Chrooter(self) as m:
             m.run_cmd("")
-
-    def build(self):
-        pass
 
 
 class _SettingTarget:
