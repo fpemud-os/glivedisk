@@ -148,18 +148,14 @@ class Builder:
     def action_update_world_set(self):
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
-        if self._target.world_set is None:
-            # world file should not exists
-            if os.path.exists(fpath):
-                raise SeedStageError("/var/lib/portage/world should not exist in seed stage")
-        else:
-            # write world file
-            os.makedirs(os.path.dirname(fpath))
-            with open(fpath, "w") as myf:
-                for pkg in self._target.world_set:
-                    myf.write("%s\n" % (pkg))
+        # write world file
+        os.makedirs(os.path.dirname(fpath))
+        with open(fpath, "w") as myf:
+            for pkg in self._target.world_set:
+                myf.write("%s\n" % (pkg))
 
-            # update world
+        # update world
+        if len(self._target.world_set) > 0:
             with _Chrooter(self) as m:
                 m.run_chroot_script("", "update-world-set.sh")
 
@@ -245,13 +241,13 @@ class _SettingTarget:
 
         if "build_opts" in settings:
             self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
-            del settings["build_opts"] 
+            del settings["build_opts"]
         else:
-            self.build_opts = []
+            self.build_opts = None
 
         if "pkg_build_opts" in settings:
             self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}   # dict<package-wildcard, build-opts>
-            del settings["pkg_build_opts"] 
+            del settings["pkg_build_opts"]
         else:
             self.pkg_build_opts = dict()
 
