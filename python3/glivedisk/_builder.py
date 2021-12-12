@@ -148,7 +148,7 @@ class Builder:
     def action_update_world_set(self):
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
-        if self._target.world_packages is None:
+        if self._target.world_set is None:
             # world file should not exists
             if os.path.exists(fpath):
                 raise SeedStageError("/var/lib/portage/world should not exist in seed stage")
@@ -156,7 +156,7 @@ class Builder:
             # write world file
             os.makedirs(os.path.dirname(fpath))
             with open(fpath, "w") as myf:
-                for pkg in self._target.world_packages:
+                for pkg in self._target.world_set:
                     myf.write("%s\n" % (pkg))
 
             # update world
@@ -195,11 +195,11 @@ class _SettingTarget:
         else:
             self.overlays = dict()
 
-        if "world_packages" in settings:
-            self.world_packages = list(settings["world_packages"])
-            del settings["world_package"] 
+        if "world_set" in settings:
+            self.world_set = list(settings["world_set"])
+            del settings["world_set"]
         else:
-            self.world_packages = []
+            self.world_set = []
 
         if "pkg_use" in settings:
             self.pkg_use = dict(settings["pkg_use"])                        # dict<package-wildcard, use-flag-list>

@@ -39,7 +39,7 @@ class GenKernel(KernelInstaller):
 
     def install(self, program_name, host_computing_power, work_dir):
         with _Chrooter(work_dir) as m:
-            m.run_cmd("")
+            m.run_cmd("", "")
 
 
 class _SettingTarget:
