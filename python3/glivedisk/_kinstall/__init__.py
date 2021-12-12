@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,30 +21,44 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
+import os
+import sys
+import abc
+import pkgutil
 
-__version__ = '0.0.1'
 
-__author__ = 'Fpemud <fpemud@sina.com>'
+def get_kernel_installer(name, settings, **kwargs):
+    for mod in pkgutil.iter_modules(["._exporter"]):
+        if mod.KernelInstallerImpl.name == name:
+            return mod.KernelInstallerImpl(settings, **kwargs)
+    assert False        
 
 
-from ._settings import HostComputingPower
+class KernelInstaller(abc.ABC):
 
-from ._seed import SeedStageArchive
-from ._seed import CloudGentooStage3
+    @classmethod
+    @property
+    def name(cls):
+        fn = sys.modules.get(cls.__module__).__file__
+        fn = os.path.basename(fn).replace(".py", "")
+        return fn.replace("_", "-")
 
-from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
+    @abc.abstractmethod
+    def set_program_name(program_name):
+        pass
 
-from ._builder import Builder
-from ._builder import BuildProgress
+    @abc.abstractmethod
+    def set_host_computing_power(host_computing_power):
+        pass
 
-from ._kinstall import get_kernel_installer
-from ._kinstall import KernelInstaller
+    @abc.abstractmethod
+    def set_work_dir(work_dir):
+        pass
 
-from ._exporter import get_exporter
-from ._exporter import Exporter
+    @abc.abstractmethod
+    def check(self):
+        pass
 
-from ._errors import SettingsError
-from ._errors import SeedStageError
-from ._errors import WorkDirVerifyError
+    @abc.abstractmethod
+    def make(self):
+        pass

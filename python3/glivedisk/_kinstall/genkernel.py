@@ -21,29 +21,44 @@
 # THE SOFTWARE.
 
 
-import enum
+import copy
+from . import KernelInstaller
 
 
-class GenkernelProgress(enum.IntEnum):
-    STEP_INIT = enum.auto()
-    STEP_UNPACKED = enum.auto()
-    STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
-    STEP_CONFDIR_INITIALIZED = enum.auto()
-    STEP_SYSTEM_UPDATED = enum.auto()
-    STEP_OVERLAYS_INITIALIZED = enum.auto()
-    STEP_PACKAGES_INSTALLED = enum.auto()
-    STEP_KERNEL_AND_INITRAMFS_GENERATED = enum.auto()
-    STEP_SYSTEM_SOLDERED = enum.auto()
-
-
-class Genkernel:
+class KernelInstallerImpl(KernelInstaller):
     """
     Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
     """
 
-    def __init__(self, program_name, work_dir):
-        self._progName = program_name
-        self._workDirObj = work_dir
+    def __init__(self, settings):
+        settings = copy.deepcopy(settings)
+
+        self._target = _SettingTarget(settings)
+        self._hostInfo = _SettingHostInfo(settings)
+
+    def check(self):
+        with _Chrooter(self) as m:
+            m.run_cmd("")
+
+
 
     def build(self):
         pass
+
+
+class _SettingTarget:
+
+    def __init__(self, settings):
+        pass
+
+
+class _SettingHostInfo:
+
+    def __init__(self, settings):
+        pass
+
+
+class _Chrooter(WorkDirChrooter):
+
+    def __init__(self, parent):
+        super().__init__(self._parent._workDirObj)

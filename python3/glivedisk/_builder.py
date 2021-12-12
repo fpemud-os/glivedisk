@@ -34,25 +34,28 @@ from ._workdir import WorkDirChrooter
 def Action(progress_step):
     def decorator(func):
         def wrapper(self):
-            # check
-            assert self._progress == progress_step
+            def __createNewChrootDir():
+                dirName = "%02d-%s" % (self._progress.value, BuildProgress(self._progress.value + 1).name)
+                self._workDirObj.create_new_chroot_dir(dirName)
 
-            # create new chroot dir
-            dirName = "%02d-%s" % (self._progress.value, UserSpaceBuildProgress(self._progress.value + 1).name)
-            self._workDirObj.create_new_chroot_dir(dirName)
+            # check, ensure chroot dir
+            assert self._progress == progress_step
+            if not self._workDirObj.has_chroot_dir():
+                __createNewChrootDir()
 
             # do work
             func(self)
 
-            # do progress
-            self._progress = UserSpaceBuildProgress(self._progress + 1)
+            # do progress, create new chroot dir for next step
+            self._progress = BuildProgress(self._progress + 1)
+            __createNewChrootDir()
 
         return wrapper
 
     return decorator
 
 
-class UserSpaceBuildProgress(enum.IntEnum):
+class BuildProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
     STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
@@ -60,10 +63,11 @@ class UserSpaceBuildProgress(enum.IntEnum):
     STEP_SYSTEM_SET_UPDATED = enum.auto()
     STEP_OVERLAYS_INITIALIZED = enum.auto()
     STEP_WORLD_SET_UPDATED = enum.auto()
+    STEP_KERNEL_INSTALLED = enum.auto()
     STEP_SYSTEM_CONFIGURED = enum.auto()
 
 
-class UserSpaceBuilder:
+class Builder:
     """
     This class does all of the chroot setup, copying of files, etc.
     It is the driver class for pretty much everything that glivedisk does.
@@ -83,7 +87,7 @@ class UserSpaceBuilder:
         self._workDirObj = work_dir
         self._target = _SettingTarget(settings)
         self._hostInfo = _SettingHostInfo(settings)
-        self._progress = UserSpaceBuildProgress.STEP_INIT
+        self._progress = BuildProgress.STEP_INIT
 
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
@@ -98,7 +102,7 @@ class UserSpaceBuilder:
         self._workDirObj = None
         self._tf = None
 
-    @Action(UserSpaceBuildProgress.STEP_INIT)
+    @Action(BuildProgress.STEP_INIT)
     def action_unpack(self):
         self._tf.extractall(self._workDirObj.chroot_dir_path)
 
@@ -106,7 +110,7 @@ class UserSpaceBuilder:
         t.ensure_distdir()
         t.ensure_pkgdir()
 
-    @Action(UserSpaceBuildProgress.STEP_UNPACKED)
+    @Action(BuildProgress.STEP_UNPACKED)
     def action_init_gentoo_repository(self):
         # init gentoo repository
         t = TargetGentooRepo(self._workDirObj.chroot_dir_path, self._hostInfo.gentoo_repository_dir)
@@ -118,7 +122,7 @@ class UserSpaceBuilder:
             with _Chrooter(self) as m:
                 m.run_chroot_script("", "/usr/bin/emerge --sync")
 
-    @Action(UserSpaceBuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
+    @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
         t = TargetConfDir(self._progName, self._workDirObj.chroot_dir_path, self._target, self._hostInfo)
         t.write_make_conf()
@@ -128,12 +132,12 @@ class UserSpaceBuilder:
         t.write_package_accept_keyword()
         t.write_package_accept_license()
 
-    @Action(UserSpaceBuildProgress.STEP_CONFDIR_INITIALIZED)
+    @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system_set(self):
         with _Chrooter(self) as m:
             m.run_chroot_script("", "update-system-set.sh")
 
-    @Action(UserSpaceBuildProgress.STEP_SYSTEM_SET_UPDATED)
+    @Action(BuildProgress.STEP_SYSTEM_SET_UPDATED)
     def action_init_overlays(self):
         # init host overlays
         if self._hostInfo.overlays is not None:
@@ -147,7 +151,7 @@ class UserSpaceBuilder:
             # FIXME: use layman
             pass
 
-    @Action(UserSpaceBuildProgress.STEP_OVERLAYS_INITIALIZED)
+    @Action(BuildProgress.STEP_OVERLAYS_INITIALIZED)
     def action_update_world_set(self):
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
@@ -166,7 +170,14 @@ class UserSpaceBuilder:
         with _Chrooter(self) as m:
             m.run_chroot_script("", "update-world-set.sh")
 
-    @Action(UserSpaceBuildProgress.STEP_WORLD_SET_UPDATED)
+    @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
+    def action_install_kernel(self, kernel_installer):
+        kernel_installer.set_host_computing_power(self._cpower)
+        kernel_installer.set_work_dir(self._workDirObj)
+        kernel_installer.check()
+        kernel_installer.install()
+
+    @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):
         with _Chrooter(self) as m:
             # set locale

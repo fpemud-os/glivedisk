@@ -63,9 +63,8 @@ class WorkDir:
 
     @property
     def chroot_dir_path(self):
-        ret = os.path.realpath(self._chroot_link_path())
-        assert os.path.exists(ret)
-        return ret
+        assert self.has_chroot_dir()
+        return os.path.realpath(self._chroot_link_path())
 
     @property
     def chroot_uid_map(self):
@@ -123,6 +122,9 @@ class WorkDir:
             if os.path.isfile(fn) and fn.endswith(".save"):
                 ret.append(fn)
         return ret
+
+    def has_chroot_dir(self):
+        return os.path.exists(self._chroot_link_path())
 
     def get_chroot_dir_names(self):
         linkPath = self._chroot_link_path()
