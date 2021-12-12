@@ -134,8 +134,8 @@ class Builder:
     def action_init_overlays(self):
         # init host overlays
         if self._hostInfo.overlays is not None:
-            for o in self._hostInfo.overlays:
-                t = TargetHostOverlay(self._workDirObj.chroot_dir_path, o)
+            for oname in self._hostInfo.overlays:
+                t = TargetHostOverlay(self._workDirObj.chroot_dir_path, oname)
                 t.write_repos_conf()
                 t.ensure_datadir()
 
@@ -400,15 +400,15 @@ class _Chrooter:
                 t = TargetGentooRepo(self._parent._workDirObj.chroot_dir_path, self._parent._hostInfo.gentoo_repository_dir)
                 if os.path.exists(t.datadir_hostpath):
                     self._chrooter._assertDirStatus(t.datadir_path)
-                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (t.datadir_path, self._parent._hostInfo.gentoo_repository_dir))
+                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (self._parent._hostInfo.gentoo_repository_dir, t.datadir_hostpath))
 
             # host overlay readonly mount points
             if self._parent._hostInfo.overlays is not None:
-                for o in self._parent._hostInfo.overlays:
-                    t = TargetHostOverlay(self._parent._workDirObj.chroot_dir_path, o)
+                for oname, odir in self._parent._hostInfo.overlays.items():
+                    t = TargetHostOverlay(self._parent._workDirObj.chroot_dir_path, oname)
                     if os.path.exists(t.datadir_hostpath):
                         self._chrooter._assertDirStatus(t.datadir_path)
-                        Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (o.dirpath, t.datadir_hostpath))
+                        Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (odir, t.datadir_hostpath))
         except BaseException:
             self._unbind()
             self._chrooter.unbind()
@@ -436,8 +436,8 @@ class _Chrooter:
 
         # host overlay mount points
         if self._parent._hostInfo.overlays is not None:
-            for o in self._parent._hostInfo.overlays:
-                t = TargetHostOverlay(self._parent._workDirObj.chroot_dir_path, o)
+            for oname in self._parent._hostInfo.overlays:
+                t = TargetHostOverlay(self._parent._workDirObj.chroot_dir_path, oname)
                 _procOne(t.datadir_path)
 
         # gentoo repository mount point
@@ -539,9 +539,9 @@ class TargetGentooRepo:
 
 class TargetHostOverlay:
 
-    def __init__(self, chrootDir, hostOverlay):
+    def __init__(self, chrootDir, overlayName):
         self._chroot_path = chrootDir
-        self._name = hostOverlay.name
+        self._name = overlayName
 
     @property
     def repos_conf_file_hostpath(self):
