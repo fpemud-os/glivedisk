@@ -25,6 +25,9 @@ import re
 import multiprocessing
 
 
+MY_NAME = "glivecd"
+
+
 class HostComputingPower:
 
     @staticmethod

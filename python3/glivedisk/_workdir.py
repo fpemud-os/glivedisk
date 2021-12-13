@@ -28,6 +28,7 @@ import platform
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError, WorkDirVerifyError
+from ._settings import MY_NAME
 
 
 class WorkDir:
@@ -285,10 +286,11 @@ class WorkDirChrooter:
 
         selfDir = os.path.dirname(os.path.realpath(__file__))
         chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
-        chrootScriptDstDir = os.path.join(self._workDirObj.chroot_dir_path, "tmp", "glivecd")
+        chrootScriptDstDir = os.path.join("/tmp", MY_NAME)
+        chrootScriptDstDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, chrootScriptDstDir[1:])
 
-        Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDir)
-        Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDir))
+        Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDirHostPath)
+        Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDirHostPath))
 
         # FIXME
         env = "LANG=C.utf8 " + env
@@ -296,9 +298,9 @@ class WorkDirChrooter:
 
         try:
             if not quiet:
-                Util.shellExec("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDirHostPath, os.path.join(chrootScriptDstDir, cmd)))
             else:
-                Util.shellCall("%s /usr/bin/chroot \"%s\" %s/%s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, cmd))
+                Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, chrootScriptDstDir, os.path.join(chrootScriptDstDir, cmd)))
         finally:
             robust_layer.simple_fops.rm(chrootScriptDstDir)
 
