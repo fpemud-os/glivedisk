@@ -24,6 +24,7 @@
 import os
 import copy
 import enum
+import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError
 from ._settings import HostComputingPower
@@ -645,6 +646,7 @@ class TargetConfDir:
     def write_package_use(self):
         # Modify and write out package.use (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.use")
+        robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             # compile all locales
             myf.write("*/* compile-locales")
@@ -660,24 +662,28 @@ class TargetConfDir:
     def write_package_mask(self):
         # Modify and write out package.mask (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.mask")
+        robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             myf.write("")
 
     def write_package_unmask(self):
         # Modify and write out package.unmask (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.unmask")
+        robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             myf.write("")
 
     def write_package_accept_keywords(self):
         # Modify and write out package.accept_keywords (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.accept_keywords")
+        robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             myf.write("")
 
     def write_package_license(self):
         # Modify and write out package.license (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.license")
+        robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._target.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
