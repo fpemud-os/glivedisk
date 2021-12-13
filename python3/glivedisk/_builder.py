@@ -150,7 +150,7 @@ class Builder:
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
         # write world file
-        os.makedirs(os.path.dirname(fpath), exists_ok=True)
+        os.makedirs(os.path.dirname(fpath), exist_ok=True)
         with open(fpath, "w") as myf:
             for pkg in self._target.world_set:
                 myf.write("%s\n" % (pkg))
