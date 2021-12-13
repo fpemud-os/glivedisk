@@ -479,10 +479,10 @@ class TargetCacheDirs:
         return "/var/cache/binpkgs"
 
     def ensure_distdir(self):
-        os.makedirs(self.distdir_hostpath)
+        os.makedirs(self.distdir_hostpath, exist_ok=True)
 
     def ensure_pkgdir(self):
-        os.makedirs(self.pkgdir_hostpath)
+        os.makedirs(self.pkgdir_hostpath, exist_ok=True)
 
 
 class TargetGentooRepo:
