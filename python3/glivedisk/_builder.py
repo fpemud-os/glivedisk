@@ -73,7 +73,7 @@ class Builder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, program_name, host_computing_power, seed_stage_archive, work_dir, settings):
+    def __init__(self, program_name, host_computing_power, seed_stage_archive, work_dir, settings, verbose):
         assert program_name is not None
         assert HostComputingPower.check_object(host_computing_power)
         assert SeedStageArchive.check_object(seed_stage_archive)
@@ -87,6 +87,7 @@ class Builder:
         self._workDirObj = work_dir
         self._target = _SettingTarget(settings)
         self._hostInfo = _SettingHostInfo(settings)
+        self._bVerbose = verbose
         self._progress = BuildProgress.STEP_INIT
 
         for k in settings:
@@ -149,7 +150,7 @@ class Builder:
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
         # write world file
-        os.makedirs(os.path.dirname(fpath))
+        os.makedirs(os.path.dirname(fpath), exists_ok=True)
         with open(fpath, "w") as myf:
             for pkg in self._target.world_set:
                 myf.write("%s\n" % (pkg))
