@@ -123,7 +123,7 @@ class Builder:
         t.write_package_use()
         t.write_package_mask()
         t.write_package_unmask()
-        t.write_package_accept_keyword()
+        t.write_package_accept_keywords()
         t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
@@ -199,43 +199,43 @@ class _SettingTarget:
             self.world_set = []
 
         if "pkg_use" in settings:
-            self.pkg_use = dict(settings["pkg_use"])                        # dict<package-wildcard, use-flag-list>
+            self.pkg_use = dict(settings["pkg_use"])  # dict<package-wildcard, use-flag-list>
             del settings["pkg_use"] 
         else:
             self.pkg_use = dict()
 
         if "pkg_mask" in settings:
-            self.pkg_mask = dict(settings["pkg_mask"])                      # list<package-wildcard>
+            self.pkg_mask = dict(settings["pkg_mask"])  # list<package-wildcard>
             del settings["pkg_mask"] 
         else:
             self.pkg_mask = []
 
         if "pkg_unmask" in settings:
-            self.pkg_unmask = dict(settings["pkg_unmask"])                  # list<package-wildcard>
+            self.pkg_unmask = dict(settings["pkg_unmask"])  # list<package-wildcard>
             del settings["pkg_unmask"] 
         else:
             self.pkg_unmask = []
 
-        if "pkg_accept_keyword" in settings:
-            self.pkg_accept_keyword = dict(settings["pkg_accept_keyword"])  # dict<package-wildcard, accept-keyword-list>
-            del settings["pkg_accept_keyword"] 
+        if "pkg_accept_keywords" in settings:
+            self.pkg_accept_keywords = dict(settings["pkg_accept_keywords"])  # dict<package-wildcard, accept-keyword-list>
+            del settings["pkg_accept_keywords"] 
         else:
-            self.pkg_accept_keyword = dict()
+            self.pkg_accept_keywords = dict()
 
         if "pkg_license" in settings:
-            self.pkg_license = dict(settings["pkg_license"])                # dict<package-wildcard, license-list>
+            self.pkg_license = dict(settings["pkg_license"])  # dict<package-wildcard, license-list>
             del settings["pkg_license"]
         else:
             self.pkg_license = dict()
 
         if "install_mask" in settings:
-            self.install_mask = dict(settings["install_mask"])              # list<install-mask>
+            self.install_mask = dict(settings["install_mask"])  # list<install-mask>
             del settings["install_mask"] 
         else:
             self.install_mask = []
 
         if "pkg_install_mask" in settings:
-            self.pkg_install_mask = dict(settings["pkg_install_mask"])      # dict<package-wildcard, install-mask>
+            self.pkg_install_mask = dict(settings["pkg_install_mask"])  # dict<package-wildcard, install-mask>
             del settings["pkg_install_mask"] 
         else:
             self.pkg_install_mask = dict()
@@ -247,7 +247,7 @@ class _SettingTarget:
             self.build_opts = None
 
         if "pkg_build_opts" in settings:
-            self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}   # dict<package-wildcard, build-opts>
+            self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
             del settings["pkg_build_opts"]
         else:
             self.pkg_build_opts = dict()
@@ -643,8 +643,8 @@ class TargetConfDir:
             myf.write('\n')
 
     def write_package_use(self):
-        # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.use")
+        # Modify and write out package.use (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "package.use")
         with open(fpath, "w") as myf:
             # compile all locales
             myf.write("*/* compile-locales")
@@ -658,26 +658,26 @@ class TargetConfDir:
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(use_flag_list)))
 
     def write_package_mask(self):
-        # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.mask")
+        # Modify and write out package.mask (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "package.mask")
         with open(fpath, "w") as myf:
             myf.write("")
 
     def write_package_unmask(self):
-        # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.unmask")
+        # Modify and write out package.unmask (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "package.unmask")
         with open(fpath, "w") as myf:
             myf.write("")
 
-    def write_package_accept_keyword(self):
-        # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.accept_keywords")
+    def write_package_accept_keywords(self):
+        # Modify and write out package.accept_keywords (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "package.accept_keywords")
         with open(fpath, "w") as myf:
             myf.write("")
 
     def write_package_license(self):
-        # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.license")
+        # Modify and write out package.license (in chroot)
+        fpath = os.path.join(self._dir, "etc", "portage", "package.license")
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._target.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
