@@ -472,11 +472,11 @@ class TargetCacheDirs:
 
     @property
     def distdir_path(self):
-        return "/var/cache/portage/distfiles"
+        return "/var/cache/distfiles"
 
     @property
     def pkgdir_path(self):
-        return "/var/cache/portage/packages"
+        return "/var/cache/binpkgs"
 
     def ensure_distdir(self):
         os.makedirs(self.distdir_hostpath)
