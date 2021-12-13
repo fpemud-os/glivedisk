@@ -21,37 +21,46 @@
 # THE SOFTWARE.
 
 
-import abc
+import pathlib
+import tarfile
+from .. import SeedStage
 
 
-class SeedStage(abc.ABC):
+class GentooStage3Archive(SeedStage):
 
-    @staticmethod
-    def check_object(obj):
-        if isinstance(obj, SeedStage):
-            return True
-        if hasattr(obj, "get_chksum") and hasattr(obj, "unpack"):
-            return True
-        return False
+    def __init__(self, filepath, digest_filepath=None):
+        self._path = filepath
+        self._hashPath = digest_filepath if digest_filepath is not None else self._path + ".DIGEST"
 
-    @abc.abstractmethod
-    def get_chksum(self):
-        pass
+        self._tf = tarfile.open(self._path, mode="r:xz")
+        self._hash = pathlib.Path(self._hashPath).read_text()
 
-    @abc.abstractmethod
+    @property
+    def arch(self):
+        # FIXME
+        assert False
+
+    @property
+    def variant(self):
+        # FIXME
+        assert False
+
+    @property
+    def filepath(self):
+        return self._path
+
+    @property
+    def digest_filepath(self):
+        return self._hashPath
+
     def unpack(self, target_dir):
-        pass
+        self._tf.extractall(target_dir)
 
+    def get_digest(self):
+        return self._hash
 
-class KernelInstaller(abc.ABC):
-
-    @abc.abstractmethod
-    def install(self, program_name, host_computing_power, work_dir):
-        pass
-
-
-class Exporter(abc.ABC):
-
-    @abc.abstractmethod
-    def export(self):
-        pass
+    def close(self):
+        if self._tf is not None:
+            self._tf.close()
+            self._tf = None
+        self._hash = None

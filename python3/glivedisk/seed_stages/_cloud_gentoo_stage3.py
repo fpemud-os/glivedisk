@@ -25,10 +25,10 @@ import os
 import re
 import tarfile
 import urllib.request
-from .. import SeedStageArchive
+from .. import SeedStage
 
 
-class CloudGentooStage3(SeedStageArchive):
+class CloudGentooStage3Archive(SeedStage):
 
     def __init__(self, arch, variant):
         self._arch = arch
@@ -68,6 +68,14 @@ class CloudGentooStage3(SeedStageArchive):
             assert False
         else:
             assert False
+
+    @property
+    def arch(self):
+        return self._arch
+
+    @property
+    def variant(self):
+        return self._variant
 
     def connect(self):
         if self._arch == "alpha":
@@ -121,7 +129,7 @@ class CloudGentooStage3(SeedStageArchive):
         with urllib.request.urlopen(self._stage3HashFileUrl) as resp:
             return resp.read()
 
-    def extractall(self, target_dir):
+    def unpack(self, target_dir):
         self._tf.extractall(target_dir)
 
     def close(self):

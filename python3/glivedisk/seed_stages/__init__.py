@@ -21,4 +21,5 @@
 # THE SOFTWARE.
 
 
-from ._cloud_gentoo_stage3 import CloudGentooStage3
+from ._gentoo_stage3 import GentooStage3Archive
+from ._cloud_gentoo_stage3 import CloudGentooStage3Archive

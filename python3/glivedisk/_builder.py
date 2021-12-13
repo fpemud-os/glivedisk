@@ -99,7 +99,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_INIT)
     def action_unpack(self):
-        self._tf.extractall(self._workDirObj.chroot_dir_path)
+        self._tf.unpack(self._workDirObj.chroot_dir_path)
 
         t = TargetCacheDirs(self._workDirObj.chroot_dir_path)
         t.ensure_distdir()
