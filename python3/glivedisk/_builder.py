@@ -115,7 +115,7 @@ class Builder:
         # sync gentoo repository
         if self._hostInfo.gentoo_repository_dir is None:
             with _Chrooter(self) as m:
-                m.shell_exec("", "emerge --sync")
+                m.script_exec("", "run-merge.sh --sync")
 
     @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
     def action_init_confdir(self):
@@ -150,16 +150,11 @@ class Builder:
     def action_update_world_set(self):
         fpath = os.path.join(self._workDirObj.chroot_dir_path, "var", "lib", "portage", "world")
 
-        # write world file
-        os.makedirs(os.path.dirname(fpath), exist_ok=True)
-        with open(fpath, "w") as myf:
-            for pkg in self._target.world_set:
-                myf.write("%s\n" % (pkg))
-
         # update world
         if len(self._target.world_set) > 0:
             with _Chrooter(self) as m:
-                m.script_exec("", "update-world-set.sh")
+                m.script_exec("", "run-merge.sh --noreplace %s" % (" ".join(self._target.world_set)))
+                m.shell_exec("", "perl-cleaner --all")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):

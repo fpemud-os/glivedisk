@@ -202,6 +202,7 @@ class WorkDir:
 class WorkDirChrooter:
 
     def __init__(self, work_dir):
+        self._chrootScriptDstDir = os.path.join("/tmp", MY_NAME)
         self._workDirObj = work_dir
         self._bBind = False
 
@@ -218,6 +219,10 @@ class WorkDirChrooter:
 
     def bind(self):
         assert not self._bBind
+
+        selfDir = os.path.dirname(os.path.realpath(__file__))
+        chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
+        chrootScriptDstDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, self._chrootScriptDstDir[1:])
 
         try:
             # copy resolv.conf
@@ -243,6 +248,11 @@ class WorkDirChrooter:
             # mount /tmp
             self._assertDirStatus("/tmp")
             Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "tmp")))
+
+            # copy chroot scripts
+            # no clean up needed since these files are in tmpfs
+            Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDirHostPath)
+            Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDirHostPath))
         except BaseException:
             self._unbind()
             raise
@@ -284,25 +294,14 @@ class WorkDirChrooter:
     def script_exec(self, env, cmd, quiet=False):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
 
-        selfDir = os.path.dirname(os.path.realpath(__file__))
-        chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
-        chrootScriptDstDir = os.path.join("/tmp", MY_NAME)
-        chrootScriptDstDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, chrootScriptDstDir[1:])
-
-        Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDirHostPath)
-        Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDirHostPath))
-
         # FIXME
         env = "LANG=C.utf8 " + env
         assert self._detectArch() == platform.machine()
 
-        try:
-            if not quiet:
-                Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(chrootScriptDstDir, cmd)))
-            else:
-                Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(chrootScriptDstDir, cmd)))
-        finally:
-            robust_layer.simple_fops.rm(chrootScriptDstDir)
+        if not quiet:
+            Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(self._chrootScriptDstDir, cmd)))
+        else:
+            Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(self._chrootScriptDstDir, cmd)))
 
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")
