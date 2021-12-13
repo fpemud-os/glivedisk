@@ -25,7 +25,7 @@ import os
 import copy
 import enum
 from ._util import Util
-from ._errors import SettingsError, SeedStageError
+from ._errors import SettingsError
 from ._settings import HostComputingPower
 from ._prototype import SeedStageArchive
 from ._workdir import WorkDirChrooter
@@ -222,11 +222,11 @@ class _SettingTarget:
         else:
             self.pkg_accept_keyword = dict()
 
-        if "pkg_accept_license" in settings:
-            self.pkg_accept_license = dict(settings["pkg_accept_license"])  # dict<package-wildcard, accept-license-list>
-            del settings["pkg_accept_license"] 
+        if "pkg_license" in settings:
+            self.pkg_license = dict(settings["pkg_license"])                # dict<package-wildcard, license-list>
+            del settings["pkg_license"] 
         else:
-            self.pkg_accept_license = dict()
+            self.pkg_license = dict()
 
         if "install_mask" in settings:
             self.install_mask = dict(settings["install_mask"])              # list<install-mask>
@@ -675,14 +675,12 @@ class TargetConfDir:
         with open(fpath, "w") as myf:
             myf.write("")
 
-    def write_package_accept_license(self):
+    def write_package_license(self):
         # Modify and write out packages.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "packages.accept_license")
+        fpath = os.path.join(self._dir, "etc", "portage", "packages.license")
         with open(fpath, "w") as myf:
-            myf.write("")
-
-
-
+            for pkg_wildcard, license_list in self._target.pkg_license.items():
+                myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
 
 
 
