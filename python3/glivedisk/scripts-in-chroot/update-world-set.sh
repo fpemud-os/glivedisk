@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./chroot-functions.sh
+source $(dirname $(realpath $0))/functions.sh
 
 emerge -s non-exist-package > /dev/null
 eselect news read all > /dev/null

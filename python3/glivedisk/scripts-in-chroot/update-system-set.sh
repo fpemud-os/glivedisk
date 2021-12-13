@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./chroot-functions.sh
+source $(dirname $(realpath $0))/functions.sh
 
 export CONFIG_PROTECT="-* /etc/locale.gen"
 
