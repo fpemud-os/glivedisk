@@ -73,7 +73,7 @@ class Builder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, program_name, host_computing_power, seed_stage_archive, work_dir, settings, verbose):
+    def __init__(self, program_name, host_computing_power, seed_stage_archive, work_dir, settings, verbose=False):
         assert program_name is not None
         assert HostComputingPower.check_object(host_computing_power)
         assert SeedStageArchive.check_object(seed_stage_archive)
