@@ -124,7 +124,7 @@ class Builder:
         t.write_package_mask()
         t.write_package_unmask()
         t.write_package_accept_keyword()
-        t.write_package_accept_license()
+        t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system_set(self):
@@ -224,7 +224,7 @@ class _SettingTarget:
 
         if "pkg_license" in settings:
             self.pkg_license = dict(settings["pkg_license"])                # dict<package-wildcard, license-list>
-            del settings["pkg_license"] 
+            del settings["pkg_license"]
         else:
             self.pkg_license = dict()
 
