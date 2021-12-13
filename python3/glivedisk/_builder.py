@@ -128,7 +128,7 @@ class Builder:
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system_set(self):
         with _Chrooter(self) as m:
-            m.run_chroot_script("", "update-system-set.sh")
+            m.script_exec("", "update-system-set.sh")
 
     @Action(BuildProgress.STEP_SYSTEM_SET_UPDATED)
     def action_init_overlays(self):
@@ -157,7 +157,7 @@ class Builder:
         # update world
         if len(self._target.world_set) > 0:
             with _Chrooter(self) as m:
-                m.run_chroot_script("", "update-world-set.sh")
+                m.script_exec("", "update-world-set.sh")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
