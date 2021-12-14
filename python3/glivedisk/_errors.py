@@ -29,7 +29,7 @@ class SeedStageError(Exception):
     pass
 
 
-class WorkDirVerifyError(Exception):
+class WorkDirError(Exception):
     pass
 
 
