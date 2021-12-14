@@ -799,7 +799,7 @@ class TargetConfDir:
 #             raise WorkDirVerifyError("settings is not same with the saved data")
 #     if os.path.exists(self._chksumFile):
 #         with open(self._settingsFile) as f:
-#             if self._tf.get_chksum() != f.read().rstrip("\n"):
+#             if self._tf.get_digest() != f.read().rstrip("\n"):
 #                 raise WorkDirVerifyError("seed stage archive checksum verification failed")
 #         if len(self._workDirObj.get_chroot_dir_names()) == 0:
 #             raise WorkDirVerifyError("no chroot directory found")

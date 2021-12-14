@@ -125,7 +125,7 @@ class CloudGentooStage3Archive(SeedStage):
             self._resp = None
             raise
 
-    def get_chksum(self):
+    def get_digest(self):
         with urllib.request.urlopen(self._stage3HashFileUrl) as resp:
             return resp.read()
 

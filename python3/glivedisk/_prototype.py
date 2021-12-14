@@ -27,7 +27,7 @@ import abc
 class SeedStage(abc.ABC):
 
     @abc.abstractmethod
-    def get_chksum(self):
+    def get_digest(self):
         pass
 
     @abc.abstractmethod
