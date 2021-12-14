@@ -50,7 +50,7 @@ class GenKernel(KernelInstaller):
 
         with _Chrooter(work_dir) as m:
             m.shell_call("", "eselect kernel set 1")
-            m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' all" % (tj, tl))
+            m.shell_exec("", "genkernel --quiet --no-mountboot --makeopts='-j%d -l%d' all" % (tj, tl))
 
 
 class _Chrooter(WorkDirChrooter):
