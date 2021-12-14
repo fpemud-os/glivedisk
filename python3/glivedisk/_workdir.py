@@ -307,12 +307,12 @@ class WorkDirChrooter:
         assert dir.startswith("/")
         fullfn = os.path.join(self._workDirObj.chroot_dir_path, dir[1:])
         assert os.path.exists(fullfn)
-        assert not Util.ismount(fullfn)
+        assert not Util.isMount(fullfn)
 
     def _unbind(self):
         def _procOne(fn):
             fullfn = os.path.join(self._workDirObj.chroot_dir_path, fn[1:])
-            if os.path.exists(fullfn) and Util.ismount(fullfn):
+            if os.path.exists(fullfn) and Util.isMount(fullfn):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
 
         _procOne("/tmp")

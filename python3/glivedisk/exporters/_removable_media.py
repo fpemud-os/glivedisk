@@ -82,7 +82,7 @@ class RemovableMediaExporter:
             raise ExportError("device %s does not seem to be an usb-stick." % (self._devPath))
         if Util.getBlkDevSize(self._devPath) < self._usbStickMinSize:
             raise ExportError("device %s needs to be at least %d GB." % (self._devPath, self._usbStickMinSize / 1024 / 1024 / 1024))
-        if Util.ismount(self._devPath):
+        if Util.isMount(self._devPath):
             raise ExportError("device %s or any of its partitions is already mounted, umount it first." % (self._devPath))
 
     def _squashRootfs(self, rootfsDataFile, rootfsMd5File, kernelFile, initcpioFile):
