@@ -199,7 +199,7 @@ class Builder:
                 m.script_exec("", "run-merge.sh %s" % (pkg))
             m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
 
-            out = m.shell_exec("", "perl-cleaner --pretend --all")
+            out = m.shell_call("", "perl-cleaner --pretend --all")
             if "No package needs to be reinstalled." not in out:
                 raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
