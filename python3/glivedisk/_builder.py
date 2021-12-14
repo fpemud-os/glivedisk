@@ -40,7 +40,7 @@ from ._workdir import WorkDirChrooter
 
 def Action(progress_step):
     def decorator(func):
-        def wrapper(self):
+        def wrapper(self, *kargs):
             def __createNewChrootDir():
                 dirName = "%02d-%s" % (self._progress.value, BuildProgress(self._progress.value + 1).name)
                 self._workDirObj.create_new_chroot_dir(dirName)
@@ -51,7 +51,7 @@ def Action(progress_step):
                 __createNewChrootDir()
 
             # do work
-            func(self)
+            func(self, *kargs)
 
             # do progress, create new chroot dir for next step
             self._progress = BuildProgress(self._progress + 1)
