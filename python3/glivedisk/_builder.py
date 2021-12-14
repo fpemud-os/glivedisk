@@ -28,7 +28,7 @@ import enum
 import pathlib
 import robust_layer.simple_fops
 from ._util import Util
-from ._errors import SettingsError
+from ._errors import SettingsError, SeedStageError
 from ._settings import HostComputingPower, MY_NAME
 from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
@@ -199,10 +199,9 @@ class Builder:
                 m.script_exec("", "run-merge.sh %s" % (pkg))
             m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
 
-        # FIXME
-        # call perl-cleaner to check NO perl cleaning is needed
-        # or else it means you needs to change your seed-stage
-        # m.shell_exec("", "perl-cleaner --all")
+            out = m.shell_exec("", "perl-cleaner --pretend --all")
+            if "No package needs to be reinstalled." not in out:
+                raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
