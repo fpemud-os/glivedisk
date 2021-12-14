@@ -21,7 +21,6 @@
 # THE SOFTWARE.
 
 
-import copy
 from .. import KernelInstaller
 from .. import WorkDirChrooter
 
@@ -32,101 +31,25 @@ class GenKernel(KernelInstaller):
     """
 
     def __init__(self, settings):
-        settings = copy.deepcopy(settings)
-
-        self._target = _SettingTarget(settings)
-        self._hostInfo = _SettingHostInfo(settings)
+        pass
 
     def install(self, program_name, host_computing_power, work_dir):
+        # determine parallelism parameters
+        tj = None
+        tl = None
+        if host_computing_power.cooling_level <= 1:
+            tj = 1
+            tl = 1
+        else:
+            if host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                tj = host_computing_power.cpu_core_count + 2
+                tl = host_computing_power.cpu_core_count
+            else:
+                tj = host_computing_power.cpu_core_count
+                tl = max(1, host_computing_power.cpu_core_count - 1)
+
         with _Chrooter(work_dir) as m:
-            m.shell_exec("", "")
-
-    def _get_args(self):
-        pass
-
-    # # default genkernel args
-    # GK_ARGS=(
-    #     "${clst_kernel_gk_kernargs[@]}"
-    #     --cachedir=/tmp/kerncache/${clst_kname}-genkernel_cache-${clst_version_stamp}
-    #     --no-mountboot
-    #     --kerneldir=/usr/src/linux
-    #     --modulespackage=/tmp/kerncache/${clst_kname}-modules-${clst_version_stamp}.tar.bz2
-    #     --minkernpackage=/tmp/kerncache/${clst_kname}-kernel-initrd-${clst_version_stamp}.tar.bz2 all
-    # )
-    # # extra genkernel options that we have to test for
-    # if [ -n "${clst_gk_mainargs}" ]
-    # then
-    #     GK_ARGS+=(${clst_gk_mainargs})
-    # fi
-    # if [ -n "${clst_KERNCACHE}" ]
-    # then
-    #     GK_ARGS+=(--kerncache=/tmp/kerncache/${clst_kname}-kerncache-${clst_version_stamp}.tar.bz2)
-    # fi
-    # if [ -e /var/tmp/${clst_kname}.config ]
-    # then
-    #     GK_ARGS+=(--kernel-config=/var/tmp/${clst_kname}.config)
-    # fi
-
-    # if [ -n "${clst_splash_theme}" ]
-    # then
-    #     GK_ARGS+=(--splash=${clst_splash_theme})
-    #     # Setup case structure for livecd_type
-    #     case ${clst_livecd_type} in
-    #         gentoo-release-minimal|gentoo-release-universal)
-    #             case ${clst_hostarch} in
-    #                 amd64|x86)
-    #                     GK_ARGS+=(--splash-res=1024x768)
-    #                 ;;
-    #             esac
-    #         ;;
-    #     esac
-    # fi
-
-    # if [ -d "/tmp/initramfs_overlay/${clst_initramfs_overlay}" ]
-    # then
-    #     GK_ARGS+=(--initramfs-overlay=/tmp/initramfs_overlay/${clst_initramfs_overlay})
-    # fi
-    # if [ -n "${clst_CCACHE}" ]
-    # then
-    #     GK_ARGS+=(--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc)
-    # fi
-
-    # if [ -n "${clst_linuxrc}" ]
-    # then
-    #     GK_ARGS+=(--linuxrc=/tmp/linuxrc)
-    # fi
-
-    # if [ -n "${clst_busybox_config}" ]
-    # then
-    #     GK_ARGS+=(--busybox-config=/tmp/busy-config)
-    # fi
-
-    # if [ "${clst_target}" == "netboot2" ]
-    # then
-    #     GK_ARGS+=(--netboot)
-
-    #     if [ -n "${clst_merge_path}" ]
-    #     then
-    #         GK_ARGS+=(--initramfs-overlay="${clst_merge_path}")
-    #     fi
-    # fi
-
-    # if [[ "${clst_VERBOSE}" == "true" ]]
-    # then
-    #     GK_ARGS+=(--loglevel=2)
-    # fi
-
-
-class _SettingTarget:
-
-    def __init__(self, settings):
-        pass
-
-
-class _SettingHostInfo:
-
-    def __init__(self, settings):
-        pass
+            m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' " % (tj, tl))
 
 
 class _Chrooter(WorkDirChrooter):

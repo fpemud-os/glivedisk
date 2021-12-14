@@ -142,7 +142,7 @@ class Builder:
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_system_set(self):
         with _Chrooter(self) as m:
-            m.script_exec("", "update-system-set.sh")
+            m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @system")
 
     @Action(BuildProgress.STEP_SYSTEM_SET_UPDATED)
     def action_init_overlays(self, overlays):
@@ -193,7 +193,7 @@ class Builder:
         with _Chrooter(self) as m:
             for pkg in installList:
                 m.script_exec("", "run-merge.sh %s" % (pkg))
-            m.script_exec("", "run-merge.sh -uDN @world")
+            m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
 
         # FIXME
         # call perl-cleaner to check NO perl cleaning is needed
