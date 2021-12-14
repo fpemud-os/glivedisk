@@ -48,4 +48,5 @@ from ._builder import BuildProgress
 
 from ._errors import SettingsError
 from ._errors import SeedStageError
-from ._errors import WorkDirVerifyError
+from ._errors import WorkDirError
+from ._errors import ExportError
