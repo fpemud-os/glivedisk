@@ -30,7 +30,7 @@ class GentooStage3Archive(SeedStage):
 
     def __init__(self, filepath, digest_filepath=None):
         self._path = filepath
-        self._hashPath = digest_filepath if digest_filepath is not None else self._path + ".DIGEST"
+        self._hashPath = digest_filepath if digest_filepath is not None else self._path + ".DIGESTS"
 
         self._tf = tarfile.open(self._path, mode="r:xz")
         self._hash = pathlib.Path(self._hashPath).read_text()
