@@ -581,6 +581,10 @@ class TargetDirs:
         self._chroot_path = chrootDir
 
     @property
+    def logdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.logdir_path[1:])
+
+    @property
     def distdir_hostpath(self):
         return os.path.join(self._chroot_path, self.distdir_path[1:])
 
@@ -589,8 +593,8 @@ class TargetDirs:
         return os.path.join(self._chroot_path, self.pkgdir_path[1:])
 
     @property
-    def logdir_hostpath(self):
-        return os.path.join(self._chroot_path, self.logdir_path[1:])
+    def logdir_path(self):
+        return "/var/log/portage"
 
     @property
     def distdir_path(self):
@@ -599,10 +603,6 @@ class TargetDirs:
     @property
     def pkgdir_path(self):
         return "/var/cache/binpkgs"
-
-    @property
-    def logdir_path(self):
-        return "/var/log/portage"
 
     def ensure_logdir(self):
         os.makedirs(self.logdir_hostpath, exist_ok=True)
@@ -703,21 +703,24 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "etc", "portage", "package.mask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            myf.write("")
+            for pkg_wildcard in self._target.pkg_mask:
+                myf.write("%s\n" % (pkg_wildcard))
 
     def write_package_unmask(self):
         # Modify and write out package.unmask (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.unmask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            myf.write("")
+            for pkg_wildcard in self._target.pkg_unmask:
+                myf.write("%s\n" % (pkg_wildcard))
 
     def write_package_accept_keywords(self):
         # Modify and write out package.accept_keywords (in chroot)
         fpath = os.path.join(self._dir, "etc", "portage", "package.accept_keywords")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            myf.write("")
+            for pkg_wildcard, keyword_list in self._target.pkg_accept_keywords.items():
+                myf.write("%s %s\n" % (pkg_wildcard, " ".join(keyword_list)))
 
     def write_package_license(self):
         # Modify and write out package.license (in chroot)
