@@ -228,19 +228,25 @@ class Builder:
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
-            m.shell_call("", "eselect news read all")
-            m.script_exec("", "run-depclean.sh")
+            if not self._target.degentoo:
+                m.shell_call("", "eselect news read all")
+            else:
+                m.script_exec("", "run-depclean.sh")
+                if self._target.degentoo:
+                    m.script_exec("", "run-merge.sh -C sys-devel/gcc")
+                    m.script_exec("", "run-merge.sh -C sys-apps/portage")
 
-        if self._target.degentoo:
+        if not self._target.degentoo:
+            _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
+        else:
             t = TargetDirsAndFiles()
             robust_layer.simple_fops.rm(t.confdir_hostpath)
             robust_layer.simple_fops.rm(t.statedir_hostpath)
+            robust_layer.simple_fops.rm(t.pkgdbdir_hostpath)
             robust_layer.simple_fops.rm(t.srcdir_hostpath)
             robust_layer.simple_fops.rm(t.logdir_hostpath)
             robust_layer.simple_fops.rm(t.distdir_hostpath)
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
-        else:
-            _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
 
 
 class _SettingTarget:
@@ -627,6 +633,10 @@ class TargetDirsAndFiles:
         return "/var/lib/portage"
 
     @property
+    def pkgdbdir_path(self):
+        return "/var/db/pkg"
+
+    @property
     def logdir_path(self):
         return "/var/log/portage"
 
@@ -653,6 +663,10 @@ class TargetDirsAndFiles:
     @property
     def statedir_hostpath(self):
         return os.path.join(self._chroot_path, self.statedir_path[1:])
+
+    @property
+    def pkgdbdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.pkgdbdir_path[1:])
 
     @property
     def logdir_hostpath(self):
