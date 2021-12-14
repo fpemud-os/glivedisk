@@ -112,6 +112,14 @@ class Util:
         return ret.stdout.rstrip()
 
     @staticmethod
+    def shellCallTestSuccess(cmd):
+        ret = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             shell=True, universal_newlines=True)
+        if ret.returncode > 128:
+            time.sleep(1.0)
+        return (ret.returncode == 0)
+
+    @staticmethod
     def shellExec(cmd):
         ret = subprocess.run(cmd, shell=True, universal_newlines=True)
         if ret.returncode > 128:

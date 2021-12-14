@@ -150,11 +150,6 @@ class Builder:
     @Action(BuildProgress.STEP_SYSTEM_SET_UPDATED)
     def action_init_overlays(self, overlays):
         for o in overlays:
-            if isinstance(o, LaymanRepository):
-                if "app-portage/layman" not in self._target.world_set:
-                    raise SettingsError("app-portage/layman must be installed for overlay %s" % (o.get_name()))
-
-        for o in overlays:
             if isinstance(o, ManualSyncRepository):
                 _MyRepoUtil.createFromManuSyncRepo(o, False, self._workDirObj.chroot_dir_path)
                 o.sync()
@@ -199,9 +194,10 @@ class Builder:
                 m.script_exec("", "run-merge.sh %s" % (pkg))
             m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
 
-            out = m.shell_call("", "perl-cleaner --pretend --all")
-            if "No package needs to be reinstalled." not in out:
-                raise SeedStageError("perl cleaning is needed, your seed stage is too old")
+            if m.shell_test("", "which perl-cleaner"):
+                out = m.shell_call("", "perl-cleaner --pretend --all")
+                if "No package needs to be reinstalled." not in out:
+                    raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
@@ -564,6 +560,9 @@ class _Chrooter:
 
     def shell_call(self, env, cmd):
         self._chrooter.shell_call(env, cmd)
+
+    def shell_test(self, env, cmd):
+        self._chrooter.shell_test(env, cmd)
 
     def shell_exec(self, env, cmd, quiet=False):
         self._chrooter.shell_exec(env, cmd, quiet)

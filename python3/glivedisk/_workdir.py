@@ -278,9 +278,14 @@ class WorkDirChrooter:
 
         return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
-    def shell_exec(self, env, cmd, quiet=False):
-        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+    def shell_test(self, env, cmd):
+        # FIXME
+        env = "LANG=C.utf8 " + env
+        assert self._detectArch() == platform.machine()
 
+        return Util.shellCallTestSuccess("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
+
+    def shell_exec(self, env, cmd, quiet=False):
         # FIXME
         env = "LANG=C.utf8 " + env
         assert self._detectArch() == platform.machine()
@@ -292,8 +297,6 @@ class WorkDirChrooter:
             Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
     def script_exec(self, env, cmd, quiet=False):
-        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
-
         # FIXME
         env = "LANG=C.utf8 " + env
         assert self._detectArch() == platform.machine()
