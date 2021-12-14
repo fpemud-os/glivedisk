@@ -373,13 +373,14 @@ class _SettingBuildOptions:
 class _SettingHostInfo:
 
     def __init__(self, settings):
+        # log directory in host system, will be bind mounted in target system
         if "log_dir" in settings:
             self.log_dir = settings["log_dir"]
             del settings["log_dir"]
         else:
             self.log_dir = os.path.join("/var", "log", MY_NAME)
 
-        # distfiles directory in host system, will be bind mounted in target system
+        # distfiles directory in host system
         if "host_distfiles_dir" in settings:
             self.distfiles_dir = settings["host_distfiles_dir"]
             del settings["host_distfiles_dir"]
