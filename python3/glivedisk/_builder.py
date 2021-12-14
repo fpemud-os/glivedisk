@@ -110,7 +110,7 @@ class Builder:
     def action_unpack(self):
         self._tf.unpack(self._workDirObj.chroot_dir_path)
 
-        t = TargetDirs(self._workDirObj.chroot_dir_path)
+        t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
         t.ensure_logdir()
         t.ensure_distdir()
         t.ensure_pkgdir()
@@ -185,9 +185,13 @@ class Builder:
             return
 
         installList = []
-        for pkg in self._target.world_set:
-            if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                installList.append(pkg)
+        t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+        with open(t.world_file_hostpath, "w") as f:
+            for pkg in self._target.world_set:
+                if Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                    f.write("%s\n" % (pkg))
+                else:
+                    installList.append(pkg)
 
         with _Chrooter(self) as m:
             for pkg in installList:
@@ -221,7 +225,10 @@ class Builder:
             m.shell_call("", "eselect news read all")
             m.script_exec("", "run-depclean.sh")
 
-        _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
+        if self._target.degentoo:
+            pass
+        else:
+            _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
 
 
 class _SettingTarget:
@@ -316,6 +323,12 @@ class _SettingTarget:
             del settings["editor"]
         else:
             self.editor = "nano"
+
+        if "degentoo" in settings:
+            self.degentoo = settings["degentoo"]    # make the livecd distribution neutral by removing all gentoo specific files
+            del settings["degentoo"]
+        else:
+            self.degentoo = False
 
 
 class _SettingBuildOptions:
@@ -519,7 +532,7 @@ class _Chrooter:
 
         assert not self._bBind
         try:
-            t = TargetDirs(self._parent._workDirObj.chroot_dir_path)
+            t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
 
             # log_dir mount point
             self._chrooter._assertDirStatus(t.logdir_path)
@@ -576,10 +589,14 @@ class _Chrooter:
         self._bindMountList = []
 
 
-class TargetDirs:
+class TargetDirsAndFiles:
 
     def __init__(self, chrootDir):
         self._chroot_path = chrootDir
+
+    @property
+    def world_file_hostpath(self):
+        return os.path.join(self._chroot_path, self.world_file_path[1:])
 
     @property
     def logdir_hostpath(self):
@@ -592,6 +609,10 @@ class TargetDirs:
     @property
     def pkgdir_hostpath(self):
         return os.path.join(self._chroot_path, self.pkgdir_path[1:])
+
+    @property
+    def world_file_path(self):
+        return "/var/lib/portage/world"
 
     @property
     def logdir_path(self):
