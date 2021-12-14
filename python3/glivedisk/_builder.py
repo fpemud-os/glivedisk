@@ -244,25 +244,25 @@ class _SettingTarget:
 
         if "pkg_use" in settings:
             self.pkg_use = dict(settings["pkg_use"])  # dict<package-wildcard, use-flag-list>
-            del settings["pkg_use"] 
+            del settings["pkg_use"]
         else:
             self.pkg_use = dict()
 
         if "pkg_mask" in settings:
             self.pkg_mask = dict(settings["pkg_mask"])  # list<package-wildcard>
-            del settings["pkg_mask"] 
+            del settings["pkg_mask"]
         else:
             self.pkg_mask = []
 
         if "pkg_unmask" in settings:
             self.pkg_unmask = dict(settings["pkg_unmask"])  # list<package-wildcard>
-            del settings["pkg_unmask"] 
+            del settings["pkg_unmask"]
         else:
             self.pkg_unmask = []
 
         if "pkg_accept_keywords" in settings:
             self.pkg_accept_keywords = dict(settings["pkg_accept_keywords"])  # dict<package-wildcard, accept-keyword-list>
-            del settings["pkg_accept_keywords"] 
+            del settings["pkg_accept_keywords"]
         else:
             self.pkg_accept_keywords = dict()
 
@@ -274,13 +274,13 @@ class _SettingTarget:
 
         if "install_mask" in settings:
             self.install_mask = dict(settings["install_mask"])  # list<install-mask>
-            del settings["install_mask"] 
+            del settings["install_mask"]
         else:
             self.install_mask = []
 
         if "pkg_install_mask" in settings:
             self.pkg_install_mask = dict(settings["pkg_install_mask"])  # dict<package-wildcard, install-mask>
-            del settings["pkg_install_mask"] 
+            del settings["pkg_install_mask"]
         else:
             self.pkg_install_mask = dict()
 
