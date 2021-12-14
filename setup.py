@@ -24,34 +24,35 @@ if not platform.startswith('linux'):
 
 # Do setup
 setup(
-	name=__package__,
-	version=__version__,
-	description="A simple python module for gentoo live disk building.",
+    name=__package__,
+    version=__version__,
+    description="A simple python module for gentoo live disk building.",
     author=email.utils.parseaddr(__author__)[0],
     author_email=email.utils.parseaddr(__author__)[1],
-	url='https://github.com/fpemud-os/glivedisk',
-	license='GNU General Public License (GPL)',
-	platforms=['Linux'],
-	classifiers=[
-		'Development Status :: 5 - Production/Stable',
-		'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
-		'Intended Audience :: Developers',
+    url='https://github.com/fpemud-os/glivedisk',
+    license='GNU General Public License (GPL)',
+    platforms=['Linux'],
+    classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+        'Intended Audience :: Developers',
         'Natural Language :: English',
-		'Operating System :: POSIX :: Linux',
-		'Programming Language :: Python',
-		'Programming Language :: Python :: 3',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
-		],
-	packages=[
-		__package__,
-		'{0}.seed_stages'.format(__package__),
-		'{0}.kernel_installers'.format(__package__),
-		'{0}.exporters'.format(__package__),
-		],
+        ],
+    packages=[
+        __package__,
+        '{0}.seed_stages'.format(__package__),
+        '{0}.repositories'.format(__package__),
+        '{0}.kernel_installers'.format(__package__),
+        '{0}.exporters'.format(__package__),
+        ],
     package_dir={
         __package__: os.path.join('python3', __package__),
     },
-	package_data={
+    package_data={
         'glivedisk': ['scripts-in-chroot/*'],
     },
 )
