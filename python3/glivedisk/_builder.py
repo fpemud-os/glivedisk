@@ -426,11 +426,11 @@ class _MyRepoUtil:
 
     @classmethod
     def scanReposConfDir(cls, chrootDir):
-        return [_MyRepo(chrootDir, x) for x in os.listdir(cls._getReposConfDir())]
+        return [_MyRepo(chrootDir, x) for x in os.listdir(cls._getReposConfDir(chrootDir))]
 
     @classmethod
     def cleanupReposConfDir(cls, chrootDir):
-        Util.shellCall("/bin/sed '/host-dir = /d' %s/*" % (cls._getReposConfDir()))
+        Util.shellCall("/bin/sed '/host-dir = /d' %s/*" % (cls._getReposConfDir(chrootDir)))
 
     @staticmethod
     def _getReposConfDir(chrootDir):
