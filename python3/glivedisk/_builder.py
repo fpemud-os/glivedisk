@@ -170,6 +170,7 @@ class Builder:
         with _Chrooter(self) as m:
             if any([isinstance(o, LaymanRepository) for o in overlays]):
                 m.script_exec("", "run_merge app-portage/layman")
+                m.shell_exec("", "layman -f")
 
             for o in overlays:
                 if isinstance(o, ManualSyncRepository):
@@ -179,7 +180,7 @@ class Builder:
                 elif isinstance(o, EmergeSyncRepository):
                     m.shell_exec("", "emaint sync -f %s" % (o.get_name()))
                 elif isinstance(o, LaymanRepository):
-                    m.shell_exec("", "layman %s" % (o.get_name()))
+                    m.shell_exec("", "layman -a %s" % (o.get_name()))
                 else:
                     assert False
 
