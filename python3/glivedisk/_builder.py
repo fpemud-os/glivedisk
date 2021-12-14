@@ -113,7 +113,7 @@ class Builder:
         t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
         t.ensure_logdir()
         t.ensure_distdir()
-        t.ensure_pkgdir()
+        t.ensure_binpkgdir()
 
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_gentoo_repository(self, repo):
@@ -238,7 +238,7 @@ class Builder:
             robust_layer.simple_fops.rm(t.srcdir_hostpath)
             robust_layer.simple_fops.rm(t.logdir_hostpath)
             robust_layer.simple_fops.rm(t.distdir_hostpath)
-            robust_layer.simple_fops.rm(t.pkgdir_hostpath)
+            robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
         else:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
 
@@ -571,9 +571,9 @@ class _Chrooter:
 
             # pkgdir mount point
             if self._parent._hostInfo.packages_dir is not None:
-                self._chrooter._assertDirStatus(t.pkgdir_path)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
-                self._bindMountList.append(t.pkgdir_hostpath)
+                self._chrooter._assertDirStatus(t.binpkgdir_path)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.binpkgdir_hostpath))
+                self._bindMountList.append(t.binpkgdir_hostpath)
 
             # mount points for BindMountRepository
             for myRepo in _MyRepoUtil.scanReposConfDir(self._parent._workDirObj.chroot_dir_path):
@@ -635,7 +635,7 @@ class TargetDirsAndFiles:
         return "/var/cache/distfiles"
 
     @property
-    def pkgdir_path(self):
+    def binpkgdir_path(self):
         return "/var/cache/binpkgs"
 
     @property
@@ -663,8 +663,8 @@ class TargetDirsAndFiles:
         return os.path.join(self._chroot_path, self.distdir_path[1:])
 
     @property
-    def pkgdir_hostpath(self):
-        return os.path.join(self._chroot_path, self.pkgdir_path[1:])
+    def binpkgdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.binpkgdir_path[1:])
 
     @property
     def srcdir_hostpath(self):
@@ -680,8 +680,8 @@ class TargetDirsAndFiles:
     def ensure_distdir(self):
         os.makedirs(self.distdir_hostpath, exist_ok=True)
 
-    def ensure_pkgdir(self):
-        os.makedirs(self.pkgdir_hostpath, exist_ok=True)
+    def ensure_binpkgdir(self):
+        os.makedirs(self.binpkgdir_hostpath, exist_ok=True)
 
 
 class TargetConfDir:
