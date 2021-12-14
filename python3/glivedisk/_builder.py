@@ -103,7 +103,7 @@ class Builder:
 
         os.makedirs(self._hostInfo.log_dir, mode=0o750, exist_ok=True)
 
-    def get_progress(self): 
+    def get_progress(self):
         return self._progress
 
     @Action(BuildProgress.STEP_INIT)
@@ -729,31 +729,3 @@ class TargetConfDir:
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._target.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
-
-
-
-# self._settingsFile = os.path.join(self._workDirObj.path, "ubuild_settings.save")
-# self._chksumFile = os.path.join(self._workDirObj.path, "ubuild_seed_stage_archive_chksum.save")
-
-# if not os.path.exists(self._settingsFile):
-#     # new directory
-#     if any([x.startswith("ubuild_") for x in self._workDirObj.get_save_files()]):
-#         raise WorkDirVerifyError("no ubuild save file should exist")
-#     if len(self._workDirObj.get_chroot_dir_names()) > 0:
-#         raise WorkDirVerifyError("no chroot directory should exist")
-
-#     self._progress = UserSpaceBuildProgress.STEP_INIT
-# else:
-#     # old directory
-#     with open(self._settingsFile) as f:
-#         if settings != json.load(f):
-#             raise WorkDirVerifyError("settings is not same with the saved data")
-#     if os.path.exists(self._chksumFile):
-#         with open(self._settingsFile) as f:
-#             if self._tf.get_digest() != f.read().rstrip("\n"):
-#                 raise WorkDirVerifyError("seed stage archive checksum verification failed")
-#         if len(self._workDirObj.get_chroot_dir_names()) == 0:
-#             raise WorkDirVerifyError("no chroot directory found")
-#     else:
-#         if len(self._workDirObj.get_chroot_dir_names()) > 0:
-#             raise WorkDirVerifyError("no chroot directory should exist")

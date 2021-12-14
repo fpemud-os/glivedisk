@@ -99,4 +99,3 @@ class LaymanRepository(abc.ABC):
     @abc.abstractmethod
     def get_name(self):
         pass
-
