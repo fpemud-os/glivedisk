@@ -49,7 +49,7 @@ class GenKernel(KernelInstaller):
                 tl = max(1, host_computing_power.cpu_core_count - 1)
 
         with _Chrooter(work_dir) as m:
-            m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' " % (tj, tl))
+            m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' all" % (tj, tl))
 
 
 class _Chrooter(WorkDirChrooter):
