@@ -27,7 +27,7 @@ import pathlib
 import platform
 import robust_layer.simple_fops
 from ._util import Util
-from ._errors import SettingsError, WorkDirVerifyError
+from ._errors import SettingsError, WorkDirError
 from ._settings import MY_NAME
 
 
@@ -178,22 +178,22 @@ class WorkDir:
         s = os.stat(self._path)
         if not stat.S_ISDIR(s.st_mode):
             if raiseException:
-                raise WorkDirVerifyError("\"%s\" is not a directory" % (self._path))
+                raise WorkDirError("\"%s\" is not a directory" % (self._path))
             else:
                 return False
         if s.st_mode != self.MODE:
             if raiseException:
-                raise WorkDirVerifyError("invalid mode for \"%s\"" % (self._path))
+                raise WorkDirError("invalid mode for \"%s\"" % (self._path))
             else:
                 return False
         if s.st_uid != os.getuid():
             if raiseException:
-                raise WorkDirVerifyError("invalid uid for \"%s\"" % (self._path))
+                raise WorkDirError("invalid uid for \"%s\"" % (self._path))
             else:
                 return False
         if s.st_gid != os.getgid():
             if raiseException:
-                raise WorkDirVerifyError("invalid gid for \"%s\"" % (self._path))
+                raise WorkDirError("invalid gid for \"%s\"" % (self._path))
             else:
                 return False
         return True
