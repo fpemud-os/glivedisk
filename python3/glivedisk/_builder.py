@@ -230,15 +230,17 @@ class Builder:
         with _Chrooter(self) as m:
             if not self._target.degentoo:
                 m.shell_call("", "eselect news read all")
-            else:
                 m.script_exec("", "run-depclean.sh")
-                if self._target.degentoo:
-                    m.script_exec("", "run-merge.sh -C sys-devel/gcc")
-                    m.script_exec("", "run-merge.sh -C sys-apps/portage")
+            else:
+                # FIXME
+                m.script_exec("", "run-depclean.sh")
+                m.script_exec("", "run-merge.sh -C sys-devel/gcc")
+                m.script_exec("", "run-merge.sh -C sys-apps/portage")
 
         if not self._target.degentoo:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
         else:
+            # FIXME
             t = TargetDirsAndFiles()
             robust_layer.simple_fops.rm(t.confdir_hostpath)
             robust_layer.simple_fops.rm(t.statedir_hostpath)
