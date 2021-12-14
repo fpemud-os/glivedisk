@@ -29,7 +29,7 @@ import pathlib
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError
-from ._settings import HostComputingPower
+from ._settings import HostComputingPower, MY_NAME
 from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import BindMountRepository
@@ -101,6 +101,8 @@ class Builder:
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
 
+        os.makedirs(self._hostInfo.log_dir, mode=0o750, exist_ok=True)
+
     def get_progress(self): 
         return self._progress
 
@@ -108,7 +110,8 @@ class Builder:
     def action_unpack(self):
         self._tf.unpack(self._workDirObj.chroot_dir_path)
 
-        t = TargetCacheDirs(self._workDirObj.chroot_dir_path)
+        t = TargetDirs(self._workDirObj.chroot_dir_path)
+        t.ensure_logdir()
         t.ensure_distdir()
         t.ensure_pkgdir()
 
@@ -370,6 +373,12 @@ class _SettingBuildOptions:
 class _SettingHostInfo:
 
     def __init__(self, settings):
+        if "log_dir" in settings:
+            self.log_dir = settings["log_dir"]
+            del settings["log_dir"]
+        else:
+            self.log_dir = os.path.join("/var", "log", MY_NAME)
+
         # distfiles directory in host system, will be bind mounted in target system
         if "host_distfiles_dir" in settings:
             self.distfiles_dir = settings["host_distfiles_dir"]
@@ -512,13 +521,21 @@ class _Chrooter:
 
         assert not self._bBind
         try:
-            # distdir and pkgdir mount point
-            t = TargetCacheDirs(self._parent._workDirObj.chroot_dir_path)
-            if self._parent._hostInfo.distfiles_dir is not None and os.path.exists(t.distdir_hostpath):
+            t = TargetDirs(self._parent._workDirObj.chroot_dir_path)
+
+            # log_dir mount point
+            self._chrooter._assertDirStatus(t.logdir_path)
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.log_dir, t.logdir_hostpath))
+            self._bindMountList.append(t.logdir_hostpath)
+
+            # distdir mount point
+            if self._parent._hostInfo.distfiles_dir is not None:
                 self._chrooter._assertDirStatus(t.distdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
-            if self._parent._hostInfo.packages_dir is not None and os.path.exists(t.pkgdir_hostpath):
+
+            # pkgdir mount point
+            if self._parent._hostInfo.packages_dir is not None:
                 self._chrooter._assertDirStatus(t.pkgdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.pkgdir_hostpath))
                 self._bindMountList.append(t.pkgdir_hostpath)
@@ -558,7 +575,7 @@ class _Chrooter:
         self._bindMountList = []
 
 
-class TargetCacheDirs:
+class TargetDirs:
 
     def __init__(self, chrootDir):
         self._chroot_path = chrootDir
@@ -572,12 +589,23 @@ class TargetCacheDirs:
         return os.path.join(self._chroot_path, self.pkgdir_path[1:])
 
     @property
+    def logdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.logdir_path[1:])
+
+    @property
     def distdir_path(self):
         return "/var/cache/distfiles"
 
     @property
     def pkgdir_path(self):
         return "/var/cache/binpkgs"
+
+    @property
+    def logdir_path(self):
+        return "/var/log/portage"
+
+    def ensure_logdir(self):
+        os.makedirs(self.logdir_hostpath, exist_ok=True)
 
     def ensure_distdir(self):
         os.makedirs(self.distdir_hostpath, exist_ok=True)
