@@ -81,17 +81,15 @@ class Builder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, program_name, host_computing_power, seed_stage, work_dir, settings, verbose=False):
+    def __init__(self, program_name, host_computing_power, work_dir, settings, verbose=False):
         assert program_name is not None
         assert HostComputingPower.check_object(host_computing_power)
-        assert isinstance(seed_stage, SeedStage)
         assert work_dir.verify_existing(raise_exception=False)
 
         settings = copy.deepcopy(settings)
 
         self._progName = program_name
         self._cpower = host_computing_power
-        self._tf = seed_stage
         self._workDirObj = work_dir
         self._target = _SettingTarget(settings)
         self._hostInfo = _SettingHostInfo(settings)
@@ -107,8 +105,10 @@ class Builder:
         return self._progress
 
     @Action(BuildProgress.STEP_INIT)
-    def action_unpack(self):
-        self._tf.unpack(self._workDirObj.chroot_dir_path)
+    def action_unpack(self, seed_stage):
+        assert isinstance(seed_stage, SeedStage)
+
+        seed_stage.unpack(self._workDirObj.chroot_dir_path)
 
         t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
         t.ensure_logdir()
