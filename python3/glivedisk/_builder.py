@@ -185,17 +185,23 @@ class Builder:
             return
 
         installList = []
-        t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
-        with open(t.world_file_hostpath, "w") as f:
-            for pkg in self._target.world_set:
-                if Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                    f.write("%s\n" % (pkg))
-                else:
+        if True:
+            # add from install_list
+            for pkg in self._target.install_list:
+                if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                     installList.append(pkg)
+        if True:
+            # add from world_set
+            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+            with open(t.world_file_hostpath, "w") as f:
+                for pkg in self._target.world_set:
+                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                        installList.append(pkg)
+                    f.write("%s\n" % (pkg))
 
         with _Chrooter(self) as m:
             for pkg in installList:
-                m.script_exec("", "run-merge.sh %s" % (pkg))
+                m.script_exec("", "run-merge.sh -1 %s" % (pkg))
             m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
 
             if m.shell_test("", "which perl-cleaner"):
@@ -226,7 +232,13 @@ class Builder:
             m.script_exec("", "run-depclean.sh")
 
         if self._target.degentoo:
-            pass
+            t = TargetDirsAndFiles()
+            robust_layer.simple_fops.rm(t.confdir_hostpath)
+            robust_layer.simple_fops.rm(t.statedir_hostpath)
+            robust_layer.simple_fops.rm(t.srcdir_hostpath)
+            robust_layer.simple_fops.rm(t.logdir_hostpath)
+            robust_layer.simple_fops.rm(t.distdir_hostpath)
+            robust_layer.simple_fops.rm(t.pkgdir_hostpath)
         else:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
 
@@ -240,8 +252,20 @@ class _SettingTarget:
         else:
             self.profile = None
 
+        if "install_list" in settings:
+            self.install_list = list(settings["install_list"])
+            if self.install_list is None:
+                raise SettingsError("invalid value for \"install_list\"")
+            del settings["install_list"]
+        else:
+            self.install_list = []
+
         if "world_set" in settings:
             self.world_set = list(settings["world_set"])
+            if self.world_set is None:
+                raise SettingsError("invalid value for \"world_set\"")
+            if len(set(self.world_set) & set(self.install_list)) > 0:
+                raise SettingsError("same element found in install_list and world_set")
             del settings["world_set"]
         else:
             self.world_set = []
@@ -303,7 +327,7 @@ class _SettingTarget:
         if "locale" in settings:
             self.locale = settings["locale"]
             if self.locale is None:
-                raise SettingsError("Invalid value for key \"locale\"")
+                raise SettingsError("invalid value for \"locale\"")
             del settings["locale"]
         else:
             self.locale = "C.utf8"
@@ -311,7 +335,7 @@ class _SettingTarget:
         if "timezone" in settings:
             self.timezone = settings["timezone"]
             if self.timezone is None:
-                raise SettingsError("Invalid value for key \"timezone\"")
+                raise SettingsError("invalid value for \"timezone\"")
             del settings["timezone"]
         else:
             self.timezone = "UTC"
@@ -595,8 +619,40 @@ class TargetDirsAndFiles:
         self._chroot_path = chrootDir
 
     @property
-    def world_file_hostpath(self):
-        return os.path.join(self._chroot_path, self.world_file_path[1:])
+    def confdir_path(self):
+        return "/etc/portage"
+
+    @property
+    def statedir_path(self):
+        return "/var/lib/portage"
+
+    @property
+    def logdir_path(self):
+        return "/var/log/portage"
+
+    @property
+    def distdir_path(self):
+        return "/var/cache/distfiles"
+
+    @property
+    def pkgdir_path(self):
+        return "/var/cache/binpkgs"
+
+    @property
+    def srcdir_path(self):
+        return "/usr/src"
+
+    @property
+    def world_file_path(self):
+        return "/var/lib/portage/world"
+
+    @property
+    def confdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.confdir_path[1:])
+
+    @property
+    def statedir_hostpath(self):
+        return os.path.join(self._chroot_path, self.statedir_path[1:])
 
     @property
     def logdir_hostpath(self):
@@ -611,20 +667,12 @@ class TargetDirsAndFiles:
         return os.path.join(self._chroot_path, self.pkgdir_path[1:])
 
     @property
-    def world_file_path(self):
-        return "/var/lib/portage/world"
+    def srcdir_hostpath(self):
+        return os.path.join(self._chroot_path, self.srcdir_path[1:])
 
     @property
-    def logdir_path(self):
-        return "/var/log/portage"
-
-    @property
-    def distdir_path(self):
-        return "/var/cache/distfiles"
-
-    @property
-    def pkgdir_path(self):
-        return "/var/cache/binpkgs"
+    def world_file_hostpath(self):
+        return os.path.join(self._chroot_path, self.world_file_path[1:])
 
     def ensure_logdir(self):
         os.makedirs(self.logdir_hostpath, exist_ok=True)
@@ -640,7 +688,7 @@ class TargetConfDir:
 
     def __init__(self, program_name, chrootDir, target, host_computing_power):
         self._progName = program_name
-        self._dir = chrootDir
+        self._dir = TargetDirsAndFiles(chrootDir).confdir_hostpath
         self._target = target
         self._computing_power = host_computing_power
 
@@ -677,7 +725,7 @@ class TargetConfDir:
                     myf.write('%s="%s"\n' % (flags, value))
 
         # Modify and write out make.conf (in chroot)
-        makepath = os.path.join(self._dir, "etc", "portage", "make.conf")
+        makepath = os.path.join(self._dir, "make.conf")
         with open(makepath, "w") as myf:
             myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._progName))
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
@@ -706,7 +754,7 @@ class TargetConfDir:
 
     def write_package_use(self):
         # Modify and write out package.use (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "package.use")
+        fpath = os.path.join(self._dir, "package.use")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             # compile all locales
@@ -722,7 +770,7 @@ class TargetConfDir:
 
     def write_package_mask(self):
         # Modify and write out package.mask (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "package.mask")
+        fpath = os.path.join(self._dir, "package.mask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             for pkg_wildcard in self._target.pkg_mask:
@@ -730,7 +778,7 @@ class TargetConfDir:
 
     def write_package_unmask(self):
         # Modify and write out package.unmask (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "package.unmask")
+        fpath = os.path.join(self._dir, "package.unmask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             for pkg_wildcard in self._target.pkg_unmask:
@@ -738,7 +786,7 @@ class TargetConfDir:
 
     def write_package_accept_keywords(self):
         # Modify and write out package.accept_keywords (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "package.accept_keywords")
+        fpath = os.path.join(self._dir, "package.accept_keywords")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             for pkg_wildcard, keyword_list in self._target.pkg_accept_keywords.items():
@@ -746,7 +794,7 @@ class TargetConfDir:
 
     def write_package_license(self):
         # Modify and write out package.license (in chroot)
-        fpath = os.path.join(self._dir, "etc", "portage", "package.license")
+        fpath = os.path.join(self._dir, "package.license")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._target.pkg_license.items():
