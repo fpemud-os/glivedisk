@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,29 +21,13 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
-
-__version__ = '0.0.1'
-
-__author__ = 'Fpemud <fpemud@sina.com>'
+from .. import LaymanRepository
 
 
-from ._settings import HostComputingPower
+class LaymanOverlay(LaymanRepository):
 
-from ._prototype import SeedStage
-from ._prototype import ManualSyncRepository
-from ._prototype import EmergeSyncRepository
-from ._prototype import BindMountRepository
-from ._prototype import LaymanRepository
-from ._prototype import KernelInstaller
-from ._prototype import Exporter
+    def __init__(self, overlay_name):
+        self._name = overlay_name
 
-from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
-
-from ._builder import Builder
-from ._builder import BuildProgress
-
-from ._errors import SettingsError
-from ._errors import SeedStageError
-from ._errors import WorkDirVerifyError
+    def get_name(self):
+        return self._name

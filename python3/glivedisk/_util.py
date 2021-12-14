@@ -47,7 +47,7 @@ class Util:
     def loadEnum(filepath, klass):
         return Util.loadObj(filepath)
 
-    def pathcompare(path1, path2):
+    def pathCompare(path1, path2):
         # Change double slashes to slash
         path1 = re.sub(r"//", r"/", path1)
         path2 = re.sub(r"//", r"/", path2)
@@ -59,7 +59,7 @@ class Util:
             return 1
         return 0
 
-    def ismount(path):
+    def isMount(path):
         """Like os.path.ismount, but also support bind mounts"""
         if os.path.ismount(path):
             return 1
@@ -68,7 +68,7 @@ class Util:
         a.close()
         for line in mylines:
             mysplit = line.split()
-            if Util.pathcompare(path, mysplit[2]):
+            if Util.pathCompare(path, mysplit[2]):
                 return 1
         return 0
 
@@ -269,6 +269,13 @@ class Util:
         disk.commit()
         Util.cmdCall("/sbin/partprobe")
 
+    @staticmethod
+    def portageIsPkgInstalled(rootDir, pkg):
+        dir = os.path.join(rootDir, "var", "db", "pkg", os.path.dirname(pkg))
+        for fn in os.listdir(dir):
+            if fn.startswith(os.path.basename(pkg)):
+                return True
+        return False
 
 class TempChdir:
 

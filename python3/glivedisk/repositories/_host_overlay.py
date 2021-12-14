@@ -21,82 +21,20 @@
 # THE SOFTWARE.
 
 
-import abc
+from .. import BindMountRepository
 
 
-class SeedStage(abc.ABC):
+class OverlayFromHost(BindMountRepository):
 
-    @abc.abstractmethod
-    def get_chksum(self):
-        pass
+    def __init__(self, overlay_name, hostdir):
+        self._name = overlay_name
+        self._hostDir = hostdir
 
-    @abc.abstractmethod
-    def unpack(self, target_dir):
-        pass
-
-
-class KernelInstaller(abc.ABC):
-
-    @abc.abstractmethod
-    def install(self, program_name, host_computing_power, work_dir):
-        pass
-
-
-class Exporter(abc.ABC):
-
-    @abc.abstractmethod
-    def export(self):
-        pass
-
-
-class ManualSyncRepository(abc.ABC):
-
-    @abc.abstractmethod
     def get_name(self):
-        pass
+        return self._name
 
-    @abc.abstractmethod
     def get_datadir_path(self):
-        pass
+        return "/var/db/overlays/%s" % (self._name)
 
-    @abc.abstractmethod
-    def sync(self):
-        pass
-
-
-class BindMountRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass
-
-    @abc.abstractmethod
-    def get_datadir_path(self):
-        pass
-
-    @abc.abstractmethod
     def get_hostdir_path(self):
-        pass
-
-
-class EmergeSyncRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass
-
-    @abc.abstractmethod
-    def get_repos_conf_file_content(self):
-        pass
-
-    @abc.abstractmethod
-    def get_datadir_path(self):
-        pass
-
-
-class LaymanRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass
-
+        return self._hostDir
