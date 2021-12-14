@@ -223,6 +223,7 @@ class Builder:
     def action_cleanup(self):
         with _Chrooter(self) as m:
             m.shell_call("", "eselect news read all")
+            m.script_exec("", "run-depclean.sh")
 
         _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
 
