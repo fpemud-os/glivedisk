@@ -396,6 +396,8 @@ class _MyRepoUtil:
         buf += "location = %s\n" % (repo.get_datadir_path())
         cls._writeReposConfFile(myRepo, buf)
 
+        os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
+
         return myRepo
 
     @classmethod
@@ -411,6 +413,8 @@ class _MyRepoUtil:
         buf += "host-dir = %s\n" % (repo.get_hostdir_path())
         cls._writeReposConfFile(myRepo, buf)
 
+        os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
+
         return myRepo
 
     @classmethod
@@ -421,6 +425,8 @@ class _MyRepoUtil:
 
         buf = repo.get_repos_conf_file_content()
         cls._writeReposConfFile(myRepo, buf)
+
+        os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
 
