@@ -544,34 +544,33 @@ class _Chrooter(WorkDirChrooter):
             t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
 
             # log directory mount point
-            super()._assertDirStatus(self._parent._logDir)
+            assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._logDir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
             if self._parent._hostInfo.distfiles_dir is not None:
-                super()._assertDirStatus(t.distdir_path)
+                assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
             if self._parent._hostInfo.binpkg_dir is not None:
-                super()._assertDirStatus(t.binpkgdir_path)
+                assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.binpkg_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
             if self._parent._hostInfo.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
-                super()._assertDirStatus(t.ccachedir_path)
+                assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for BindMountRepository
             for myRepo in _MyRepoUtil.scanReposConfDir(self._parent._workDirObj.chroot_dir_path):
-                hostDir = myRepo.get_hostdir()
-                if hostDir is not None:
-                    super()._assertDirStatus(myRepo.datadir_path)
-                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (hostDir, myRepo.datadir_hostpath))
+                if myRepo.get_hostdir() is not None:
+                    assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
+                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (myRepo.get_hostdir(), myRepo.datadir_hostpath))
                     self._bindMountList.append(myRepo.datadir_hostpath)
         except BaseException:
             self.unbind()
