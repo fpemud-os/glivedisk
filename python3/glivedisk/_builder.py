@@ -330,7 +330,7 @@ class _SettingTarget:
                 self.build_opts.ccache = False
             del settings["build_opts"]
         else:
-            self.build_opts = _SettingBuildOptions()
+            self.build_opts = _SettingBuildOptions("build_opts", dict())
 
         if "pkg_build_opts" in settings:
             self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
