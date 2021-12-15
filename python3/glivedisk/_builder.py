@@ -728,7 +728,7 @@ class TargetDirsAndFiles:
 
     @property
     def ccachedir_hostpath(self):
-        return os.path.join(self._chroot_path, self.cachedir_path[1:])
+        return os.path.join(self._chroot_path, self.ccachedir_path[1:])
 
     @property
     def srcdir_hostpath(self):
