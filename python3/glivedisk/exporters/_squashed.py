@@ -38,9 +38,6 @@ class SquashfsExporter:
         self.kernelFile = kwargs["kernel_file"]
         self.initramfsFile = kwargs["initramfs_file"]
 
-    def check(self):
-        pass
-
     def export(self):
         assert self.rootfsDataFile.startswith("/")
         assert self.rootfsMd5File.startswith("/")

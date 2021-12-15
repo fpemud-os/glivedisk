@@ -96,6 +96,8 @@ class Builder:
         self._bVerbose = verbose
         self._progress = BuildProgress.STEP_INIT
 
+        if self._target.build_opts.ccache and self._hostInfo.ccache_dir is None:
+            raise SettingsError("ccache is enabled but no host ccache directory is specified")
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
 
@@ -111,9 +113,11 @@ class Builder:
         seed_stage.unpack(self._workDirObj.chroot_dir_path)
 
         t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
-        t.ensure_logdir()
-        t.ensure_distdir()
-        t.ensure_binpkgdir()
+        os.makedirs(t.logdir_hostpath, exist_ok=True)
+        os.makedirs(t.distdir_hostpath, exist_ok=True)
+        os.makedirs(t.binpkgdir_hostpath, exist_ok=True)
+        if self._target.build_opts.ccache:
+            os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_gentoo_repository(self, repo):
@@ -322,12 +326,17 @@ class _SettingTarget:
 
         if "build_opts" in settings:
             self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
+            if self.build_opts.ccache is None:
+                self.build_opts.ccache = False
             del settings["build_opts"]
         else:
-            self.build_opts = None
+            self.build_opts = _SettingBuildOptions()
 
         if "pkg_build_opts" in settings:
             self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
+            for k, v in self.pkg_build_opts.items():
+                if k.ccache is not None:
+                    raise SettingsError("invalid value for key \"ccache\" in %s" % k)       # ccache is only allowed in global build options
             del settings["pkg_build_opts"]
         else:
             self.pkg_build_opts = dict()
@@ -408,6 +417,14 @@ class _SettingBuildOptions:
         else:
             self.asflags = []
 
+        if "ccache" in settings:
+            self.ccache = settings["ccache"]
+            if not isinstance(self.ccache, bool):
+                raise SettingsError("invalid value for key \"ccache\" in %s" % (name))
+            del settings["ccache"]
+        else:
+            self.ccache = None
+
         for k in settings:
             raise SettingsError("redundant key \"%s\" in %s" % (k, name))
 
@@ -435,6 +452,13 @@ class _SettingHostInfo:
             del settings["host_packages_dir"]
         else:
             self.packages_dir = None
+
+        # ccache directory in host system
+        if "host_ccache_dir" in settings:
+            self.ccache_dir = settings["host_ccache_dir"]
+            del settings["host_ccache_dir"]
+        else:
+            self.ccache_dir = None
 
 
 class _MyRepoUtil:
@@ -583,6 +607,12 @@ class _Chrooter:
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
+            # ccachedir mount point
+            if self._parent._hostInfo.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
+                self._chrooter._assertDirStatus(t.ccachedir_path)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.ccache_dir, t.ccachedir_hostpath))
+                self._bindMountList.append(t.ccachedir_hostpath)
+
             # mount points for BindMountRepository
             for myRepo in _MyRepoUtil.scanReposConfDir(self._parent._workDirObj.chroot_dir_path):
                 hostDir = myRepo.get_hostdir()
@@ -616,7 +646,7 @@ class _Chrooter:
         self._chrooter.script_exec(env, cmd, quiet)
 
     def _unbind(self):
-        for fullfn in self._bindMountList:
+        for fullfn in reversed(self._bindMountList):
             Util.cmdCall("/bin/umount", "-l", fullfn)
         self._bindMountList = []
 
@@ -651,6 +681,10 @@ class TargetDirsAndFiles:
         return "/var/cache/binpkgs"
 
     @property
+    def ccachedir_path(self):
+        return "/var/tmp/cache"
+
+    @property
     def srcdir_path(self):
         return "/usr/src"
 
@@ -683,21 +717,16 @@ class TargetDirsAndFiles:
         return os.path.join(self._chroot_path, self.binpkgdir_path[1:])
 
     @property
+    def ccachedir_hostpath(self):
+        return os.path.join(self._chroot_path, self.cachedir_path[1:])
+
+    @property
     def srcdir_hostpath(self):
         return os.path.join(self._chroot_path, self.srcdir_path[1:])
 
     @property
     def world_file_hostpath(self):
         return os.path.join(self._chroot_path, self.world_file_path[1:])
-
-    def ensure_logdir(self):
-        os.makedirs(self.logdir_hostpath, exist_ok=True)
-
-    def ensure_distdir(self):
-        os.makedirs(self.distdir_hostpath, exist_ok=True)
-
-    def ensure_binpkgdir(self):
-        os.makedirs(self.binpkgdir_hostpath, exist_ok=True)
 
 
 class TargetConfDir:
@@ -732,8 +761,11 @@ class TargetConfDir:
 
         # define helper functions
         def __flagsWrite(flags, value):
-            if value is None and self._target.build_opts.common_flags is not None:
-                myf.write('%s="${COMMON_FLAGS}"\n' % (flags))
+            if value is None:
+                if self._target.build_opts.common_flags is None:
+                    pass
+                else:
+                    myf.write('%s="${COMMON_FLAGS}"\n' % (flags))
             else:
                 if isinstance(value, list):
                     myf.write('%s="%s"\n' % (flags, ' '.join(value)))
@@ -748,16 +780,15 @@ class TargetConfDir:
             myf.write("\n")
 
             # flags
-            if self._target.build_opts is not None:
-                if self._target.build_opts.common_flags is not None:
-                    myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._target.build_opts.common_flags)))
-                __flagsWrite("CFLAGS", self._target.build_opts.cflags)
-                __flagsWrite("CXXFLAGS", self._target.build_opts.cxxflags)
-                __flagsWrite("FCFLAGS", self._target.build_opts.fcflags)
-                __flagsWrite("FFLAGS", self._target.build_opts.fflags)
-                __flagsWrite("LDFLAGS", self._target.build_opts.ldflags)
-                __flagsWrite("ASFLAGS", self._target.build_opts.asflags)
-                myf.write('\n')
+            if self._target.build_opts.common_flags is not None:
+                myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._target.build_opts.common_flags)))
+            __flagsWrite("CFLAGS", self._target.build_opts.cflags)
+            __flagsWrite("CXXFLAGS", self._target.build_opts.cxxflags)
+            __flagsWrite("FCFLAGS", self._target.build_opts.fcflags)
+            __flagsWrite("FFLAGS", self._target.build_opts.fflags)
+            __flagsWrite("LDFLAGS", self._target.build_opts.ldflags)
+            __flagsWrite("ASFLAGS", self._target.build_opts.asflags)
+            myf.write('\n')
 
             # set default locale for system responses. #478382
             myf.write('LC_MESSAGES=C\n')
