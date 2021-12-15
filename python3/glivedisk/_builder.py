@@ -64,10 +64,8 @@ def Action(progress_step):
 class BuildProgress(enum.IntEnum):
     STEP_INIT = enum.auto()
     STEP_UNPACKED = enum.auto()
-    STEP_GENTOO_REPOSITORY_INITIALIZED = enum.auto()
+    STEP_REPOSITORIES_INITIALIZED = enum.auto()
     STEP_CONFDIR_INITIALIZED = enum.auto()
-    STEP_SYSTEM_SET_UPDATED = enum.auto()
-    STEP_OVERLAYS_INITIALIZED = enum.auto()
     STEP_WORLD_SET_UPDATED = enum.auto()
     STEP_KERNEL_INSTALLED = enum.auto()
     STEP_SYSTEM_CONFIGURED = enum.auto()
@@ -132,23 +130,30 @@ class Builder:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
     @Action(BuildProgress.STEP_UNPACKED)
-    def action_init_gentoo_repository(self, repo):
-        if repo.get_name() != "gentoo":
-            raise SettingsError("invalid repository")
+    def action_init_repositories(self, repo_list):
+        assert len(repo_list) > 0
+        assert repo_list[0].get_name() == "gentoo"
 
-        if isinstance(repo, ManualSyncRepository):
-            _MyRepoUtil.createFromManuSyncRepo(repo, True, self._workDirObj.chroot_dir_path)
-            repo.sync()
-        elif isinstance(repo, BindMountRepository):
-            _MyRepoUtil.createFromBindMountRepo(repo, True, self._workDirObj.chroot_dir_path)
-        elif isinstance(repo, EmergeSyncRepository):
-            _MyRepoUtil.createFromEmergeSyncRepo(repo, True, self._workDirObj.chroot_dir_path)
+        for i in range(0, len(repo_list)):
+            repo = repo_list[i]
+            if isinstance(repo, ManualSyncRepository):
+                _MyRepoUtil.createFromManuSyncRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+            elif isinstance(repo, BindMountRepository):
+                _MyRepoUtil.createFromBindMountRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+            elif isinstance(repo, EmergeSyncRepository):
+                _MyRepoUtil.createFromEmergeSyncRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+            else:
+                assert False
+
+        for repo in repo_list:
+            if isinstance(repo, ManualSyncRepository):
+                repo.sync()
+
+        if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
-                m.script_exec("", "emaint sync -f %s" % (repo.get_name()))
-        else:
-            assert False
+                m.script_exec("", "emerge --sync")
 
-    @Action(BuildProgress.STEP_GENTOO_REPOSITORY_INITIALIZED)
+    @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
         t = TargetConfDir(self._progName, self._workDirObj.chroot_dir_path, self._target, self._cpower)
         t.write_make_conf()
@@ -159,39 +164,8 @@ class Builder:
         t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_system_set(self):
-        with _Chrooter(self) as m:
-            m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @system")
-
-    @Action(BuildProgress.STEP_SYSTEM_SET_UPDATED)
-    def action_init_overlays(self, overlays):
-        for o in overlays:
-            if isinstance(o, ManualSyncRepository):
-                _MyRepoUtil.createFromManuSyncRepo(o, False, self._workDirObj.chroot_dir_path)
-                o.sync()
-            elif isinstance(o, BindMountRepository):
-                _MyRepoUtil.createFromBindMountRepo(o, False, self._workDirObj.chroot_dir_path)
-            elif isinstance(o, EmergeSyncRepository):
-                _MyRepoUtil.createFromEmergeSyncRepo(o, False, self._workDirObj.chroot_dir_path)
-            else:
-                assert False
-
-        with _Chrooter(self) as m:
-            for o in overlays:
-                if isinstance(o, ManualSyncRepository):
-                    pass
-                elif isinstance(o, BindMountRepository):
-                    pass
-                elif isinstance(o, EmergeSyncRepository):
-                    m.shell_exec("", "emaint sync -f %s" % (o.get_name()))
-                else:
-                    assert False
-
-    @Action(BuildProgress.STEP_OVERLAYS_INITIALIZED)
     def action_update_world_set(self):
-        if len(self._target.world_set) == 0:
-            return
-
+        # create installList and write world file
         installList = []
         if True:
             # add from install_list
@@ -207,6 +181,16 @@ class Builder:
                         installList.append(pkg)
                     f.write("%s\n" % (pkg))
 
+        # order installList
+        ORDER = [
+            "dev-util/ccache",
+        ]
+        for pkg in reversed(ORDER):
+            if pkg in installList:
+                installList.remove(pkg)
+                installList.insert(0, pkg)
+
+        # install packages, update @world
         with _Chrooter(self) as m:
             for pkg in installList:
                 m.script_exec("", "run-merge.sh -1 %s" % (pkg))
