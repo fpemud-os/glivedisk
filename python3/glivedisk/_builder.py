@@ -104,11 +104,11 @@ class Builder:
                 raise SettingsError("ccache is enabled but no host ccache directory is specified")
             __raiseErrorIfPkgNotFound("dev-util/ccache")
         if self._target.locale != self._target.DEFAULT_LOCALE:
-            __raiseErrorIfPkgNotFound("app-eselect/eselect")
+            __raiseErrorIfPkgNotFound("app-admin/eselect")
         if self._target.editor != self._target.DEFAULT_EDITOR:
-            __raiseErrorIfPkgNotFound("app-eselect/eselect")
+            __raiseErrorIfPkgNotFound("app-admin/eselect")
         if self._target.timezone != self._target.DEFAULT_TIMEZONE:
-            __raiseErrorIfPkgNotFound("app-eselect/eselect")
+            __raiseErrorIfPkgNotFound("app-admin/eselect")
             __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
