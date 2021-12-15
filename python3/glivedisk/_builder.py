@@ -151,7 +151,7 @@ class Builder:
 
         if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
-                m.script_exec("", "emerge --sync")
+                m.script_exec("", "run-merge.sh --sync")
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
