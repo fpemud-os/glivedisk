@@ -22,7 +22,6 @@
 
 
 import os
-from .. import MY_NAME
 from .. import HostComputingPower
 from .. import SettingsError
 from .. import KernelInstaller
@@ -35,7 +34,7 @@ class GenKernel(KernelInstaller):
     Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
     """
 
-    def install(self, settings, host_computing_power, work_dir):
+    def install(self, settings, host_computing_power, work_dir, log_dir):
         assert HostComputingPower.check_object(host_computing_power)
 
         self._settings = settings
@@ -57,8 +56,12 @@ class GenKernel(KernelInstaller):
                 tj = host_computing_power.cpu_core_count
                 tl = max(1, host_computing_power.cpu_core_count - 1)
 
+        # 
+        self._workDirObj = work_dir
+        self._logDir = log_dir
+
         # do work
-        with _Chrooter(work_dir) as m:
+        with _Chrooter(self) as m:
             m.shell_call("", "eselect kernel set 1")
 
             if self._target.build_opts.ccache:
@@ -135,12 +138,6 @@ class _SettingBuildOptions:
 class _SettingHostInfo:
 
     def __init__(self, settings):
-        # log directory in host system, will be bind mounted in target system
-        if "log_dir" in settings:
-            self.log_dir = settings["log_dir"]
-        else:
-            self.log_dir = os.path.join("/var", "log", MY_NAME)
-
         # ccache directory in host system
         if "host_ccache_dir" in settings:
             self.ccache_dir = settings["host_ccache_dir"]
@@ -166,7 +163,7 @@ class _Chrooter(WorkDirChrooter):
 
             # log_dir mount point
             super()._assertDirStatus(logdir_path)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.log_dir, logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._logDir, logdir_hostpath))
             self._bindMountList.append(logdir_hostpath)
 
             # ccachedir mount point
