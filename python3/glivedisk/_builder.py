@@ -23,7 +23,6 @@
 
 import os
 import re
-import copy
 import enum
 import pathlib
 import robust_layer.simple_fops
@@ -78,40 +77,46 @@ class Builder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, program_name, host_computing_power, work_dir, settings, verbose=False):
-        assert program_name is not None
+    def __init__(self, settings, host_computing_power, work_dir):
         assert HostComputingPower.check_object(host_computing_power)
         assert work_dir.verify_existing(raise_exception=False)
 
-        settings = copy.deepcopy(settings)
+        self._settings = settings
 
-        self._progName = program_name
+        self._progName = self._settings["program_name"] if "program_name" in self._settings else MY_NAME
+        if self._progName is None:
+            raise SettingsError("invalid value for key \"program_name\"")
+
+        self._bVerbose = self._settings["verbose"] if "verbose" in self._settings else False
+        if self._bVerbose is None:
+            raise SettingsError("invalid value for key \"verbose\"")
+
         self._cpower = host_computing_power
+
         self._workDirObj = work_dir
-        self._target = _SettingTarget(settings)
-        self._hostInfo = _SettingHostInfo(settings)
-        self._bVerbose = verbose
-        self._progress = BuildProgress.STEP_INIT
 
-        def __raiseErrorIfPkgNotFound(pkg):
-            if pkg not in self._target.install_list and pkg not in self._target.world_set:
-                raise SettingsError("%s is needed" % (pkg))
+        self._target = _SettingTarget(self._settings)
+        self._hostInfo = _SettingHostInfo(self._settings)
+        if True:
+            def __raiseErrorIfPkgNotFound(pkg):
+                if pkg not in self._target.install_list and pkg not in self._target.world_set:
+                    raise SettingsError("package %s is needed" % (pkg))
 
-        if self._target.build_opts.ccache:
-            if self._hostInfo.ccache_dir is None:
-                raise SettingsError("ccache is enabled but no host ccache directory is specified")
-            __raiseErrorIfPkgNotFound("dev-util/ccache")
-        if self._target.locale != self._target.DEFAULT_LOCALE:
-            __raiseErrorIfPkgNotFound("app-admin/eselect")
-        if self._target.editor != self._target.DEFAULT_EDITOR:
-            __raiseErrorIfPkgNotFound("app-admin/eselect")
-        if self._target.timezone != self._target.DEFAULT_TIMEZONE:
-            __raiseErrorIfPkgNotFound("app-admin/eselect")
-            __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
-        for k in settings:
-            raise SettingsError("redundant key \"%s\" in settings" % (k))
+            if self._target.build_opts.ccache:
+                if self._hostInfo.ccache_dir is None:
+                    raise SettingsError("ccache is enabled but no host ccache directory is specified")
+                __raiseErrorIfPkgNotFound("dev-util/ccache")
+            if self._target.locale != self._target.DEFAULT_LOCALE:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+            if self._target.editor != self._target.DEFAULT_EDITOR:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+            if self._target.timezone != self._target.DEFAULT_TIMEZONE:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+                __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
 
         os.makedirs(self._hostInfo.log_dir, mode=0o750, exist_ok=True)
+
+        self._progress = BuildProgress.STEP_INIT
 
     def get_progress(self):
         return self._progress
@@ -254,7 +259,6 @@ class _SettingTarget:
     def __init__(self, settings):
         if "profile" in settings:
             self.profile = settings["profile"]
-            del settings["profile"]
         else:
             self.profile = None
 
@@ -262,7 +266,6 @@ class _SettingTarget:
             self.install_list = list(settings["install_list"])
             if self.install_list is None:
                 raise SettingsError("invalid value for \"install_list\"")
-            del settings["install_list"]
         else:
             self.install_list = []
 
@@ -272,49 +275,41 @@ class _SettingTarget:
                 raise SettingsError("invalid value for \"world_set\"")
             if len(set(self.world_set) & set(self.install_list)) > 0:
                 raise SettingsError("same element found in install_list and world_set")
-            del settings["world_set"]
         else:
             self.world_set = []
 
         if "pkg_use" in settings:
             self.pkg_use = dict(settings["pkg_use"])  # dict<package-wildcard, use-flag-list>
-            del settings["pkg_use"]
         else:
             self.pkg_use = dict()
 
         if "pkg_mask" in settings:
             self.pkg_mask = dict(settings["pkg_mask"])  # list<package-wildcard>
-            del settings["pkg_mask"]
         else:
             self.pkg_mask = []
 
         if "pkg_unmask" in settings:
             self.pkg_unmask = dict(settings["pkg_unmask"])  # list<package-wildcard>
-            del settings["pkg_unmask"]
         else:
             self.pkg_unmask = []
 
         if "pkg_accept_keywords" in settings:
             self.pkg_accept_keywords = dict(settings["pkg_accept_keywords"])  # dict<package-wildcard, accept-keyword-list>
-            del settings["pkg_accept_keywords"]
         else:
             self.pkg_accept_keywords = dict()
 
         if "pkg_license" in settings:
             self.pkg_license = dict(settings["pkg_license"])  # dict<package-wildcard, license-list>
-            del settings["pkg_license"]
         else:
             self.pkg_license = dict()
 
         if "install_mask" in settings:
             self.install_mask = dict(settings["install_mask"])  # list<install-mask>
-            del settings["install_mask"]
         else:
             self.install_mask = []
 
         if "pkg_install_mask" in settings:
             self.pkg_install_mask = dict(settings["pkg_install_mask"])  # dict<package-wildcard, install-mask>
-            del settings["pkg_install_mask"]
         else:
             self.pkg_install_mask = dict()
 
@@ -322,7 +317,6 @@ class _SettingTarget:
             self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
             if self.build_opts.ccache is None:
                 self.build_opts.ccache = False
-            del settings["build_opts"]
         else:
             self.build_opts = _SettingBuildOptions("build_opts", dict())
 
@@ -331,7 +325,6 @@ class _SettingTarget:
             for k, v in self.pkg_build_opts.items():
                 if k.ccache is not None:
                     raise SettingsError("invalid value for key \"ccache\" in %s" % k)       # ccache is only allowed in global build options
-            del settings["pkg_build_opts"]
         else:
             self.pkg_build_opts = dict()
 
@@ -339,7 +332,6 @@ class _SettingTarget:
             self.locale = settings["locale"]
             if self.locale is None:
                 raise SettingsError("invalid value for \"locale\"")
-            del settings["locale"]
         else:
             self.locale = self.DEFAULT_LOCALE
 
@@ -347,7 +339,6 @@ class _SettingTarget:
             self.timezone = settings["timezone"]
             if self.timezone is None:
                 raise SettingsError("invalid value for \"timezone\"")
-            del settings["timezone"]
         else:
             self.timezone = self.DEFAULT_TIMEZONE
 
@@ -355,13 +346,13 @@ class _SettingTarget:
             self.editor = settings["editor"]
             if self.editor is None:
                 raise SettingsError("Invalid value for key \"editor\"")
-            del settings["editor"]
         else:
             self.editor = self.DEFAULT_EDITOR
 
         if "degentoo" in settings:
             self.degentoo = settings["degentoo"]    # make the livecd distribution neutral by removing all gentoo specific files
-            del settings["degentoo"]
+            if not isinstance(self.degentoo, bool):
+                raise SettingsError("invalid value for key \"degentoo\"")
         else:
             self.degentoo = False
 
@@ -371,43 +362,36 @@ class _SettingBuildOptions:
     def __init__(self, name, settings):
         if "common_flags" in settings:
             self.common_flags = list(settings["common_flags"])
-            del settings["common_flags"]
         else:
             self.common_flags = []
 
         if "cflags" in settings:
             self.cflags = list(settings["cflags"])
-            del settings["cflags"]
         else:
             self.cflags = []
 
         if "cxxflags" in settings:
             self.cxxflags = list(settings["cxxflags"])
-            del settings["cxxflags"]
         else:
             self.cxxflags = []
 
         if "fcflags" in settings:
             self.fcflags = list(settings["fcflags"])
-            del settings["fcflags"]
         else:
             self.fcflags = []
 
         if "fflags" in settings:
             self.fflags = list(settings["fflags"])
-            del settings["fflags"]
         else:
             self.fflags = []
 
         if "ldflags" in settings:
             self.ldflags = list(settings["ldflags"])
-            del settings["ldflags"]
         else:
             self.ldflags = []
 
         if "asflags" in settings:
             self.asflags = list(settings["asflags"])
-            del settings["asflags"]
         else:
             self.asflags = []
 
@@ -415,12 +399,8 @@ class _SettingBuildOptions:
             self.ccache = settings["ccache"]
             if not isinstance(self.ccache, bool):
                 raise SettingsError("invalid value for key \"ccache\" in %s" % (name))
-            del settings["ccache"]
         else:
             self.ccache = None
-
-        for k in settings:
-            raise SettingsError("redundant key \"%s\" in %s" % (k, name))
 
 
 class _SettingHostInfo:
@@ -429,28 +409,24 @@ class _SettingHostInfo:
         # log directory in host system, will be bind mounted in target system
         if "log_dir" in settings:
             self.log_dir = settings["log_dir"]
-            del settings["log_dir"]
         else:
             self.log_dir = os.path.join("/var", "log", MY_NAME)
 
         # distfiles directory in host system
         if "host_distfiles_dir" in settings:
             self.distfiles_dir = settings["host_distfiles_dir"]
-            del settings["host_distfiles_dir"]
         else:
             self.distfiles_dir = None
 
         # packages directory in host system
         if "host_packages_dir" in settings:
-            self.packages_dir = settings["host_packages_dir"]
-            del settings["host_packages_dir"]
+            self.binpkg_dir = settings["host_packages_dir"]
         else:
-            self.packages_dir = None
+            self.binpkg_dir = None
 
         # ccache directory in host system
         if "host_ccache_dir" in settings:
             self.ccache_dir = settings["host_ccache_dir"]
-            del settings["host_ccache_dir"]
         else:
             self.ccache_dir = None
 
@@ -557,53 +533,39 @@ class _MyRepo:
         return m.group(1) if m is not None else None
 
 
-class _Chrooter:
+class _Chrooter(WorkDirChrooter):
 
     def __init__(self, parent):
         self._parent = parent
-        self._chrooter = WorkDirChrooter(self._parent._workDirObj)
-
-        self._bBind = False
-        self._bindMountList = []
-
-    def __enter__(self):
-        self.bind()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.unbind()
-
-    @property
-    def binded(self):
-        return self._chrooter.binded
+        super().__init__(self._parent._workDirObj)
 
     def bind(self):
-        self._chrooter.bind()
-
-        assert not self._bBind
+        super().bind()
         try:
+            self._bindMountList = []
+
             t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
 
             # log_dir mount point
-            self._chrooter._assertDirStatus(t.logdir_path)
+            super()._assertDirStatus(t.logdir_path)
             Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.log_dir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
             if self._parent._hostInfo.distfiles_dir is not None:
-                self._chrooter._assertDirStatus(t.distdir_path)
+                super()._assertDirStatus(t.distdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
             if self._parent._hostInfo.packages_dir is not None:
-                self._chrooter._assertDirStatus(t.binpkgdir_path)
+                super()._assertDirStatus(t.binpkgdir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
             if self._parent._hostInfo.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
-                self._chrooter._assertDirStatus(t.ccachedir_path)
+                super()._assertDirStatus(t.ccachedir_path)
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
@@ -611,38 +573,19 @@ class _Chrooter:
             for myRepo in _MyRepoUtil.scanReposConfDir(self._parent._workDirObj.chroot_dir_path):
                 hostDir = myRepo.get_hostdir()
                 if hostDir is not None:
-                    self._chrooter._assertDirStatus(myRepo.datadir_path)
+                    super()._assertDirStatus(myRepo.datadir_path)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (hostDir, myRepo.datadir_hostpath))
                     self._bindMountList.append(myRepo.datadir_hostpath)
         except BaseException:
-            self._unbind()
-            self._chrooter.unbind()
+            self.unbind()
             raise
-        self._bBind = True
 
     def unbind(self):
-        assert self._bBind
-        self._unbind()
-        self._bBind = False
-
-        self._chrooter.unbind()
-
-    def shell_call(self, env, cmd):
-        self._chrooter.shell_call(env, cmd)
-
-    def shell_test(self, env, cmd):
-        self._chrooter.shell_test(env, cmd)
-
-    def shell_exec(self, env, cmd, quiet=False):
-        self._chrooter.shell_exec(env, cmd, quiet)
-
-    def script_exec(self, env, cmd, quiet=False):
-        self._chrooter.script_exec(env, cmd, quiet)
-
-    def _unbind(self):
-        for fullfn in reversed(self._bindMountList):
-            Util.cmdCall("/bin/umount", "-l", fullfn)
-        self._bindMountList = []
+        if hasattr(self, "_bindMountList"):
+            for fullfn in reversed(self._bindMountList):
+                Util.cmdCall("/bin/umount", "-l", fullfn)
+            del self._bindMountList
+        super().unbind()
 
 
 class TargetDirsAndFiles:
