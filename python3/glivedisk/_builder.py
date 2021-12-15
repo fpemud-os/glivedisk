@@ -91,6 +91,11 @@ class Builder:
         if self._bVerbose is None:
             raise SettingsError("invalid value for key \"verbose\"")
 
+        self._logDir = self._settings["logdir"] if "logdir" in self._settings else os.path.join("/var", "log", MY_NAME)
+        if self._logDir is None:
+            raise SettingsError("invalid value for key \"logdir\"")
+        os.makedirs(self._logDir, mode=0o750, exist_ok=True)
+
         self._cpower = host_computing_power
 
         self._workDirObj = work_dir
@@ -113,8 +118,6 @@ class Builder:
             if self._target.timezone != self._target.DEFAULT_TIMEZONE:
                 __raiseErrorIfPkgNotFound("app-admin/eselect")
                 __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
-
-        os.makedirs(self._hostInfo.log_dir, mode=0o750, exist_ok=True)
 
         self._progress = BuildProgress.STEP_INIT
 
@@ -406,13 +409,7 @@ class _SettingBuildOptions:
 class _SettingHostInfo:
 
     def __init__(self, settings):
-        # log directory in host system, will be bind mounted in target system
-        if "log_dir" in settings:
-            self.log_dir = settings["log_dir"]
-        else:
-            self.log_dir = os.path.join("/var", "log", MY_NAME)
-
-        # distfiles directory in host system
+        # distfiles directory in host system, will be bind mounted in target system
         if "host_distfiles_dir" in settings:
             self.distfiles_dir = settings["host_distfiles_dir"]
         else:
@@ -546,9 +543,9 @@ class _Chrooter(WorkDirChrooter):
 
             t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
 
-            # log_dir mount point
-            super()._assertDirStatus(t.logdir_path)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.log_dir, t.logdir_hostpath))
+            # log directory mount point
+            super()._assertDirStatus(t._parent._logDir)
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (t._parent._logDir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
@@ -558,9 +555,9 @@ class _Chrooter(WorkDirChrooter):
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
-            if self._parent._hostInfo.packages_dir is not None:
+            if self._parent._hostInfo.binpkg_dir is not None:
                 super()._assertDirStatus(t.binpkgdir_path)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.packages_dir, t.binpkgdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.binpkg_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point

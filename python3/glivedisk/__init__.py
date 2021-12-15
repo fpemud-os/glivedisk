@@ -30,7 +30,6 @@ __version__ = '0.0.1'
 __author__ = 'Fpemud <fpemud@sina.com>'
 
 
-from ._settings import MY_NAME
 from ._settings import HostComputingPower
 
 from ._prototype import SeedStage
