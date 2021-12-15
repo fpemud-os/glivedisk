@@ -56,7 +56,7 @@ class GenKernel(KernelInstaller):
                 tj = host_computing_power.cpu_core_count
                 tl = max(1, host_computing_power.cpu_core_count - 1)
 
-        # 
+        # FIXME
         self._workDirObj = work_dir
         self._logDir = log_dir
 

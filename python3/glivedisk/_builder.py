@@ -211,7 +211,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
-        kernel_installer.install(self._progName, self._cpower, self._workDirObj)
+        kernel_installer.install(self._settings, self._cpower, self._workDirObj, self._logDir)
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):
