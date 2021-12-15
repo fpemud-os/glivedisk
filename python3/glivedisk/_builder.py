@@ -544,8 +544,8 @@ class _Chrooter(WorkDirChrooter):
             t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
 
             # log directory mount point
-            super()._assertDirStatus(t._parent._logDir)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (t._parent._logDir, t.logdir_hostpath))
+            super()._assertDirStatus(self._parent._logDir)
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._logDir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
