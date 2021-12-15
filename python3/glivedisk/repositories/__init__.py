@@ -26,5 +26,3 @@ from ._gentoo import GentooSnapshot
 from ._gentoo import GentooFromHost
 
 from ._host_overlay import OverlayFromHost
-
-from ._layman_overlay import LaymanOverlay
