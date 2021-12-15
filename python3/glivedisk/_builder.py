@@ -692,7 +692,7 @@ class TargetDirsAndFiles:
 
     @property
     def ccachedir_path(self):
-        return "/var/tmp/cache"
+        return "/var/tmp/ccache"
 
     @property
     def srcdir_path(self):
