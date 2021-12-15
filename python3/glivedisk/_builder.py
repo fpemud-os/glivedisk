@@ -95,19 +95,21 @@ class Builder:
         self._bVerbose = verbose
         self._progress = BuildProgress.STEP_INIT
 
-        if self._target.build_opts.ccache and self._hostInfo.ccache_dir is None:
-            raise SettingsError("ccache is enabled but no host ccache directory is specified")
+        def __raiseErrorIfPkgNotFound(pkg):
+            if pkg not in self._target.install_list and pkg not in self._target.world_set:
+                raise SettingsError(f"{pkg} is needed")
+
+        if self._target.build_opts.ccache:
+            if self._hostInfo.ccache_dir is None:
+                raise SettingsError("ccache is enabled but no host ccache directory is specified")
+            __raiseErrorIfPkgNotFound("dev-util/ccache")
         if self._target.locale != self._target.DEFAULT_LOCALE:
-            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
-                raise SettingsError("app-eselect/eselect is needed")
+            __raiseErrorIfPkgNotFound("app-eselect/eselect")
         if self._target.editor != self._target.DEFAULT_EDITOR:
-            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
-                raise SettingsError("app-eselect/eselect is needed")
+            __raiseErrorIfPkgNotFound("app-eselect/eselect")
         if self._target.timezone != self._target.DEFAULT_TIMEZONE:
-            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
-                raise SettingsError("app-eselect/eselect is needed")
-            if "app-eselect/eselect-timezone" not in self._target.install_list and "app-eselect/eselect-timezone" not in self._target.world_set:
-                raise SettingsError("app-eselect/eselect-timezone is needed")
+            __raiseErrorIfPkgNotFound("app-eselect/eselect")
+            __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
 
@@ -786,6 +788,14 @@ class TargetConfDir:
             myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._progName))
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
             myf.write("\n")
+
+            # features
+            featureList = []
+            if self._target.build_opts.ccache:
+                featureList.append("ccache")
+            if len(featureList) > 0:
+                myf.write('FEATURES="%s"\n' % (" ".join(featureList)))
+                myf.write('\n')
 
             # flags
             if self._target.build_opts.common_flags is not None:
