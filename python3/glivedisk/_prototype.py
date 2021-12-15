@@ -92,10 +92,3 @@ class EmergeSyncRepository(abc.ABC):
     @abc.abstractmethod
     def get_datadir_path(self):
         pass
-
-
-class LaymanRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass

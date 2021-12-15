@@ -34,7 +34,6 @@ from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import BindMountRepository
 from ._prototype import EmergeSyncRepository
-from ._prototype import LaymanRepository
 from ._workdir import WorkDirChrooter
 
 
@@ -98,6 +97,17 @@ class Builder:
 
         if self._target.build_opts.ccache and self._hostInfo.ccache_dir is None:
             raise SettingsError("ccache is enabled but no host ccache directory is specified")
+        if self._target.locale != self._target.DEFAULT_LOCALE:
+            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
+                raise SettingsError("app-eselect/eselect is needed")
+        if self._target.editor != self._target.DEFAULT_EDITOR:
+            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
+                raise SettingsError("app-eselect/eselect is needed")
+        if self._target.timezone != self._target.DEFAULT_TIMEZONE:
+            if "app-eselect/eselect" not in self._target.install_list and "app-eselect/eselect" not in self._target.world_set:
+                raise SettingsError("app-eselect/eselect is needed")
+            if "app-eselect/eselect-timezone" not in self._target.install_list and "app-eselect/eselect-timezone" not in self._target.world_set:
+                raise SettingsError("app-eselect/eselect-timezone is needed")
         for k in settings:
             raise SettingsError("redundant key \"%s\" in settings" % (k))
 
@@ -161,16 +171,10 @@ class Builder:
                 _MyRepoUtil.createFromBindMountRepo(o, False, self._workDirObj.chroot_dir_path)
             elif isinstance(o, EmergeSyncRepository):
                 _MyRepoUtil.createFromEmergeSyncRepo(o, False, self._workDirObj.chroot_dir_path)
-            elif isinstance(o, LaymanRepository):
-                pass
             else:
                 assert False
 
         with _Chrooter(self) as m:
-            if any([isinstance(o, LaymanRepository) for o in overlays]):
-                m.script_exec("", "run_merge app-portage/layman")
-                m.shell_exec("", "layman -f")
-
             for o in overlays:
                 if isinstance(o, ManualSyncRepository):
                     pass
@@ -178,8 +182,6 @@ class Builder:
                     pass
                 elif isinstance(o, EmergeSyncRepository):
                     m.shell_exec("", "emaint sync -f %s" % (o.get_name()))
-                elif isinstance(o, LaymanRepository):
-                    m.shell_exec("", "layman -a %s" % (o.get_name()))
                 else:
                     assert False
 
@@ -256,6 +258,12 @@ class Builder:
 
 
 class _SettingTarget:
+
+    DEFAULT_LOCALE = "C.utf8"
+
+    DEFAULT_TIMEZONE = "UTC"
+
+    DEFAULT_EDITOR = "nano"
 
     def __init__(self, settings):
         if "profile" in settings:
@@ -347,7 +355,7 @@ class _SettingTarget:
                 raise SettingsError("invalid value for \"locale\"")
             del settings["locale"]
         else:
-            self.locale = "C.utf8"
+            self.locale = self.DEFAULT_LOCALE
 
         if "timezone" in settings:
             self.timezone = settings["timezone"]
@@ -355,7 +363,7 @@ class _SettingTarget:
                 raise SettingsError("invalid value for \"timezone\"")
             del settings["timezone"]
         else:
-            self.timezone = "UTC"
+            self.timezone = self.DEFAULT_TIMEZONE
 
         if "editor" in settings:
             self.editor = settings["editor"]
@@ -363,7 +371,7 @@ class _SettingTarget:
                 raise SettingsError("Invalid value for key \"editor\"")
             del settings["editor"]
         else:
-            self.editor = "nano"
+            self.editor = self.DEFAULT_EDITOR
 
         if "degentoo" in settings:
             self.degentoo = settings["degentoo"]    # make the livecd distribution neutral by removing all gentoo specific files

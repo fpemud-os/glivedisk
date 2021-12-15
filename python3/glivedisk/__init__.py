@@ -36,7 +36,6 @@ from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import EmergeSyncRepository
 from ._prototype import BindMountRepository
-from ._prototype import LaymanRepository
 from ._prototype import KernelInstaller
 from ._prototype import Exporter
 
