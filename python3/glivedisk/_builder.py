@@ -391,7 +391,7 @@ class _SettingBuildOptions:
             self.cxxflags = list(settings["cxxflags"])
             del settings["cxxflags"]
         else:
-            self.cflags = []
+            self.cxxflags = []
 
         if "fcflags" in settings:
             self.fcflags = list(settings["fcflags"])
