@@ -97,7 +97,7 @@ class Builder:
 
         def __raiseErrorIfPkgNotFound(pkg):
             if pkg not in self._target.install_list and pkg not in self._target.world_set:
-                raise SettingsError(f"{pkg} is needed")
+                raise SettingsError("%s is needed" % (pkg))
 
         if self._target.build_opts.ccache:
             if self._hostInfo.ccache_dir is None:
