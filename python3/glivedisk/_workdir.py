@@ -23,11 +23,10 @@
 
 import os
 import stat
-import pathlib
 import platform
 import robust_layer.simple_fops
 from ._util import Util
-from ._errors import SettingsError, WorkDirError
+from ._errors import WorkDirError
 from ._settings import MY_NAME
 
 
