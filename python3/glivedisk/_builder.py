@@ -79,6 +79,9 @@ class Builder:
         assert isinstance(target_settings, TargetSettings)
         assert work_dir.verify_existing(raise_exception=False)
 
+        self._settings = settings
+        self._targetSettings = target_settings
+
         self._s = _Settings(settings)
         os.makedirs(self._s.logdir, mode=0o750, exist_ok=True)
 
@@ -194,7 +197,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
-        kernel_installer.install(self._s, self._ts, self._workDirObj)
+        kernel_installer.install(self._settings, self._targetSettings, self._workDirObj)
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):
