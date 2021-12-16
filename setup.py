@@ -46,7 +46,6 @@ setup(
         __package__,
         '{0}.seed_stages'.format(__package__),
         '{0}.repositories'.format(__package__),
-        '{0}.kernel_installers'.format(__package__),
         '{0}.exporters'.format(__package__),
         ],
     package_dir={
