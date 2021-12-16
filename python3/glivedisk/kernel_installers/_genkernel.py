@@ -80,7 +80,7 @@ class _Settings:
                                                        settings["host_computing_power"]["memory_size"],
                                                        settings["host_computing_power"]["cooling_level"])
 
-        self.host_ccachedir = settings.get("host_ccachedir", None)
+        self.host_ccachedir = settings.get("host_ccache_dir", None)
 
 
 class _TargetSettings:
