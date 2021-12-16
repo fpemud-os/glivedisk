@@ -196,8 +196,32 @@ class Builder:
                     raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
-    def action_install_kernel(self, kernel_installer):
-        kernel_installer.install(self._settings, self._targetSettings, self._workDirObj)
+    def action_install_kernel(self):
+        # FIXME: determine parallelism parameters
+        tj = None
+        tl = None
+        if self._s.host_computing_power.cooling_level <= 1:
+            tj = 1
+            tl = 1
+        else:
+            if self._s.host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                tj = self._s.host_computing_power.cpu_core_count + 2
+                tl = self._s.host_computing_power.cpu_core_count
+            else:
+                tj = self._s.host_computing_power.cpu_core_count
+                tl = max(1, self._s.host_computing_power.cpu_core_count - 1)
+
+        # FIXME
+        with _Chrooter(self) as m:
+            m.shell_call("", "eselect kernel set 1")
+
+            if self._ts.build_opts.ccache:
+                env = "CCACHE_DIR=/var/tmp/ccache"
+                opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
+            else:
+                env = ""
+                opt = ""
+            m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):
@@ -344,11 +368,18 @@ class _TargetSettings:
         else:
             self.build_opts = _TargetSettingsBuildOpts("build_opts", dict())
 
+        if "kern_build_opts" in settings:
+            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", settings["kern_build_opts"])  # list<build-opts>
+            if self.kern_build_opts.ccache is not None:
+                raise SettingsError("invalid value for key \"ccache\" in kern_build_opts")  # ccache is only allowed in global build options
+        else:
+            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", dict())
+
         if "pkg_build_opts" in settings:
             self.pkg_build_opts = {k: _TargetSettingsBuildOpts("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
             for k, v in self.pkg_build_opts.items():
                 if k.ccache is not None:
-                    raise SettingsError("invalid value for key \"ccache\" in %s" % k)       # ccache is only allowed in global build options
+                    raise SettingsError("invalid value for key \"ccache\" in %s" % k)  # ccache is only allowed in global build options
         else:
             self.pkg_build_opts = dict()
 
