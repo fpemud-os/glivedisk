@@ -80,7 +80,7 @@ class _Settings:
                                                        settings["host_computing_power"]["memory_size"],
                                                        settings["host_computing_power"]["cooling_level"])
 
-        self.host_ccache_dir = settings.get("host_ccache_dir", None)
+        self.host_ccachedir = settings.get("host_ccachedir", None)
 
 
 class _TargetSettings:
@@ -169,9 +169,9 @@ class _Chrooter(WorkDirChrooter):
             self._bindMountList.append(logdir_hostpath)
 
             # ccachedir mount point
-            if self._parent._s.host_ccache_dir is not None and os.path.exists(ccachedir_hostpath):
+            if self._parent._s.host_ccachedir is not None and os.path.exists(ccachedir_hostpath):
                 super()._assertDirStatus(ccachedir_path)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_ccache_dir, ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_ccachedir, ccachedir_hostpath))
                 self._bindMountList.append(ccachedir_hostpath)
         except BaseException:
             self.unbind()
