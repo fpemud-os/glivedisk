@@ -202,7 +202,7 @@ class Builder:
         with _Chrooter(self) as m:
             for pkg in installList:
                 m.script_exec("", "run-merge.sh -1 %s" % (pkg))
-            m.script_exec("", "run-merge.sh -uDN --with-bdeps=y @world")
+            m.script_exec("", "run-update.sh @world")
 
             if m.shell_test("", "which perl-cleaner"):
                 out = m.shell_call("", "perl-cleaner --pretend --all")
