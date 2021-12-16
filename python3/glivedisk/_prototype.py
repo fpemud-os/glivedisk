@@ -35,13 +35,6 @@ class SeedStage(abc.ABC):
         pass
 
 
-class KernelInstaller(abc.ABC):
-
-    @abc.abstractmethod
-    def install(self, settings, target_settings, work_dir):
-        pass
-
-
 class Exporter(abc.ABC):
 
     @abc.abstractmethod
