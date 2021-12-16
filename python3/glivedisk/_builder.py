@@ -264,8 +264,8 @@ class _Settings:
             self.host_binpkgdir = None
 
         # ccache directory in host system
-        if "host_ccachedir" in settings:
-            self.host_ccachedir = settings["host_ccachedir"]
+        if "host_ccache_dir" in settings:
+            self.host_ccachedir = settings["host_ccache_dir"]
         else:
             self.host_ccachedir = None
 
