@@ -124,7 +124,7 @@ class WorkDir:
 
     def create_chroot_dir(self, from_dir_name=None):
         curPath = os.path.join(self._path, self.CURRENT)
-        assert not os.path.exists(curPath)
+        assert not os.path.lexists(curPath)
 
         if from_dir_name is not None:
             if self.is_rollback_supported():
@@ -143,7 +143,7 @@ class WorkDir:
 
     def remove_chroot_dir(self, to_dir_name=None):
         curPath = os.path.join(self._path, self.CURRENT)
-        assert os.path.exists(curPath)
+        assert os.path.lexists(curPath)
 
         if to_dir_name is not None:
             assert to_dir_name != self.CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
