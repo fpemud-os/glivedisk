@@ -242,15 +242,13 @@ class _Settings:
     def __init__(self, settings):
         assert settings.verify(raise_exception=True)
 
-        self._settings = settings
+        self.prog_name = settings["program_name"]
 
-        self.prog_name = self._settings["program_name"]
+        self.logdir = settings["logdir"]
 
-        self.logdir = self._settings["logdir"]
+        self.verbose = settings["verbose"]
 
-        self.verbose = self._settings["verbose"]
-
-        x = self._settings["host_computing_power"]
+        x = settings["host_computing_power"]
         self.host_computing_power = ComputingPower.new(x["cpu_core_count"], x["memory_size"], x["cooling_level"])
 
         # distfiles directory in host system, will be bind mounted in target system
@@ -546,25 +544,25 @@ class _Chrooter(WorkDirChrooter):
 
             # log directory mount point
             assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._settings.logdir, t.logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.logdir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
-            if self._parent._s.distfiles_dir is not None:
+            if self._parent._s.host_distdir is not None:
                 assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.distfiles_dir, t.distdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_distdir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
-            if self._parent._s.binpkg_dir is not None:
+            if self._parent._s.host_binpkg_dir is not None:
                 assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.binpkg_dir, t.binpkgdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_binpkg_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
-            if self._parent._s.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
+            if self._parent._s.host_ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
                 assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.ccache_dir, t.ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for BindMountRepository
