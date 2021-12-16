@@ -37,21 +37,16 @@ from ._workdir import WorkDirChrooter
 def Action(progress_step):
     def decorator(func):
         def wrapper(self, *kargs):
-            def __createNewChrootDir():
-                dirName = "%02d-%s" % (self._progress.value, BuildProgress(self._progress.value + 1).name)
-                self._workDirObj.create_new_chroot_dir(dirName)
-
-            # check, ensure chroot dir
+            # create chroot dir
             assert self._progress == progress_step
-            if not self._workDirObj.has_chroot_dir():
-                __createNewChrootDir()
+            self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
 
             # do work
             func(self, *kargs)
 
-            # do progress, create new chroot dir for next step
+            # do progress
             self._progress = BuildProgress(self._progress + 1)
-            __createNewChrootDir()
+            self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
 
         return wrapper
 
@@ -106,7 +101,9 @@ class Builder:
 
         self._workDirObj = work_dir
 
+        self._workDirObj.create_chroot_dir()
         self._progress = BuildProgress.STEP_INIT
+        self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
 
     def get_progress(self):
         return self._progress
@@ -276,6 +273,9 @@ class Builder:
             robust_layer.simple_fops.rm(t.logdir_hostpath)
             robust_layer.simple_fops.rm(t.distdir_hostpath)
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
+
+    def _getChrootDirName(self):
+        return "%02d-%s" % (self._progress.value, BuildProgress(self._progress.value).name)
 
 
 class _Settings:

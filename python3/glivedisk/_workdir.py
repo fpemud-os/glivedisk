@@ -38,26 +38,26 @@ class WorkDir:
 
     MODE = 0o40700
 
+    CURRENT = "cur"
+
     def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None):
         assert path is not None
 
         self._path = path
 
-        if chroot_uid_map is None:
-            self._uidMap = None
-        else:
-            assert chroot_uid_map[0] == os.getuid()
-            self._uidMap = chroot_uid_map
+        # if chroot_uid_map is None:
+        #     self._uidMap = None
+        # else:
+        #     assert chroot_uid_map[0] == os.getuid()
+        #     self._uidMap = chroot_uid_map
 
-        if chroot_gid_map is None:
-            assert self._uidMap is None
-            self._gidMap = None
-        else:
-            assert self._uidMap is not None
-            assert chroot_gid_map[0] == os.getgid()
-            self._gidMap = chroot_gid_map
-
-        self._bPrepared = False
+        # if chroot_gid_map is None:
+        #     assert self._uidMap is None
+        #     self._gidMap = None
+        # else:
+        #     assert self._uidMap is not None
+        #     assert chroot_gid_map[0] == os.getgid()
+        #     self._gidMap = chroot_gid_map
 
     @property
     def path(self):
@@ -65,18 +65,19 @@ class WorkDir:
 
     @property
     def chroot_dir_path(self):
-        assert self.has_chroot_dir()
-        return os.path.realpath(self._chroot_link_path())
+        curPath = os.path.join(self._path, self.CURRENT)
+        assert os.path.exists(curPath)
+        return curPath
 
-    @property
-    def chroot_uid_map(self):
-        assert self._uidMap is not None
-        return self._uidMap
+    # @property
+    # def chroot_uid_map(self):
+    #     assert self._uidMap is not None
+    #     return self._uidMap
 
-    @property
-    def chroot_gid_map(self):
-        assert self._gidMap is not None
-        return self._gidMap
+    # @property
+    # def chroot_gid_map(self):
+    #     assert self._gidMap is not None
+    #     return self._gidMap
 
     def initialize(self):
         if not os.path.exists(self._path):
@@ -94,29 +95,29 @@ class WorkDir:
     def is_rollback_supported(self):
         return False
 
-    def has_uid_gid_map(self):
-        return self._uidMap is not None
+    # def has_uid_gid_map(self):
+    #     return self._uidMap is not None
 
-    def chroot_conv_uid(self, uid):
-        if self._uidMap is None:
-            return uid
-        else:
-            if uid not in self._uidMap:
-                raise SettingsError("uid %d not found in uid map" % (uid))
-            else:
-                return self._uidMap[uid]
+    # def chroot_conv_uid(self, uid):
+    #     if self._uidMap is None:
+    #         return uid
+    #     else:
+    #         if uid not in self._uidMap:
+    #             raise SettingsError("uid %d not found in uid map" % (uid))
+    #         else:
+    #             return self._uidMap[uid]
 
-    def chroot_conv_gid(self, gid):
-        if self._gidMap is None:
-            return gid
-        else:
-            if gid not in self._gidMap:
-                raise SettingsError("gid %d not found in gid map" % (gid))
-            else:
-                return self._gidMap[gid]
+    # def chroot_conv_gid(self, gid):
+    #     if self._gidMap is None:
+    #         return gid
+    #     else:
+    #         if gid not in self._gidMap:
+    #             raise SettingsError("gid %d not found in gid map" % (gid))
+    #         else:
+    #             return self._gidMap[gid]
 
-    def chroot_conv_uid_gid(self, uid, gid):
-        return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
+    # def chroot_conv_uid_gid(self, uid, gid):
+    #     return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
     def get_save_files(self):
         ret = []
@@ -126,51 +127,44 @@ class WorkDir:
         return ret
 
     def has_chroot_dir(self):
-        return os.path.exists(self._chroot_link_path())
+        curPath = os.path.join(self._path, self.CURRENT)
+        return os.path.exists(curPath)
 
-    def get_chroot_dir_names(self):
-        linkPath = self._chroot_link_path()
-        if not os.path.exists(linkPath):
-            assert not any([os.path.isdir(x) for x in os.listdir(self._path)])
-            return []
-        else:
-            cur = os.readlink(linkPath)
-            ret = []
-            for fn in os.listdir(self._path):
-                if fn != "chroot" and fn != cur and os.path.isdir(fn):
-                    ret.append(fn)
-            ret.append(cur)
-            return ret
+    def create_chroot_dir(self, from_dir_name=None):
+        curPath = os.path.join(self._path, self.CURRENT)
+        assert not os.path.exists(curPath)
 
-    def create_new_chroot_dir(self, dir_name):
-        linkPath = self._chroot_link_path()
-        newChrootDir = os.path.join(self._path, dir_name)
-
-        if not os.path.exists(linkPath):
-            # create the first chroot directory
-            os.mkdir(newChrootDir)
-            os.symlink(dir_name, linkPath)
-        else:
+        if from_dir_name is not None:
             if self.is_rollback_supported():
                 # snapshot the old chroot directory
                 assert False
             else:
-                # move the old chroot directory to new chroot directory, record the old chroot directory as a file
-                oldChrootDir = self.chroot_dir_path
-                os.rename(oldChrootDir, newChrootDir)
-                robust_layer.simple_fops.ln(dir_name, linkPath)
-                pathlib.Path(oldChrootDir).touch()
+                # copy the old chroot directory
+                Util.cmdCall("/bin/cp", "-r", os.path.join(self._path, from_dir_name), curPath)
+        else:
+            if self.is_rollback_supported():
+                # create sub-volume
+                assert False
+            else:
+                # create directory
+                os.mkdir(curPath)
 
-    def rollback_to_old_chroot_dir(self, dir_name):
-        assert self.is_rollback_supported()
-        dirNames = self.get_chroot_dir_names()
-        assert len(dirNames) > 0 and dir_name in dirNames[:-1]
+    def remove_chroot_dir(self, to_dir_name=None):
+        curPath = os.path.join(self._path, self.CURRENT)
+        assert os.path.exists(curPath)
 
-        # FIXME
-        raise NotImplementedError()
+        if to_dir_name is not None:
+            assert to_dir_name != self.CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
+            robust_layer.simple_fops.mv(curPath, os.path.join(self._path, to_dir_name))
+        else:
+            robust_layer.simple_fops.rm(curPath)
 
-    def _chroot_link_path(self):
-        return os.path.join(self._path, "chroot")
+    def get_old_chroot_dir_names(self):
+        ret = []
+        for fn in os.listdir(self._path):
+            if fn != self.CURRENT and os.path.isdir(fn):
+                ret.append(fn)
+        return ret
 
     def _verify_dir(self, raiseException):
         # work directory can be a directory or directory symlink
