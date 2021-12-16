@@ -54,13 +54,13 @@ class Settings(dict):
             else:
                 return False
 
-        if self["verbose"] is None or not isinstance(self["verbose", bool]):
+        if self["verbose"] is None or not isinstance(self["verbose"], bool):
             if raise_exception:
                 raise SettingsError("invalid value for key \"verbose\"")
             else:
                 return False
 
-        if self["host_computing_power"] is None or not isinstance(self["host_computing_power", ComputingPower]):
+        if self["host_computing_power"] is None or not isinstance(self["host_computing_power"], ComputingPower):
             if raise_exception:
                 raise SettingsError("invalid value for key \"host_computing_power\"")
             else:
