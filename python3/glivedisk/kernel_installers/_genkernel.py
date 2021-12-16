@@ -39,7 +39,14 @@ class GenKernel(KernelInstaller):
         assert isinstance(target_settings, TargetSettings)
 
         self._s = _Settings(settings)
+        os.makedirs(self._s.logdir, mode=0o750, exist_ok=True)
+
         self._ts = _TargetSettings(target_settings)
+        if True:
+            if self._ts.build_opts.ccache:
+                if self._s.host_ccachedir is None:
+                    raise SettingsError("ccache is enabled but no host ccache directory is specified")
+
         self._workDirObj = work_dir
 
         # determine parallelism parameters
@@ -159,9 +166,9 @@ class _Chrooter(WorkDirChrooter):
             self._bindMountList = []
 
             logdir_path = "/var/log/portage"
-            logdir_hostpath = os.path.join(self._parent._workDirObj.chroot_dir_path, logdir_path)
+            logdir_hostpath = os.path.join(self._parent._workDirObj.chroot_dir_path, logdir_path[1:])
             ccachedir_path = "/var/tmp/ccache"
-            ccachedir_hostpath = os.path.join(self._parent._workDirObj.chroot_dir_path, ccachedir_path)
+            ccachedir_hostpath = os.path.join(self._parent._workDirObj.chroot_dir_path, ccachedir_path[1:])
 
             # log_dir mount point
             super()._assertDirStatus(logdir_path)
