@@ -40,6 +40,7 @@ class GenKernel(KernelInstaller):
 
         self._s = _Settings(settings)
         self._ts = _TargetSettings(target_settings)
+        self._workDirObj = work_dir
 
         # determine parallelism parameters
         tj = None
@@ -54,9 +55,6 @@ class GenKernel(KernelInstaller):
             else:
                 tj = self._s.host_computing_power.cpu_core_count
                 tl = max(1, self._s.host_computing_power.cpu_core_count - 1)
-
-        # FIXME
-        self._workDirObj = work_dir
 
         # do work
         with _Chrooter(self) as m:
