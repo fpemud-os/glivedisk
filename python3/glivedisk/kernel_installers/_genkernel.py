@@ -22,7 +22,7 @@
 
 
 import os
-from .. import HostComputingPower
+from .. import Settings, TargetSettings, ComputingPower
 from .. import SettingsError
 from .. import KernelInstaller
 from .. import WorkDirChrooter
@@ -34,62 +34,76 @@ class GenKernel(KernelInstaller):
     Gentoo has no standard way to build a kernel, this class uses sys-kernel/genkernel to build kernel and initramfs
     """
 
-    def install(self, settings, host_computing_power, work_dir, log_dir):
-        assert HostComputingPower.check_object(host_computing_power)
+    def install(self, settings, target_settings, work_dir):
+        assert isinstance(settings, Settings)
+        assert isinstance(target_settings, TargetSettings)
 
-        self._settings = settings
-
-        self._target = _SettingTarget(self._settings)
-        self._hostInfo = _SettingHostInfo(self._settings)
+        self._s = _Settings(settings)
+        self._ts = _TargetSettings(target_settings)
 
         # determine parallelism parameters
         tj = None
         tl = None
-        if host_computing_power.cooling_level <= 1:
+        if self._s.host_computing_power.cooling_level <= 1:
             tj = 1
             tl = 1
         else:
-            if host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
-                tj = host_computing_power.cpu_core_count + 2
-                tl = host_computing_power.cpu_core_count
+            if self._s.host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                tj = self._s.host_computing_power.cpu_core_count + 2
+                tl = self._s.host_computing_power.cpu_core_count
             else:
-                tj = host_computing_power.cpu_core_count
-                tl = max(1, host_computing_power.cpu_core_count - 1)
+                tj = self._s.host_computing_power.cpu_core_count
+                tl = max(1, self._s.host_computing_power.cpu_core_count - 1)
 
         # FIXME
         self._workDirObj = work_dir
-        self._logDir = log_dir
 
         # do work
         with _Chrooter(self) as m:
             m.shell_call("", "eselect kernel set 1")
 
-            if self._target.build_opts.ccache:
+            if self._ts.build_opts.ccache:
                 opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
             else:
                 opt = ""
             m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
 
-class _SettingTarget:
+class _Settings:
+
+    def __init__(self, settings):
+        self.prog_name = settings["program_name"]
+
+        self.logdir = settings["logdir"]
+
+        self.verbose = settings["verbose"]
+
+        self.host_computing_power = ComputingPower.new(settings["host_computing_power"]["cpu_core_count"],
+                                                       settings["host_computing_power"]["memory_size"],
+                                                       settings["host_computing_power"]["cooling_level"])
+
+        self.host_ccache_dir = settings.get("host_ccache_dir", None)
+
+
+class _TargetSettings:
 
     def __init__(self, settings):
         if "build_opts" in settings:
-            self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
+            self.build_opts = _TargetSettingsBuildOpts("build_opts", settings["build_opts"])  # list<build-opts>
             if self.build_opts.ccache is None:
                 self.build_opts.ccache = False
         else:
-            self.build_opts = _SettingBuildOptions("build_opts", dict())
+            self.build_opts = _TargetSettingsBuildOpts("build_opts", dict())
 
         if "kern_build_opts" in settings:
-            self.kern_build_opts = _SettingBuildOptions("kern_build_opts", settings["kern_build_opts"])  # list<build-opts>
+            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", settings["kern_build_opts"])  # list<build-opts>
             if self.kern_build_opts.ccache is not None:
                 raise SettingsError("invalid value for key \"ccache\" in kern_build_opts")       # ccache is only allowed in global build options
         else:
-            self.kern_build_opts = _SettingBuildOptions("kern_build_opts", dict())
+            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", dict())
 
 
-class _SettingBuildOptions:
+class _TargetSettingsBuildOpts:
 
     def __init__(self, name, settings):
         if "common_flags" in settings:
@@ -135,16 +149,6 @@ class _SettingBuildOptions:
             self.ccache = None
 
 
-class _SettingHostInfo:
-
-    def __init__(self, settings):
-        # ccache directory in host system
-        if "host_ccache_dir" in settings:
-            self.ccache_dir = settings["host_ccache_dir"]
-        else:
-            self.ccache_dir = None
-
-
 class _Chrooter(WorkDirChrooter):
 
     def __init__(self, parent):
@@ -163,13 +167,13 @@ class _Chrooter(WorkDirChrooter):
 
             # log_dir mount point
             super()._assertDirStatus(logdir_path)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._logDir, logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.logdir, logdir_hostpath))
             self._bindMountList.append(logdir_hostpath)
 
             # ccachedir mount point
-            if self._parent._hostInfo.ccache_dir is not None and os.path.exists(ccachedir_hostpath):
+            if self._parent._s.host_ccache_dir is not None and os.path.exists(ccachedir_hostpath):
                 super()._assertDirStatus(ccachedir_path)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.ccache_dir, ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_ccache_dir, ccachedir_hostpath))
                 self._bindMountList.append(ccachedir_hostpath)
         except BaseException:
             self.unbind()

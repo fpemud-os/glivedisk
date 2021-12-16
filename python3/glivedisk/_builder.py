@@ -28,7 +28,7 @@ import pathlib
 import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError, SeedStageError
-from ._settings import HostComputingPower, MY_NAME
+from ._settings import Settings, TargetSettings, ComputingPower
 from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import BindMountRepository
@@ -77,47 +77,33 @@ class Builder:
     It is the driver class for pretty much everything that glivedisk does.
     """
 
-    def __init__(self, settings, host_computing_power, work_dir):
-        assert HostComputingPower.check_object(host_computing_power)
+    def __init__(self, settings, target_settings, work_dir):
+        assert isinstance(settings, Settings)
+        assert isinstance(target_settings, TargetSettings)
         assert work_dir.verify_existing(raise_exception=False)
 
-        self._settings = settings
+        self._s = _Settings(settings)
+        os.makedirs(self._s.logdir, mode=0o750, exist_ok=True)
 
-        self._progName = self._settings["program_name"] if "program_name" in self._settings else MY_NAME
-        if self._progName is None:
-            raise SettingsError("invalid value for key \"program_name\"")
-
-        self._bVerbose = self._settings["verbose"] if "verbose" in self._settings else False
-        if self._bVerbose is None:
-            raise SettingsError("invalid value for key \"verbose\"")
-
-        self._logDir = self._settings["logdir"] if "logdir" in self._settings else os.path.join("/var", "log", MY_NAME)
-        if self._logDir is None:
-            raise SettingsError("invalid value for key \"logdir\"")
-        os.makedirs(self._logDir, mode=0o750, exist_ok=True)
-
-        self._cpower = host_computing_power
-
-        self._workDirObj = work_dir
-
-        self._target = _SettingTarget(self._settings)
-        self._hostInfo = _SettingHostInfo(self._settings)
+        self._ts = _TargetSettings(target_settings)
         if True:
             def __raiseErrorIfPkgNotFound(pkg):
-                if pkg not in self._target.install_list and pkg not in self._target.world_set:
+                if pkg not in self._ts.install_list and pkg not in self._ts.world_set:
                     raise SettingsError("package %s is needed" % (pkg))
 
-            if self._target.build_opts.ccache:
-                if self._hostInfo.ccache_dir is None:
+            if self._ts.build_opts.ccache:
+                if self._s.host_ccache_dir is None:
                     raise SettingsError("ccache is enabled but no host ccache directory is specified")
                 __raiseErrorIfPkgNotFound("dev-util/ccache")
-            if self._target.locale != self._target.DEFAULT_LOCALE:
+            if self._ts.locale != self._ts.DEFAULT_LOCALE:
                 __raiseErrorIfPkgNotFound("app-admin/eselect")
-            if self._target.editor != self._target.DEFAULT_EDITOR:
+            if self._ts.editor != self._ts.DEFAULT_EDITOR:
                 __raiseErrorIfPkgNotFound("app-admin/eselect")
-            if self._target.timezone != self._target.DEFAULT_TIMEZONE:
+            if self._ts.timezone != self._ts.DEFAULT_TIMEZONE:
                 __raiseErrorIfPkgNotFound("app-admin/eselect")
                 __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
+
+        self._workDirObj = work_dir
 
         self._progress = BuildProgress.STEP_INIT
 
@@ -134,7 +120,7 @@ class Builder:
         os.makedirs(t.logdir_hostpath, exist_ok=True)
         os.makedirs(t.distdir_hostpath, exist_ok=True)
         os.makedirs(t.binpkgdir_hostpath, exist_ok=True)
-        if self._target.build_opts.ccache:
+        if self._ts.build_opts.ccache:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
     @Action(BuildProgress.STEP_UNPACKED)
@@ -163,7 +149,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._progName, self._workDirObj.chroot_dir_path, self._target, self._cpower)
+        t = TargetConfDir(self._s.prog_name, self._workDirObj.chroot_dir_path, self._ts, self._s.host_computing_power)
         t.write_make_conf()
         t.write_package_use()
         t.write_package_mask()
@@ -177,14 +163,14 @@ class Builder:
         installList = []
         if True:
             # add from install_list
-            for pkg in self._target.install_list:
+            for pkg in self._ts.install_list:
                 if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                     installList.append(pkg)
         if True:
             # add from world_set
             t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
             with open(t.world_file_hostpath, "w") as f:
-                for pkg in self._target.world_set:
+                for pkg in self._ts.world_set:
                     if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                         installList.append(pkg)
                     f.write("%s\n" % (pkg))
@@ -211,24 +197,24 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, kernel_installer):
-        kernel_installer.install(self._settings, self._cpower, self._workDirObj, self._logDir)
+        kernel_installer.install(self._s, self._ts, self._workDirObj)
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self):
         with _Chrooter(self) as m:
             # set locale
-            m.shell_call("", "eselect locale set %s" % (self._target.locale))
+            m.shell_call("", "eselect locale set %s" % (self._ts.locale))
 
             # set timezone
-            m.shell_call("", "eselect timezone set %s" % (self._target.timezone))
+            m.shell_call("", "eselect timezone set %s" % (self._ts.timezone))
 
             # set editor
-            m.shell_call("", "eselect editor set %s" % (self._target.editor))
+            m.shell_call("", "eselect editor set %s" % (self._ts.editor))
 
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
-            if not self._target.degentoo:
+            if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
                 m.script_exec("", "run-depclean.sh")
             else:
@@ -237,7 +223,7 @@ class Builder:
                 m.script_exec("", "run-merge.sh -C sys-devel/gcc")
                 m.script_exec("", "run-merge.sh -C sys-apps/portage")
 
-        if not self._target.degentoo:
+        if not self._ts.degentoo:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
         else:
             # FIXME
@@ -251,7 +237,42 @@ class Builder:
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
 
 
-class _SettingTarget:
+class _Settings:
+
+    def __init__(self, settings):
+        assert settings.verify(raise_exception=True)
+
+        self._settings = settings
+
+        self.prog_name = self._settings["program_name"]
+
+        self.logdir = self._settings["logdir"]
+
+        self.verbose = self._settings["verbose"]
+
+        x = self._settings["host_computing_power"]
+        self.host_computing_power = ComputingPower.new(x["cpu_core_count"], x["memory_size"], x["cooling_level"])
+
+        # distfiles directory in host system, will be bind mounted in target system
+        if "host_distfiles_dir" in settings:
+            self.host_distdir = settings["host_distfiles_dir"]
+        else:
+            self.host_distdir = None
+
+        # packages directory in host system
+        if "host_packages_dir" in settings:
+            self.host_binpkg_dir = settings["host_packages_dir"]
+        else:
+            self.host_binpkg_dir = None
+
+        # ccache directory in host system
+        if "host_ccache_dir" in settings:
+            self.host_ccache_dir = settings["host_ccache_dir"]
+        else:
+            self.host_ccache_dir = None
+
+
+class _TargetSettings:
 
     DEFAULT_LOCALE = "C.utf8"
 
@@ -260,6 +281,8 @@ class _SettingTarget:
     DEFAULT_EDITOR = "nano"
 
     def __init__(self, settings):
+        assert settings.verify(raise_exception=True)
+
         if "profile" in settings:
             self.profile = settings["profile"]
         else:
@@ -317,14 +340,14 @@ class _SettingTarget:
             self.pkg_install_mask = dict()
 
         if "build_opts" in settings:
-            self.build_opts = _SettingBuildOptions("build_opts", settings["build_opts"])  # list<build-opts>
+            self.build_opts = _TargetSettingsBuildOpts("build_opts", settings["build_opts"])  # list<build-opts>
             if self.build_opts.ccache is None:
                 self.build_opts.ccache = False
         else:
-            self.build_opts = _SettingBuildOptions("build_opts", dict())
+            self.build_opts = _TargetSettingsBuildOpts("build_opts", dict())
 
         if "pkg_build_opts" in settings:
-            self.pkg_build_opts = {k: _SettingBuildOptions("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
+            self.pkg_build_opts = {k: _TargetSettingsBuildOpts("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
             for k, v in self.pkg_build_opts.items():
                 if k.ccache is not None:
                     raise SettingsError("invalid value for key \"ccache\" in %s" % k)       # ccache is only allowed in global build options
@@ -360,7 +383,7 @@ class _SettingTarget:
             self.degentoo = False
 
 
-class _SettingBuildOptions:
+class _TargetSettingsBuildOpts:
 
     def __init__(self, name, settings):
         if "common_flags" in settings:
@@ -404,28 +427,6 @@ class _SettingBuildOptions:
                 raise SettingsError("invalid value for key \"ccache\" in %s" % (name))
         else:
             self.ccache = None
-
-
-class _SettingHostInfo:
-
-    def __init__(self, settings):
-        # distfiles directory in host system, will be bind mounted in target system
-        if "host_distfiles_dir" in settings:
-            self.distfiles_dir = settings["host_distfiles_dir"]
-        else:
-            self.distfiles_dir = None
-
-        # packages directory in host system
-        if "host_packages_dir" in settings:
-            self.binpkg_dir = settings["host_packages_dir"]
-        else:
-            self.binpkg_dir = None
-
-        # ccache directory in host system
-        if "host_ccache_dir" in settings:
-            self.ccache_dir = settings["host_ccache_dir"]
-        else:
-            self.ccache_dir = None
 
 
 class _MyRepoUtil:
@@ -545,25 +546,25 @@ class _Chrooter(WorkDirChrooter):
 
             # log directory mount point
             assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._logDir, t.logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._settings.logdir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
-            if self._parent._hostInfo.distfiles_dir is not None:
+            if self._parent._s.distfiles_dir is not None:
                 assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.distfiles_dir, t.distdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
-            if self._parent._hostInfo.binpkg_dir is not None:
+            if self._parent._s.binpkg_dir is not None:
                 assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.binpkg_dir, t.binpkgdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.binpkg_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
-            if self._parent._hostInfo.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
+            if self._parent._s.ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
                 assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._hostInfo.ccache_dir, t.ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for BindMountRepository

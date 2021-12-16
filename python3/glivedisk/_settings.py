@@ -21,8 +21,10 @@
 # THE SOFTWARE.
 
 
+import os
 import re
 import multiprocessing
+from ._errors import SettingsError
 
 
 MY_NAME = "glivecd"
@@ -32,19 +34,74 @@ class Settings(dict):
 
     def __init__(self):
         super().__init__()
+        self["program_name"] = MY_NAME
+        self["logdir"] = os.path.join("/var", "log", MY_NAME)
+        self["verbose"] = False
+        self["host_computing_power"] = None
 
-    def get_program_name(self):
-        return self["program_name"]
+    def verify(self, raise_exception=None):
+        assert raise_exception is not None
 
-    def get_host_computing_power(self):
-        return self["host_computing_power"]
+        if self["program_name"] is None or not isinstance(self["program_name"], str):
+            if raise_exception:
+                raise SettingsError("invalid value for key \"program_name\"")
+            else:
+                return False
+
+        if self["logdir"] is None or not isinstance(self["logdir"], str):
+            if raise_exception:
+                raise SettingsError("invalid value for key \"logdir\"")
+            else:
+                return False
+
+        if self["verbose"] is None or not isinstance(self["verbose", bool]):
+            if raise_exception:
+                raise SettingsError("invalid value for key \"verbose\"")
+            else:
+                return False
+
+        if self["host_computing_power"] is None or not isinstance(self["host_computing_power", ComputingPower]):
+            if raise_exception:
+                raise SettingsError("invalid value for key \"host_computing_power\"")
+            else:
+                return False
+
+        return True
+
+    def set_program_name(self, value):
+        assert isinstance(value, str)
+        self["program_name"] = value
+
+    def set_logdir(self, value):
+        assert isinstance(value, str)
+        self["log_dir"] = value
+
+    def set_verbose(self, value):
+        assert isinstance(value, bool)
+        self["verbose"] = value
+
+    def set_host_computing_power(self, value):
+        assert ComputingPower.check_object(value)
+        self["host_computing_power"] = {
+            "cpu_core_count": value.cpu_core_count,
+            "memory_size": value.memory_size,
+            "cooling_level": value.cooling_level,
+        }
 
 
-class HostComputingPower:
+class TargetSettings(dict):
+
+    def verify(obj, raise_exception=None):
+        assert raise_exception is not None
+        # FIXME, add checks
+        return True
+
+
+class ComputingPower:
 
     @staticmethod
     def check_object(obj):
-        if not isinstance(obj, HostComputingPower):
+        if not isinstance(obj, ComputingPower):
             return False
         return obj.cpu_core_count > 0 and obj.memory_size > 0 and 1 <= obj.cooling_level <= 10
 
@@ -54,7 +111,7 @@ class HostComputingPower:
         assert memory_size > 0
         assert 1 <= cooling_level <= 10
 
-        ret = HostComputingPower()
+        ret = ComputingPower()
         ret.cpu_core_count = cpu_core_count
         ret.memory_size = memory_size
         ret.cooling_level = cooling_level
@@ -62,7 +119,7 @@ class HostComputingPower:
 
     @staticmethod
     def auto_detect():
-        ret = HostComputingPower()
+        ret = ComputingPower()
 
         # cpu_core_count
         ret.cpu_core_count = multiprocessing.cpu_count()
