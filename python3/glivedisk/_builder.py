@@ -24,6 +24,7 @@
 import os
 import re
 import enum
+import shutil
 import pathlib
 import robust_layer.simple_fops
 from ._util import Util
@@ -224,7 +225,16 @@ class Builder:
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
-    def action_config_system(self):
+    def action_config_system(self, service_list=[], file_list=[], cmd_list=[]):
+        # add files
+        for fullfn, mode, dstDir in file_list:
+            assert dstDir.startswith("/")
+            dstDir = self.rootfsDir + dstDir
+            dstFn = os.path.join(dstDir, os.path.basename(fullfn))
+            os.makedirs(dstDir, exist_ok=True)
+            shutil.copy(fullfn, dstFn)
+            os.chmod(dstFn, mode)
+
         with _Chrooter(self) as m:
             # set locale
             m.shell_call("", "eselect locale set %s" % (self._ts.locale))
@@ -234,6 +244,13 @@ class Builder:
 
             # set editor
             m.shell_call("", "eselect editor set %s" % (self._ts.editor))
+
+            # enable services
+            pass
+
+            # exec custom script
+            for cmd in cmd_list:
+                m.shell_call(cmd)
 
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
