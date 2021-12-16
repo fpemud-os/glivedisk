@@ -118,13 +118,6 @@ class WorkDir:
     # def chroot_conv_uid_gid(self, uid, gid):
     #     return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
-    def get_save_files(self):
-        ret = []
-        for fn in os.listdir(self._path):
-            if os.path.isfile(fn) and fn.endswith(".save"):
-                ret.append(fn)
-        return ret
-
     def has_chroot_dir(self):
         curPath = os.path.join(self._path, self.CURRENT)
         return os.path.exists(curPath)
@@ -162,6 +155,13 @@ class WorkDir:
         ret = []
         for fn in os.listdir(self._path):
             if fn != self.CURRENT and os.path.isdir(fn):
+                ret.append(fn)
+        return ret
+
+    def get_save_files(self):
+        ret = []
+        for fn in os.listdir(self._path):
+            if os.path.isfile(fn) and fn.endswith(".save"):
                 ret.append(fn)
         return ret
 
