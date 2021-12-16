@@ -38,7 +38,7 @@ class SeedStage(abc.ABC):
 class KernelInstaller(abc.ABC):
 
     @abc.abstractmethod
-    def install(self, settings, host_computing_power, work_dir, log_dir):
+    def install(self, settings, target_settings, work_dir):
         pass
 
 

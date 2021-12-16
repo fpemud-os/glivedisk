@@ -42,25 +42,25 @@ class Settings(dict):
     def verify(self, raise_exception=None):
         assert raise_exception is not None
 
-        if self["program_name"] is None or not isinstance(self["program_name"], str):
+        if self.get("program_name", None) is None or not isinstance(self["program_name"], str):
             if raise_exception:
                 raise SettingsError("invalid value for key \"program_name\"")
             else:
                 return False
 
-        if self["logdir"] is None or not isinstance(self["logdir"], str):
+        if self.get("logdir", None) is None or not isinstance(self["logdir"], str):
             if raise_exception:
                 raise SettingsError("invalid value for key \"logdir\"")
             else:
                 return False
 
-        if self["verbose"] is None or not isinstance(self["verbose"], bool):
+        if self.get("verbose", None) is None or not isinstance(self["verbose"], bool):
             if raise_exception:
                 raise SettingsError("invalid value for key \"verbose\"")
             else:
                 return False
 
-        if self["host_computing_power"] is None or not isinstance(self["host_computing_power"], ComputingPower):
+        if self.get("host_computing_power", None) is None or not self._verifyHostComputingPower(self["host_computing_power"]):
             if raise_exception:
                 raise SettingsError("invalid value for key \"host_computing_power\"")
             else:
@@ -74,7 +74,7 @@ class Settings(dict):
 
     def set_logdir(self, value):
         assert isinstance(value, str)
-        self["log_dir"] = value
+        self["logdir"] = value
 
     def set_verbose(self, value):
         assert isinstance(value, bool)
@@ -87,6 +87,9 @@ class Settings(dict):
             "memory_size": value.memory_size,
             "cooling_level": value.cooling_level,
         }
+
+    def _verifyHostComputingPower(self, value):
+        return value.get("cpu_core_count", 0) > 0 and value.get("memory_size", 0) > 0 and 1 <= value.get("cooling_level", 0) <= 10
 
 
 class TargetSettings(dict):
