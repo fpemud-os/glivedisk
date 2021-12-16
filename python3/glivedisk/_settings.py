@@ -28,6 +28,18 @@ import multiprocessing
 MY_NAME = "glivecd"
 
 
+class Settings(dict):
+
+    def __init__(self):
+        super().__init__()
+
+    def get_program_name(self):
+        return self["program_name"]
+
+    def get_host_computing_power(self):
+        return self["host_computing_power"]
+
+
 class HostComputingPower:
 
     @staticmethod

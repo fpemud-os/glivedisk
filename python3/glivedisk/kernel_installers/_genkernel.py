@@ -65,7 +65,7 @@ class GenKernel(KernelInstaller):
             m.shell_call("", "eselect kernel set 1")
 
             if self._target.build_opts.ccache:
-                opt = "--kernel-cc=ccache"
+                opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
             else:
                 opt = ""
             m.shell_exec("", "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
