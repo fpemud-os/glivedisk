@@ -29,10 +29,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError, SeedStageError
 from ._settings import Settings, TargetSettings, ComputingPower
-from ._prototype import SeedStage
-from ._prototype import ManualSyncRepository
-from ._prototype import BindMountRepository
-from ._prototype import EmergeSyncRepository
+from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, EmergeSyncRepository
 from ._workdir import WorkDirChrooter
 
 
