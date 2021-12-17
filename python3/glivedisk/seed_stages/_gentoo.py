@@ -24,6 +24,7 @@
 import os
 import re
 import tarfile
+import pathlib
 import urllib.request
 from .. import SeedStage
 
@@ -161,12 +162,16 @@ class GentooStage3Archive(SeedStage):
         assert False
 
     @property
-    def filepath(self):
+    def file_name(self):
         return self._path
 
     @property
-    def digest_filepath(self):
+    def digest_file_name(self):
         return self._hashPath
+
+    @property
+    def file_date(self):
+        assert False
 
     def unpack(self, target_dir):
         self._tf.extractall(target_dir)
