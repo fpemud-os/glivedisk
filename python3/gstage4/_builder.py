@@ -34,13 +34,14 @@ from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, Em
 from ._workdir import WorkDirChrooter
 
 
-def Action(progress_step):
+def Action(*progressStepList):
     def decorator(func):
         def wrapper(self, *kargs):
-            assert self._progress == progress_step
+            assert sorted(progressStepList) == progressStepList
+            assert self._progress in progressStepList
             self._workDirObj.open_chroot_dir(from_dir_name=self._getChrootDirName())
             func(self, *kargs)
-            self._progress = BuildProgress(self._progress + 1)
+            self._progress = BuildProgress(progressStepList[-1] + 1)
             self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
         return wrapper
     return decorator
@@ -207,7 +208,7 @@ class Builder:
                 opt = ""
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
-    @Action(BuildProgress.STEP_KERNEL_INSTALLED)
+    @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self, file_list=[], cmd_list=[]):
         # add files
         for fullfn, mode, dstDir in file_list:
