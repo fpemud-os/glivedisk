@@ -39,12 +39,11 @@ class WorkDir:
 
     _CURRENT = "cur"
 
-    _RESULT = "result"
-
-    def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None):
+    def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None, rollback=False):
         assert path is not None
 
         self._path = path
+        self._rollback = rollback
 
         # if chroot_uid_map is None:
         #     self._uidMap = None
@@ -61,18 +60,18 @@ class WorkDir:
         #     self._gidMap = chroot_gid_map
 
     @property
+    def can_rollback(self):
+        return self._rollback
+
+    @property
     def path(self):
         return self._path
 
     @property
     def chroot_dir_path(self):
         curPath = os.path.join(self._path, self._CURRENT)
-        assert os.path.exists(curPath)
+        assert os.path.lexists(curPath)
         return curPath
-
-    @property
-    def result_dir_path(self):
-        return os.path.join(self._path, self._RESULT)
 
     # @property
     # def chroot_uid_map(self):
@@ -88,15 +87,12 @@ class WorkDir:
         if not os.path.exists(self._path):
             os.mkdir(self._path, mode=self._MODE)
         else:
-            self._verify_dir(True)
+            self._verifyDir(True)
             robust_layer.simple_fops.truncate_dir(self._path)
-        os.mkdir(self.result_dir_path)
 
     def verify_existing(self, raise_exception=None):
         assert raise_exception is not None
-        if not self._verify_dir(raise_exception):
-            return False
-        if not os.path.isdir(self.result_dir_path) or os.path.islink(self.result_dir_path):
+        if not self._verifyDir(raise_exception):
             return False
         return True
 
@@ -124,21 +120,28 @@ class WorkDir:
     # def chroot_conv_uid_gid(self, uid, gid):
     #     return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
-    def has_chroot_dir(self):
+    def is_chroot_dir_opened(self):
         curPath = os.path.join(self._path, self._CURRENT)
-        return os.path.exists(curPath)
+        return os.path.lexists(curPath)
 
-    def create_chroot_dir(self, from_dir_name=None):
+    def open_chroot_dir(self, from_dir_name=None):
         curPath = os.path.join(self._path, self._CURRENT)
         assert not os.path.lexists(curPath)
 
         if from_dir_name is not None:
-            if self._isSnapshotSupported():
-                # snapshot the old chroot directory
-                assert False
+            assert from_dir_name in self._getOldChrootDirNames()
+            if self._rollback:
+                if self._isSnapshotSupported():
+                    # snapshot the old chroot directory
+                    assert False
+                else:
+                    # copy the old chroot directory
+                    Util.cmdCall("/bin/cp", "-r", os.path.join(self._path, from_dir_name), curPath)
             else:
-                # copy the old chroot directory
-                Util.cmdCall("/bin/cp", "-r", os.path.join(self._path, from_dir_name), curPath)
+                # FIXME: change to use python-renameat2
+                os.rename(os.path.join(self._path, from_dir_name), curPath)
+                with open(os.path.join(self._path, from_dir_name), "w") as f:
+                    f.write("")
         else:
             if self._isSnapshotSupported():
                 # create sub-volume
@@ -147,25 +150,23 @@ class WorkDir:
                 # create directory
                 os.mkdir(curPath)
 
-    def remove_chroot_dir(self, to_dir_name=None):
+    def close_chroot_dir(self, to_dir_name=None):
         curPath = os.path.join(self._path, self._CURRENT)
         assert os.path.lexists(curPath)
 
         if to_dir_name is not None:
-            assert to_dir_name != self._CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
+            assert to_dir_name != self._CURRENT and to_dir_name not in self._getOldChrootDirNames()
             robust_layer.simple_fops.mv(curPath, os.path.join(self._path, to_dir_name))
         else:
             robust_layer.simple_fops.rm(curPath)
 
     def get_old_chroot_dir_names(self):
-        ret = []
-        for fn in os.listdir(self._path):
-            if fn not in [self._CURRENT, self._RESULT] and os.path.isdir(fn):
-                ret.append(fn)
-        return ret
+        assert self._rollback
+        return self._getOldChrootDirNames()
 
     def get_old_chroot_dir_path(self, dir_name):
-        assert dir_name in self.get_old_chroot_dir_names()
+        assert self._rollback
+        assert dir_name in self._getOldChrootDirNames()
         return os.path.join(self._path, dir_name)
 
     def get_save_files(self):
@@ -178,7 +179,7 @@ class WorkDir:
     def _isSnapshotSupported(self):
         return False
 
-    def _verify_dir(self, raiseException):
+    def _verifyDir(self, raiseException):
         # work directory can be a directory or directory symlink
         # so here we use os.stat() instead of os.lstat()
         s = os.stat(self._path)
@@ -203,6 +204,13 @@ class WorkDir:
             else:
                 return False
         return True
+
+    def _getOldChrootDirNames(self):
+        ret = []
+        for fn in os.listdir(self._path):
+            if fn != self._CURRENT and os.path.isdir(fn):
+                ret.append(fn)
+        return ret
 
 
 class WorkDirChrooter:

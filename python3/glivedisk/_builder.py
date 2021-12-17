@@ -38,18 +38,12 @@ def Action(progress_step):
     def decorator(func):
         def wrapper(self, *kargs):
             assert self._progress == progress_step
+            self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
             func(self, *kargs)
             self._progress = BuildProgress(self._progress + 1)
+            self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
         return wrapper
     return decorator
-
-
-def AutoChrootDir(func):
-    def wrapper(self, *kargs):
-        self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
-        func(self, *kargs)
-        self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
-    return wrapper
 
 
 class BuildProgress(enum.IntEnum):
@@ -100,7 +94,6 @@ class Builder:
     def get_progress(self):
         return self._progress
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_INIT)
     def action_unpack(self, seed_stage):
         assert isinstance(seed_stage, SeedStage)
@@ -114,7 +107,6 @@ class Builder:
         if self._ts.build_opts.ccache:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_repositories(self, repo_list):
         assert len(repo_list) > 0
@@ -139,7 +131,6 @@ class Builder:
             with _Chrooter(self) as m:
                 m.script_exec("", "run-merge.sh --sync")
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
         t = TargetConfDir(self._s.prog_name, self._workDirObj.chroot_dir_path, self._ts, self._s.host_computing_power)
@@ -150,7 +141,6 @@ class Builder:
         t.write_package_accept_keywords()
         t.write_package_license()
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_world_set(self):
         # create installList and write world file
@@ -189,7 +179,6 @@ class Builder:
                 if "No package needs to be reinstalled." not in out:
                     raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self):
         # FIXME: determine parallelism parameters
@@ -218,7 +207,6 @@ class Builder:
                 opt = ""
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self, file_list=[], cmd_list=[]):
         # add files
@@ -235,7 +223,6 @@ class Builder:
             for cmd in cmd_list:
                 m.shell_call(cmd)
 
-    @AutoChrootDir()
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
