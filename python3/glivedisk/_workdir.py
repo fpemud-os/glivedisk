@@ -35,12 +35,11 @@ class WorkDir:
     This class manipulates glivecd's working directory.
     """
 
-    _MODE = 0o40700
-
-    _CURRENT = "cur"
-
     def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None, rollback=False):
         assert path is not None
+
+        self._MODE = 0o40700
+        self._CURRENT = "cur"
 
         self._path = path
         self._rollback = rollback
