@@ -32,7 +32,7 @@ from ._settings import MY_NAME
 
 class WorkDir:
     """
-    This class manipulates glivecd's working directory.
+    This class manipulates gstage4's working directory.
     """
 
     def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None, rollback=False):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
+# gstage4 - gentoo stage4 building
 #
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
@@ -23,7 +23,7 @@
 # THE SOFTWARE.
 
 
-__package__ = 'glivedisk'
+__package__ = 'gstage4'
 
 __version__ = '0.0.1'
 

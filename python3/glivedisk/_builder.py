@@ -60,7 +60,7 @@ class BuildProgress(enum.IntEnum):
 class Builder:
     """
     This class does all of the chroot setup, copying of files, etc.
-    It is the driver class for pretty much everything that glivedisk does.
+    It is the driver class for pretty much everything that gstage4 does.
     """
 
     def __init__(self, settings, target_settings, work_dir):

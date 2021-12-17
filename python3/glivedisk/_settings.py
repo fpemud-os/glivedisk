@@ -27,7 +27,7 @@ import multiprocessing
 from ._errors import SettingsError
 
 
-MY_NAME = "glivecd"
+MY_NAME = "gstage4"
 
 
 class Settings(dict):

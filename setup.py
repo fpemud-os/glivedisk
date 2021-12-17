@@ -12,7 +12,7 @@ except:
     from distutils.core import setup
 
 # package metadata
-__package__ = 'glivedisk'
+__package__ = 'gstage4'
 __version__ = '0.0.1'
 __author__ = 'Fpemud <fpemud@sina.com>'
 
@@ -29,7 +29,7 @@ setup(
     description="A simple python module for gentoo live disk building.",
     author=email.utils.parseaddr(__author__)[0],
     author_email=email.utils.parseaddr(__author__)[1],
-    url='https://github.com/fpemud-os/glivedisk',
+    url='https://github.com/fpemud-os/gstage4',
     license='GNU General Public License (GPL)',
     platforms=['Linux'],
     classifiers=[
@@ -52,6 +52,6 @@ setup(
         __package__: os.path.join('python3', __package__),
     },
     package_data={
-        'glivedisk': ['scripts-in-chroot/*'],
+        'gstage4': ['scripts-in-chroot/*'],
     },
 )

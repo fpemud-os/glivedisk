@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# glivedisk - gentoo live disk building
+# gstage4 - gentoo live disk building
 #
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
