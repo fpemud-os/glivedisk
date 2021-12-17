@@ -38,10 +38,10 @@ def Action(progress_step):
     def decorator(func):
         def wrapper(self, *kargs):
             assert self._progress == progress_step
-            self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
+            self._workDirObj.open_chroot_dir(from_dir_name=self._getChrootDirName())
             func(self, *kargs)
             self._progress = BuildProgress(self._progress + 1)
-            self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
+            self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
         return wrapper
     return decorator
 
@@ -87,9 +87,9 @@ class Builder:
 
         self._workDirObj = work_dir
 
-        self._workDirObj.create_chroot_dir()
+        self._workDirObj.open_chroot_dir()
         self._progress = BuildProgress.STEP_INIT
-        self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
+        self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
 
     def get_progress(self):
         return self._progress

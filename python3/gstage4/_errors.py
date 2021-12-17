@@ -31,7 +31,3 @@ class SeedStageError(Exception):
 
 class WorkDirError(Exception):
     pass
-
-
-class ExportError(Exception):
-    pass

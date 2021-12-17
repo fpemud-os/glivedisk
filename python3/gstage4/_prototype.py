@@ -35,25 +35,6 @@ class SeedStage(abc.ABC):
         pass
 
 
-class Exporter(abc.ABC):
-
-    @abc.abstractmethod
-    def start(self, settings, target_settings):
-        pass
-
-    @abc.abstractmethod
-    def get_dep_pkg_list(self):
-        pass
-
-    @abc.abstractmethod
-    def prepare_files_in_chroot(self, target_rootfs_dir_path, result_dir_path, dst_dir_hostpath):
-        pass
-
-    @abc.abstractmethod
-    def export(self, result_dir):
-        pass
-
-
 class ManualSyncRepository(abc.ABC):
 
     @abc.abstractmethod

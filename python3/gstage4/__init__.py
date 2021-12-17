@@ -38,7 +38,6 @@ from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import EmergeSyncRepository
 from ._prototype import BindMountRepository
-from ._prototype import Exporter
 
 from ._workdir import WorkDir
 from ._workdir import WorkDirChrooter
@@ -49,4 +48,3 @@ from ._builder import BuildProgress
 from ._errors import SettingsError
 from ._errors import SeedStageError
 from ._errors import WorkDirError
-from ._errors import ExportError
