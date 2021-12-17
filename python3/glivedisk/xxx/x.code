@@ -1,0 +1,78 @@
+    @property
+    def export_rootfs_dir_path(self):
+        # this is for export step only
+        return "/var/tmp/target_rootfs"
+
+    @property
+    def export_result_dir_path(self):
+        # this is for export step only
+        return "/var/tmp/export_result"
+
+
+    @property
+    def export_rootfs_dir_hostpath(self):
+        return os.path.join(self._chroot_path, self.export_rootfs_dir_path[1:])
+
+    @property
+    def export_result_dir_hostpath(self):
+        return os.path.join(self._chroot_path, self.export_result_dir_path[1:])
+
+
+            if self._p._progress == BuildProgress.STEP_CLEANED_UP:
+                # export rootfs directory
+                assert os.path.exists(t.export_rootfs_dir_hostpath) and not Util.isMount(t.export_rootfs_dir_hostpath)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_rootfs_dir_hostpath))
+                self._bindMountList.append(t.export_rootfs_dir_hostpath)
+
+                # export result directory
+                assert os.path.exists(t.export_result_dir_hostpath) and not Util.isMount(t.export_result_dir_hostpath)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_result_dir_hostpath))
+                self._bindMountList.append(t.export_result_dir_hostpath)
+
+
+            # set locale
+            m.shell_call("", "eselect locale set %s" % (self._ts.locale))
+
+            # set timezone
+            m.shell_call("", "eselect timezone set %s" % (self._ts.timezone))
+
+            # set editor
+            m.shell_call("", "eselect editor set %s" % (self._ts.editor))
+
+    DEFAULT_LOCALE = "C.utf8"
+
+    DEFAULT_TIMEZONE = "UTC"
+
+    DEFAULT_EDITOR = "nano"
+
+
+        if "locale" in settings:
+            self.locale = settings["locale"]
+            if self.locale is None:
+                raise SettingsError("invalid value for \"locale\"")
+        else:
+            self.locale = self.DEFAULT_LOCALE
+
+        if "timezone" in settings:
+            self.timezone = settings["timezone"]
+            if self.timezone is None:
+                raise SettingsError("invalid value for \"timezone\"")
+        else:
+            self.timezone = self.DEFAULT_TIMEZONE
+
+        if "editor" in settings:
+            self.editor = settings["editor"]
+            if self.editor is None:
+                raise SettingsError("Invalid value for key \"editor\"")
+        else:
+            self.editor = self.DEFAULT_EDITOR
+
+
+
+            if self._ts.locale != self._ts.DEFAULT_LOCALE:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+            if self._ts.editor != self._ts.DEFAULT_EDITOR:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+            if self._ts.timezone != self._ts.DEFAULT_TIMEZONE:
+                __raiseErrorIfPkgNotFound("app-admin/eselect")
+                __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")

@@ -61,7 +61,6 @@ class BuildProgress(enum.IntEnum):
     STEP_KERNEL_INSTALLED = enum.auto()
     STEP_SYSTEM_CONFIGURED = enum.auto()
     STEP_CLEANED_UP = enum.auto()
-    STEP_EXPORT = enum.auto()
 
 
 class Builder:
@@ -91,13 +90,6 @@ class Builder:
                 if self._s.host_ccachedir is None:
                     raise SettingsError("ccache is enabled but no host ccache directory is specified")
                 __raiseErrorIfPkgNotFound("dev-util/ccache")
-            if self._ts.locale != self._ts.DEFAULT_LOCALE:
-                __raiseErrorIfPkgNotFound("app-admin/eselect")
-            if self._ts.editor != self._ts.DEFAULT_EDITOR:
-                __raiseErrorIfPkgNotFound("app-admin/eselect")
-            if self._ts.timezone != self._ts.DEFAULT_TIMEZONE:
-                __raiseErrorIfPkgNotFound("app-admin/eselect")
-                __raiseErrorIfPkgNotFound("app-eselect/eselect-timezone")
 
         self._workDirObj = work_dir
 
@@ -228,7 +220,7 @@ class Builder:
 
     @AutoChrootDir()
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
-    def action_config_system(self, service_list=[], file_list=[], cmd_list=[]):
+    def action_config_system(self, file_list=[], cmd_list=[]):
         # add files
         for fullfn, mode, dstDir in file_list:
             assert dstDir.startswith("/")
@@ -239,18 +231,6 @@ class Builder:
             os.chmod(dstFn, mode)
 
         with _Chrooter(self) as m:
-            # set locale
-            m.shell_call("", "eselect locale set %s" % (self._ts.locale))
-
-            # set timezone
-            m.shell_call("", "eselect timezone set %s" % (self._ts.timezone))
-
-            # set editor
-            m.shell_call("", "eselect editor set %s" % (self._ts.editor))
-
-            # enable services
-            pass
-
             # exec custom script
             for cmd in cmd_list:
                 m.shell_call(cmd)
@@ -280,36 +260,6 @@ class Builder:
             robust_layer.simple_fops.rm(t.logdir_hostpath)
             robust_layer.simple_fops.rm(t.distdir_hostpath)
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
-
-    @Action(BuildProgress.STEP_CLEANED_UP)
-    def action_export(self, exporter):
-        self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName(BuildProgress.STEP_WORLD_SET_UPDATED))  # create a temp chroot env for export operation
-        try:
-            # start
-            exporter.start(self._settings, self._targetSettings)
-
-            # create target rootfs directory
-            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
-            os.makedirs(t.export_rootfs_dir_hostpath, exist_ok=True)
-
-            # create export script directory
-            scriptDirPath = "/tmp/export-scripts"
-            scriptDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, scriptDirPath[1:])
-            os.makedirs(scriptDirHostPath, exist_ok=True)
-            mainScriptFilename = exporter.prepare_scripts_in_chroot(t.export_rootfs_dir_path, scriptDirHostPath)
-
-            # chroot operation
-            with _Chrooter(self) as m:
-                # install needed packages
-                # FIXME: it may need
-                for pkg in exporter.get_dep_pkg_list():
-                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                        m.script_exec("", "run-merge.sh %s" % (pkg))
-
-                # do export
-                m.cmd_exec("", os.path.join(scriptDirPath, mainScriptFilename))
-        finally:
-            self._workDirObj.remove_chroot_dir()
 
     def _getChrootDirName(self, progress=None):
         if progress is None:
@@ -351,12 +301,6 @@ class _Settings:
 
 
 class _TargetSettings:
-
-    DEFAULT_LOCALE = "C.utf8"
-
-    DEFAULT_TIMEZONE = "UTC"
-
-    DEFAULT_EDITOR = "nano"
 
     def __init__(self, settings):
         assert settings.verify(raise_exception=True)
@@ -438,27 +382,6 @@ class _TargetSettings:
                     raise SettingsError("invalid value for key \"ccache\" in %s" % k)  # ccache is only allowed in global build options
         else:
             self.pkg_build_opts = dict()
-
-        if "locale" in settings:
-            self.locale = settings["locale"]
-            if self.locale is None:
-                raise SettingsError("invalid value for \"locale\"")
-        else:
-            self.locale = self.DEFAULT_LOCALE
-
-        if "timezone" in settings:
-            self.timezone = settings["timezone"]
-            if self.timezone is None:
-                raise SettingsError("invalid value for \"timezone\"")
-        else:
-            self.timezone = self.DEFAULT_TIMEZONE
-
-        if "editor" in settings:
-            self.editor = settings["editor"]
-            if self.editor is None:
-                raise SettingsError("Invalid value for key \"editor\"")
-        else:
-            self.editor = self.DEFAULT_EDITOR
 
         if "degentoo" in settings:
             self.degentoo = settings["degentoo"]    # make the livecd distribution neutral by removing all gentoo specific files
@@ -659,17 +582,6 @@ class _Chrooter(WorkDirChrooter):
                     assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (myRepo.get_hostdir(), myRepo.datadir_hostpath))
                     self._bindMountList.append(myRepo.datadir_hostpath)
-
-            if self._p._progress == BuildProgress.STEP_CLEANED_UP:
-                # export rootfs directory
-                assert os.path.exists(t.export_rootfs_dir_hostpath) and not Util.isMount(t.export_rootfs_dir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_rootfs_dir_hostpath))
-                self._bindMountList.append(t.export_rootfs_dir_hostpath)
-
-                # export result directory
-                assert os.path.exists(t.export_result_dir_hostpath) and not Util.isMount(t.export_result_dir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_result_dir_hostpath))
-                self._bindMountList.append(t.export_result_dir_hostpath)
         except BaseException:
             self.unbind()
             raise
@@ -724,16 +636,6 @@ class TargetDirsAndFiles:
         return "/var/lib/portage/world"
 
     @property
-    def export_rootfs_dir_path(self):
-        # this is for export step only
-        return "/var/tmp/target_rootfs"
-
-    @property
-    def export_result_dir_path(self):
-        # this is for export step only
-        return "/var/tmp/export_result"
-
-    @property
     def confdir_hostpath(self):
         return os.path.join(self._chroot_path, self.confdir_path[1:])
 
@@ -768,14 +670,6 @@ class TargetDirsAndFiles:
     @property
     def world_file_hostpath(self):
         return os.path.join(self._chroot_path, self.world_file_path[1:])
-
-    @property
-    def export_rootfs_dir_hostpath(self):
-        return os.path.join(self._chroot_path, self.export_rootfs_dir_path[1:])
-
-    @property
-    def export_result_dir_hostpath(self):
-        return os.path.join(self._chroot_path, self.export_result_dir_path[1:])
 
 
 class TargetConfDir:

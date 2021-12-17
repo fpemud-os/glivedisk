@@ -139,3 +139,43 @@ class CloudGentooStage3Archive(SeedStage):
         if self._resp is not None:
             self._resp.close()
             self._resp = None
+
+
+class GentooStage3Archive(SeedStage):
+
+    def __init__(self, filepath, digest_filepath=None):
+        self._path = filepath
+        self._hashPath = digest_filepath if digest_filepath is not None else self._path + ".DIGESTS"
+
+        self._tf = tarfile.open(self._path, mode="r:xz")
+        self._hash = pathlib.Path(self._hashPath).read_text()
+
+    @property
+    def arch(self):
+        # FIXME
+        assert False
+
+    @property
+    def variant(self):
+        # FIXME
+        assert False
+
+    @property
+    def filepath(self):
+        return self._path
+
+    @property
+    def digest_filepath(self):
+        return self._hashPath
+
+    def unpack(self, target_dir):
+        self._tf.extractall(target_dir)
+
+    def get_digest(self):
+        return self._hash
+
+    def close(self):
+        if self._tf is not None:
+            self._tf.close()
+            self._tf = None
+        self._hash = None

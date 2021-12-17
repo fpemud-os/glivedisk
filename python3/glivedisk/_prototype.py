@@ -46,11 +46,11 @@ class Exporter(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def prepare_scripts_in_chroot(self, target_rootfs_dir_path, dst_dir_hostpath):
+    def prepare_files_in_chroot(self, target_rootfs_dir_path, result_dir_path, dst_dir_hostpath):
         pass
 
     @abc.abstractmethod
-    def export(self):
+    def export(self, result_dir):
         pass
 
 
