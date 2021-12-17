@@ -37,20 +37,19 @@ from ._workdir import WorkDirChrooter
 def Action(progress_step):
     def decorator(func):
         def wrapper(self, *kargs):
-            # create chroot dir
             assert self._progress == progress_step
-            self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
-
-            # do work
             func(self, *kargs)
-
-            # do progress
             self._progress = BuildProgress(self._progress + 1)
-            self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
-
         return wrapper
-
     return decorator
+
+
+def AutoChrootDir(func):
+    def wrapper(self, *kargs):
+        self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName())
+        func(self, *kargs)
+        self._workDirObj.remove_chroot_dir(to_dir_name=self._getChrootDirName())
+    return wrapper
 
 
 class BuildProgress(enum.IntEnum):
@@ -62,6 +61,7 @@ class BuildProgress(enum.IntEnum):
     STEP_KERNEL_INSTALLED = enum.auto()
     STEP_SYSTEM_CONFIGURED = enum.auto()
     STEP_CLEANED_UP = enum.auto()
+    STEP_EXPORT = enum.auto()
 
 
 class Builder:
@@ -108,6 +108,7 @@ class Builder:
     def get_progress(self):
         return self._progress
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_INIT)
     def action_unpack(self, seed_stage):
         assert isinstance(seed_stage, SeedStage)
@@ -121,6 +122,7 @@ class Builder:
         if self._ts.build_opts.ccache:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_repositories(self, repo_list):
         assert len(repo_list) > 0
@@ -145,6 +147,7 @@ class Builder:
             with _Chrooter(self) as m:
                 m.script_exec("", "run-merge.sh --sync")
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
         t = TargetConfDir(self._s.prog_name, self._workDirObj.chroot_dir_path, self._ts, self._s.host_computing_power)
@@ -155,6 +158,7 @@ class Builder:
         t.write_package_accept_keywords()
         t.write_package_license()
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_world_set(self):
         # create installList and write world file
@@ -193,6 +197,7 @@ class Builder:
                 if "No package needs to be reinstalled." not in out:
                     raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self):
         # FIXME: determine parallelism parameters
@@ -221,6 +226,7 @@ class Builder:
                 opt = ""
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_KERNEL_INSTALLED)
     def action_config_system(self, service_list=[], file_list=[], cmd_list=[]):
         # add files
@@ -249,6 +255,7 @@ class Builder:
             for cmd in cmd_list:
                 m.shell_call(cmd)
 
+    @AutoChrootDir()
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
@@ -265,7 +272,7 @@ class Builder:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
         else:
             # FIXME
-            t = TargetDirsAndFiles()
+            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
             robust_layer.simple_fops.rm(t.confdir_hostpath)
             robust_layer.simple_fops.rm(t.statedir_hostpath)
             robust_layer.simple_fops.rm(t.pkgdbdir_hostpath)
@@ -274,8 +281,40 @@ class Builder:
             robust_layer.simple_fops.rm(t.distdir_hostpath)
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
 
-    def _getChrootDirName(self):
-        return "%02d-%s" % (self._progress.value, BuildProgress(self._progress.value).name)
+    @Action(BuildProgress.STEP_CLEANED_UP)
+    def action_export(self, exporter):
+        self._workDirObj.create_chroot_dir(from_dir_name=self._getChrootDirName(BuildProgress.STEP_WORLD_SET_UPDATED))  # create a temp chroot env for export operation
+        try:
+            # start
+            exporter.start(self._settings, self._targetSettings)
+
+            # create target rootfs directory
+            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+            os.makedirs(t.export_rootfs_dir_hostpath, exist_ok=True)
+
+            # create export script directory
+            scriptDirPath = "/tmp/export-scripts"
+            scriptDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, scriptDirPath[1:])
+            os.makedirs(scriptDirHostPath, exist_ok=True)
+            mainScriptFilename = exporter.prepare_scripts_in_chroot(t.export_rootfs_dir_path, scriptDirHostPath)
+
+            # chroot operation
+            with _Chrooter(self) as m:
+                # install needed packages
+                # FIXME: it may need
+                for pkg in exporter.get_dep_pkg_list():
+                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                        m.script_exec("", "run-merge.sh %s" % (pkg))
+
+                # do export
+                m.cmd_exec("", os.path.join(scriptDirPath, mainScriptFilename))
+        finally:
+            self._workDirObj.remove_chroot_dir()
+
+    def _getChrootDirName(self, progress=None):
+        if progress is None:
+            progress = self._progress
+        return "%02d-%s" % (progress.value, progress.name)
 
 
 class _Settings:
@@ -580,45 +619,57 @@ class _MyRepo:
 class _Chrooter(WorkDirChrooter):
 
     def __init__(self, parent):
-        self._parent = parent
-        super().__init__(self._parent._workDirObj)
+        self._p = parent
+        self._w = parent._workDirObj
+        super().__init__(self._w)
 
     def bind(self):
         super().bind()
         try:
             self._bindMountList = []
 
-            t = TargetDirsAndFiles(self._parent._workDirObj.chroot_dir_path)
+            t = TargetDirsAndFiles(self._w.chroot_dir_path)
 
             # log directory mount point
             assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.logdir, t.logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.logdir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
-            if self._parent._s.host_distdir is not None:
+            if self._p._s.host_distdir is not None:
                 assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_distdir, t.distdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_distdir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
-            if self._parent._s.host_binpkgdir is not None:
+            if self._p._s.host_binpkgdir is not None:
                 assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_binpkgdir, t.binpkgdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_binpkgdir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
-            if self._parent._s.host_ccachedir is not None and os.path.exists(t.ccachedir_hostpath):
+            if self._p._s.host_ccachedir is not None and os.path.exists(t.ccachedir_hostpath):
                 assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._parent._s.host_ccachedir, t.ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccachedir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for BindMountRepository
-            for myRepo in _MyRepoUtil.scanReposConfDir(self._parent._workDirObj.chroot_dir_path):
+            for myRepo in _MyRepoUtil.scanReposConfDir(self._w.chroot_dir_path):
                 if myRepo.get_hostdir() is not None:
                     assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (myRepo.get_hostdir(), myRepo.datadir_hostpath))
                     self._bindMountList.append(myRepo.datadir_hostpath)
+
+            if self._p._progress == BuildProgress.STEP_CLEANED_UP:
+                # export rootfs directory
+                assert os.path.exists(t.export_rootfs_dir_hostpath) and not Util.isMount(t.export_rootfs_dir_hostpath)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_rootfs_dir_hostpath))
+                self._bindMountList.append(t.export_rootfs_dir_hostpath)
+
+                # export result directory
+                assert os.path.exists(t.export_result_dir_hostpath) and not Util.isMount(t.export_result_dir_hostpath)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._w.get_old_chroot_dir_path(self._p._getChrootDirName()), t.export_result_dir_hostpath))
+                self._bindMountList.append(t.export_result_dir_hostpath)
         except BaseException:
             self.unbind()
             raise
@@ -673,6 +724,16 @@ class TargetDirsAndFiles:
         return "/var/lib/portage/world"
 
     @property
+    def export_rootfs_dir_path(self):
+        # this is for export step only
+        return "/var/tmp/target_rootfs"
+
+    @property
+    def export_result_dir_path(self):
+        # this is for export step only
+        return "/var/tmp/export_result"
+
+    @property
     def confdir_hostpath(self):
         return os.path.join(self._chroot_path, self.confdir_path[1:])
 
@@ -707,6 +768,14 @@ class TargetDirsAndFiles:
     @property
     def world_file_hostpath(self):
         return os.path.join(self._chroot_path, self.world_file_path[1:])
+
+    @property
+    def export_rootfs_dir_hostpath(self):
+        return os.path.join(self._chroot_path, self.export_rootfs_dir_path[1:])
+
+    @property
+    def export_result_dir_hostpath(self):
+        return os.path.join(self._chroot_path, self.export_result_dir_path[1:])
 
 
 class TargetConfDir:

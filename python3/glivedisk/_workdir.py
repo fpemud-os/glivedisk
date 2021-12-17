@@ -35,9 +35,11 @@ class WorkDir:
     This class manipulates glivecd's working directory.
     """
 
-    MODE = 0o40700
+    _MODE = 0o40700
 
-    CURRENT = "cur"
+    _CURRENT = "cur"
+
+    _RESULT = "result"
 
     def __init__(self, path, chroot_uid_map=None, chroot_gid_map=None):
         assert path is not None
@@ -64,9 +66,13 @@ class WorkDir:
 
     @property
     def chroot_dir_path(self):
-        curPath = os.path.join(self._path, self.CURRENT)
+        curPath = os.path.join(self._path, self._CURRENT)
         assert os.path.exists(curPath)
         return curPath
+
+    @property
+    def result_dir_path(self):
+        return os.path.join(self._path, self._RESULT)
 
     # @property
     # def chroot_uid_map(self):
@@ -80,19 +86,19 @@ class WorkDir:
 
     def initialize(self):
         if not os.path.exists(self._path):
-            os.mkdir(self._path, mode=self.MODE)
+            os.mkdir(self._path, mode=self._MODE)
         else:
             self._verify_dir(True)
             robust_layer.simple_fops.truncate_dir(self._path)
+        os.mkdir(self.result_dir_path)
 
     def verify_existing(self, raise_exception=None):
         assert raise_exception is not None
         if not self._verify_dir(raise_exception):
             return False
+        if not os.path.isdir(self.result_dir_path) or os.path.islink(self.result_dir_path):
+            return False
         return True
-
-    def is_rollback_supported(self):
-        return False
 
     # def has_uid_gid_map(self):
     #     return self._uidMap is not None
@@ -119,22 +125,22 @@ class WorkDir:
     #     return (self.chroot_conv_uid(uid), self.chroot_conv_gid(gid))
 
     def has_chroot_dir(self):
-        curPath = os.path.join(self._path, self.CURRENT)
+        curPath = os.path.join(self._path, self._CURRENT)
         return os.path.exists(curPath)
 
     def create_chroot_dir(self, from_dir_name=None):
-        curPath = os.path.join(self._path, self.CURRENT)
+        curPath = os.path.join(self._path, self._CURRENT)
         assert not os.path.lexists(curPath)
 
         if from_dir_name is not None:
-            if self.is_rollback_supported():
+            if self._isSnapshotSupported():
                 # snapshot the old chroot directory
                 assert False
             else:
                 # copy the old chroot directory
                 Util.cmdCall("/bin/cp", "-r", os.path.join(self._path, from_dir_name), curPath)
         else:
-            if self.is_rollback_supported():
+            if self._isSnapshotSupported():
                 # create sub-volume
                 assert False
             else:
@@ -142,11 +148,11 @@ class WorkDir:
                 os.mkdir(curPath)
 
     def remove_chroot_dir(self, to_dir_name=None):
-        curPath = os.path.join(self._path, self.CURRENT)
+        curPath = os.path.join(self._path, self._CURRENT)
         assert os.path.lexists(curPath)
 
         if to_dir_name is not None:
-            assert to_dir_name != self.CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
+            assert to_dir_name != self._CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
             robust_layer.simple_fops.mv(curPath, os.path.join(self._path, to_dir_name))
         else:
             robust_layer.simple_fops.rm(curPath)
@@ -154,9 +160,13 @@ class WorkDir:
     def get_old_chroot_dir_names(self):
         ret = []
         for fn in os.listdir(self._path):
-            if fn != self.CURRENT and os.path.isdir(fn):
+            if fn not in [self._CURRENT, self._RESULT] and os.path.isdir(fn):
                 ret.append(fn)
         return ret
+
+    def get_old_chroot_dir_path(self, dir_name):
+        assert dir_name in self.get_old_chroot_dir_names()
+        return os.path.join(self._path, dir_name)
 
     def get_save_files(self):
         ret = []
@@ -164,6 +174,9 @@ class WorkDir:
             if os.path.isfile(fn) and fn.endswith(".save"):
                 ret.append(fn)
         return ret
+
+    def _isSnapshotSupported(self):
+        return False
 
     def _verify_dir(self, raiseException):
         # work directory can be a directory or directory symlink
@@ -174,7 +187,7 @@ class WorkDir:
                 raise WorkDirError("\"%s\" is not a directory" % (self._path))
             else:
                 return False
-        if s.st_mode != self.MODE:
+        if s.st_mode != self._MODE:
             if raiseException:
                 raise WorkDirError("invalid mode for \"%s\"" % (self._path))
             else:

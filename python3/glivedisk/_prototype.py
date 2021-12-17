@@ -38,6 +38,18 @@ class SeedStage(abc.ABC):
 class Exporter(abc.ABC):
 
     @abc.abstractmethod
+    def start(self, settings, target_settings):
+        pass
+
+    @abc.abstractmethod
+    def get_dep_pkg_list(self):
+        pass
+
+    @abc.abstractmethod
+    def prepare_scripts_in_chroot(self, target_rootfs_dir_path, dst_dir_hostpath):
+        pass
+
+    @abc.abstractmethod
     def export(self):
         pass
 
