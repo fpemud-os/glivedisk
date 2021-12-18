@@ -33,9 +33,9 @@ MY_NAME = "gstage4"
 class Settings(dict):
 
     def __init__(self):
-        self.prog_name = None
+        self.program_name = None
 
-        self.logdir = None
+        self.log_dir = None
 
         self.verbose = False
 
@@ -60,15 +60,15 @@ class Settings(dict):
             else:
                 return False
 
-        if not isinstance(obj.prog_name, str):
+        if not isinstance(obj.program_name, str):
             if raise_exception:
                 raise SettingsError("invalid value for key \"program_name\"")
             else:
                 return False
 
-        if obj.logdir is not None and not isinstance(obj.logdir, str):
+        if obj.log_dir is not None and not isinstance(obj.log_dir, str):
             if raise_exception:
-                raise SettingsError("invalid value for key \"logdir\"")
+                raise SettingsError("invalid value for key \"log_dir\"")
             else:
                 return False
 

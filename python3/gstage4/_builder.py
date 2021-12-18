@@ -70,7 +70,7 @@ class Builder:
         assert work_dir.verify_existing(raise_exception=False)
 
         self._s = settings
-        os.makedirs(self._s.logdir, mode=0o750, exist_ok=True)
+        os.makedirs(self._s.log_dir, mode=0o750, exist_ok=True)
 
         self._ts = target_settings
         if True:
@@ -370,7 +370,7 @@ class _Chrooter(WorkDirChrooter):
 
             # log directory mount point
             assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.logdir, t.logdir_hostpath))
+            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.log_dir, t.logdir_hostpath))
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
