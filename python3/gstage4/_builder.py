@@ -34,10 +34,11 @@ from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, Em
 from ._workdir import WorkDirChrooter
 
 
-def Action(*progressStepList):
+def Action(*progressStepTuple):
     def decorator(func):
         def wrapper(self, *kargs):
-            assert sorted(progressStepList) == progressStepList
+            progressStepList = list(progressStepTuple)
+            assert sorted(progressStepList) == list(progressStepList)
             assert self._progress in progressStepList
             self._workDirObj.open_chroot_dir(from_dir_name=self._getChrootDirName())
             func(self, *kargs)
