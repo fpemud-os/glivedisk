@@ -65,17 +65,14 @@ class Builder:
     """
 
     def __init__(self, settings, target_settings, work_dir):
-        assert isinstance(settings, Settings)
-        assert isinstance(target_settings, TargetSettings)
+        assert Settings.check_object(settings, raise_exception=False)
+        assert TargetSettings.check_object(target_settings, raise_exception=False)
         assert work_dir.verify_existing(raise_exception=False)
 
-        self._settings = settings
-        self._targetSettings = target_settings
-
-        self._s = _Settings(settings)
+        self._s = settings
         os.makedirs(self._s.logdir, mode=0o750, exist_ok=True)
 
-        self._ts = _TargetSettings(target_settings)
+        self._ts = target_settings
         if True:
             def __raiseErrorIfPkgNotFound(pkg):
                 if pkg not in self._ts.install_list and pkg not in self._ts.world_set:
@@ -83,7 +80,7 @@ class Builder:
 
             if self._ts.build_opts.ccache:
                 if self._s.host_ccachedir is None:
-                    raise SettingsError("ccache is enabled but no host ccache directory is specified")
+                    raise SettingsError("ccache is enabled but host ccache directory is not specified")
                 __raiseErrorIfPkgNotFound("dev-util/ccache")
 
         self._workDirObj = work_dir
@@ -253,176 +250,6 @@ class Builder:
         if progress is None:
             progress = self._progress
         return "%02d-%s" % (progress.value, progress.name)
-
-
-class _Settings:
-
-    def __init__(self, settings):
-        assert settings.verify(raise_exception=True)
-
-        self.prog_name = settings["program_name"]
-
-        self.logdir = settings["logdir"]
-
-        self.verbose = settings["verbose"]
-
-        x = settings["host_computing_power"]
-        self.host_computing_power = ComputingPower.new(x["cpu_core_count"], x["memory_size"], x["cooling_level"])
-
-        # distfiles directory in host system, will be bind mounted in target system
-        if "host_distfiles_dir" in settings:
-            self.host_distdir = settings["host_distfiles_dir"]
-        else:
-            self.host_distdir = None
-
-        # packages directory in host system
-        if "host_packages_dir" in settings:
-            self.host_binpkgdir = settings["host_packages_dir"]
-        else:
-            self.host_binpkgdir = None
-
-        # ccache directory in host system
-        if "host_ccache_dir" in settings:
-            self.host_ccachedir = settings["host_ccache_dir"]
-        else:
-            self.host_ccachedir = None
-
-
-class _TargetSettings:
-
-    def __init__(self, settings):
-        assert settings.verify(raise_exception=True)
-
-        if "profile" in settings:
-            self.profile = settings["profile"]
-        else:
-            self.profile = None
-
-        if "install_list" in settings:
-            self.install_list = list(settings["install_list"])
-            if self.install_list is None:
-                raise SettingsError("invalid value for \"install_list\"")
-        else:
-            self.install_list = []
-
-        if "world_set" in settings:
-            self.world_set = list(settings["world_set"])
-            if self.world_set is None:
-                raise SettingsError("invalid value for \"world_set\"")
-            if len(set(self.world_set) & set(self.install_list)) > 0:
-                raise SettingsError("same element found in install_list and world_set")
-        else:
-            self.world_set = []
-
-        if "pkg_use" in settings:
-            self.pkg_use = dict(settings["pkg_use"])  # dict<package-wildcard, use-flag-list>
-        else:
-            self.pkg_use = dict()
-
-        if "pkg_mask" in settings:
-            self.pkg_mask = dict(settings["pkg_mask"])  # list<package-wildcard>
-        else:
-            self.pkg_mask = []
-
-        if "pkg_unmask" in settings:
-            self.pkg_unmask = dict(settings["pkg_unmask"])  # list<package-wildcard>
-        else:
-            self.pkg_unmask = []
-
-        if "pkg_accept_keywords" in settings:
-            self.pkg_accept_keywords = dict(settings["pkg_accept_keywords"])  # dict<package-wildcard, accept-keyword-list>
-        else:
-            self.pkg_accept_keywords = dict()
-
-        if "pkg_license" in settings:
-            self.pkg_license = dict(settings["pkg_license"])  # dict<package-wildcard, license-list>
-        else:
-            self.pkg_license = dict()
-
-        if "install_mask" in settings:
-            self.install_mask = dict(settings["install_mask"])  # list<install-mask>
-        else:
-            self.install_mask = []
-
-        if "pkg_install_mask" in settings:
-            self.pkg_install_mask = dict(settings["pkg_install_mask"])  # dict<package-wildcard, install-mask>
-        else:
-            self.pkg_install_mask = dict()
-
-        if "build_opts" in settings:
-            self.build_opts = _TargetSettingsBuildOpts("build_opts", settings["build_opts"])  # list<build-opts>
-            if self.build_opts.ccache is None:
-                self.build_opts.ccache = False
-        else:
-            self.build_opts = _TargetSettingsBuildOpts("build_opts", dict())
-
-        if "kern_build_opts" in settings:
-            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", settings["kern_build_opts"])  # list<build-opts>
-            if self.kern_build_opts.ccache is not None:
-                raise SettingsError("invalid value for key \"ccache\" in kern_build_opts")  # ccache is only allowed in global build options
-        else:
-            self.kern_build_opts = _TargetSettingsBuildOpts("kern_build_opts", dict())
-
-        if "pkg_build_opts" in settings:
-            self.pkg_build_opts = {k: _TargetSettingsBuildOpts("build_opts of %s" % (k), v) for k, v in settings["pkg_build_opts"].items()}  # dict<package-wildcard, build-opts>
-            for k, v in self.pkg_build_opts.items():
-                if k.ccache is not None:
-                    raise SettingsError("invalid value for key \"ccache\" in %s" % k)  # ccache is only allowed in global build options
-        else:
-            self.pkg_build_opts = dict()
-
-        if "degentoo" in settings:
-            self.degentoo = settings["degentoo"]    # make the livecd distribution neutral by removing all gentoo specific files
-            if not isinstance(self.degentoo, bool):
-                raise SettingsError("invalid value for key \"degentoo\"")
-        else:
-            self.degentoo = False
-
-
-class _TargetSettingsBuildOpts:
-
-    def __init__(self, name, settings):
-        if "common_flags" in settings:
-            self.common_flags = list(settings["common_flags"])
-        else:
-            self.common_flags = []
-
-        if "cflags" in settings:
-            self.cflags = list(settings["cflags"])
-        else:
-            self.cflags = []
-
-        if "cxxflags" in settings:
-            self.cxxflags = list(settings["cxxflags"])
-        else:
-            self.cxxflags = []
-
-        if "fcflags" in settings:
-            self.fcflags = list(settings["fcflags"])
-        else:
-            self.fcflags = []
-
-        if "fflags" in settings:
-            self.fflags = list(settings["fflags"])
-        else:
-            self.fflags = []
-
-        if "ldflags" in settings:
-            self.ldflags = list(settings["ldflags"])
-        else:
-            self.ldflags = []
-
-        if "asflags" in settings:
-            self.asflags = list(settings["asflags"])
-        else:
-            self.asflags = []
-
-        if "ccache" in settings:
-            self.ccache = settings["ccache"]
-            if not isinstance(self.ccache, bool):
-                raise SettingsError("invalid value for key \"ccache\" in %s" % (name))
-        else:
-            self.ccache = None
 
 
 class _MyRepoUtil:
