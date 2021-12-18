@@ -131,7 +131,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._s.prog_name, self._workDirObj.chroot_dir_path, self._ts, self._s.host_computing_power)
+        t = TargetConfDir(self._s, self._ts, self._workDirObj.chroot_dir_path)
         t.write_make_conf()
         t.write_package_use()
         t.write_package_mask()
@@ -496,30 +496,29 @@ class TargetDirsAndFiles:
 
 class TargetConfDir:
 
-    def __init__(self, program_name, chrootDir, target, host_computing_power):
-        self._progName = program_name
+    def __init__(self, settings, targetSettings, chrootDir):
+        self._s = settings
+        self._ts = targetSettings
         self._dir = TargetDirsAndFiles(chrootDir).confdir_hostpath
-        self._target = target
-        self._computing_power = host_computing_power
 
     def write_make_conf(self):
         # determine parallelism parameters
         paraMakeOpts = None
         paraEmergeOpts = None
         if True:
-            if self._computing_power.cooling_level <= 1:
+            if self._s.host_computing_power.cooling_level <= 1:
                 jobcountMake = 1
                 jobcountEmerge = 1
                 loadavg = 1
             else:
-                if self._computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
-                    jobcountMake = self._computing_power.cpu_core_count + 2
-                    jobcountEmerge = self._computing_power.cpu_core_count
-                    loadavg = self._computing_power.cpu_core_count
+                if self._s.host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
+                    jobcountMake = self._s.host_computing_power.cpu_core_count + 2
+                    jobcountEmerge = self._s.host_computing_power.cpu_core_count
+                    loadavg = self._s.host_computing_power.cpu_core_count
                 else:
-                    jobcountMake = self._computing_power.cpu_core_count
-                    jobcountEmerge = self._computing_power.cpu_core_count
-                    loadavg = max(1, self._computing_power.cpu_core_count - 1)
+                    jobcountMake = self._s.host_computing_power.cpu_core_count
+                    jobcountEmerge = self._s.host_computing_power.cpu_core_count
+                    loadavg = max(1, self._s.host_computing_power.cpu_core_count - 1)
 
             paraMakeOpts = ["--jobs=%d" % (jobcountMake), "--load-average=%d" % (loadavg), "-j%d" % (jobcountMake), "-l%d" % (loadavg)]     # for bug 559064 and 592660, we need to add -j and -l, it sucks
             paraEmergeOpts = ["--jobs=%d" % (jobcountEmerge), "--load-average=%d" % (loadavg)]
@@ -527,7 +526,7 @@ class TargetConfDir:
         # define helper functions
         def __flagsWrite(flags, value):
             if value is None:
-                if self._target.build_opts.common_flags is None:
+                if self._ts.build_opts.common_flags is None:
                     pass
                 else:
                     myf.write('%s="${COMMON_FLAGS}"\n' % (flags))
@@ -540,27 +539,27 @@ class TargetConfDir:
         # Modify and write out make.conf (in chroot)
         makepath = os.path.join(self._dir, "make.conf")
         with open(makepath, "w") as myf:
-            myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._progName))
+            myf.write("# These settings were set by %s that automatically built this stage.\n" % (self._s.program_name))
             myf.write("# Please consult /usr/share/portage/config/make.conf.example for a more detailed example.\n")
             myf.write("\n")
 
             # features
             featureList = []
-            if self._target.build_opts.ccache:
+            if self._ts.build_opts.ccache:
                 featureList.append("ccache")
             if len(featureList) > 0:
                 myf.write('FEATURES="%s"\n' % (" ".join(featureList)))
                 myf.write('\n')
 
             # flags
-            if self._target.build_opts.common_flags is not None:
-                myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._target.build_opts.common_flags)))
-            __flagsWrite("CFLAGS", self._target.build_opts.cflags)
-            __flagsWrite("CXXFLAGS", self._target.build_opts.cxxflags)
-            __flagsWrite("FCFLAGS", self._target.build_opts.fcflags)
-            __flagsWrite("FFLAGS", self._target.build_opts.fflags)
-            __flagsWrite("LDFLAGS", self._target.build_opts.ldflags)
-            __flagsWrite("ASFLAGS", self._target.build_opts.asflags)
+            if self._ts.build_opts.common_flags is not None:
+                myf.write('COMMON_FLAGS="%s"\n' % (' '.join(self._ts.build_opts.common_flags)))
+            __flagsWrite("CFLAGS", self._ts.build_opts.cflags)
+            __flagsWrite("CXXFLAGS", self._ts.build_opts.cxxflags)
+            __flagsWrite("FCFLAGS", self._ts.build_opts.fcflags)
+            __flagsWrite("FFLAGS", self._ts.build_opts.fflags)
+            __flagsWrite("LDFLAGS", self._ts.build_opts.ldflags)
+            __flagsWrite("ASFLAGS", self._ts.build_opts.asflags)
             myf.write('\n')
 
             # set default locale for system responses. #478382
@@ -581,7 +580,7 @@ class TargetConfDir:
             myf.write("*/* compile-locales")
 
             # write cusom USE flags
-            for pkg_wildcard, use_flag_list in self._target.pkg_use.items():
+            for pkg_wildcard, use_flag_list in self._ts.pkg_use.items():
                 if "compile-locales" in use_flag_list:
                     raise SettingsError("USE flag \"compile-locales\" is not allowed")
                 if "-compile-locales" in use_flag_list:
@@ -593,7 +592,7 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "package.mask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            for pkg_wildcard in self._target.pkg_mask:
+            for pkg_wildcard in self._ts.pkg_mask:
                 myf.write("%s\n" % (pkg_wildcard))
 
     def write_package_unmask(self):
@@ -601,7 +600,7 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "package.unmask")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            for pkg_wildcard in self._target.pkg_unmask:
+            for pkg_wildcard in self._ts.pkg_unmask:
                 myf.write("%s\n" % (pkg_wildcard))
 
     def write_package_accept_keywords(self):
@@ -609,7 +608,7 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "package.accept_keywords")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            for pkg_wildcard, keyword_list in self._target.pkg_accept_keywords.items():
+            for pkg_wildcard, keyword_list in self._ts.pkg_accept_keywords.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(keyword_list)))
 
     def write_package_license(self):
@@ -617,5 +616,5 @@ class TargetConfDir:
         fpath = os.path.join(self._dir, "package.license")
         robust_layer.simple_fops.rm(fpath)
         with open(fpath, "w") as myf:
-            for pkg_wildcard, license_list in self._target.pkg_license.items():
+            for pkg_wildcard, license_list in self._ts.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
