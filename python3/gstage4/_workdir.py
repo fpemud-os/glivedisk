@@ -128,7 +128,7 @@ class WorkDir:
         assert not os.path.lexists(curPath)
 
         if from_dir_name is not None:
-            assert from_dir_name in self._getOldChrootDirNames()
+            assert from_dir_name in self.get_old_chroot_dir_names()
             if self._rollback:
                 if self._isSnapshotSupported():
                     # snapshot the old chroot directory
@@ -154,18 +154,20 @@ class WorkDir:
         assert os.path.lexists(curPath)
 
         if to_dir_name is not None:
-            assert to_dir_name != self._CURRENT and to_dir_name not in self._getOldChrootDirNames()
+            assert to_dir_name != self._CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
             robust_layer.simple_fops.mv(curPath, os.path.join(self._path, to_dir_name))
         else:
             robust_layer.simple_fops.rm(curPath)
 
     def get_old_chroot_dir_names(self):
-        assert self._rollback
-        return self._getOldChrootDirNames()
+        ret = []
+        for fn in os.listdir(self._path):
+            if fn != self._CURRENT and os.path.isdir(fn):
+                ret.append(fn)
+        return ret
 
     def get_old_chroot_dir_path(self, dir_name):
-        assert self._rollback
-        assert dir_name in self._getOldChrootDirNames()
+        assert dir_name in self.get_old_chroot_dir_names()
         return os.path.join(self._path, dir_name)
 
     def get_save_files(self):
@@ -203,13 +205,6 @@ class WorkDir:
             else:
                 return False
         return True
-
-    def _getOldChrootDirNames(self):
-        ret = []
-        for fn in os.listdir(self._path):
-            if fn != self._CURRENT and os.path.isdir(fn):
-                ret.append(fn)
-        return ret
 
 
 class WorkDirChrooter:
