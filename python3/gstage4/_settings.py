@@ -42,13 +42,13 @@ class Settings(dict):
         self.host_computing_power = None
 
         # distfiles directory in host system, will be bind mounted in target system
-        self.host_distdir = None
+        self.host_distfiles_dir = None
 
         # packages directory in host system
-        self.host_binpkgdir = None
+        self.host_packages_dir = None
 
         # ccache directory in host system
-        self.host_ccachedir = None
+        self.host_ccache_dir = None
 
     @classmethod
     def check_object(cls, obj, raise_exception=None):
@@ -84,21 +84,21 @@ class Settings(dict):
             else:
                 return False
 
-        if obj.host_distdir is not None and not os.path.isdir(obj.host_distdir):
+        if obj.host_distfiles_dir is not None and not os.path.isdir(obj.host_distfiles_dir):
             if raise_exception:
-                raise SettingsError("invalid value for key \"host_distdir\"")
+                raise SettingsError("invalid value for key \"host_distfiles_dir\"")
             else:
                 return False
 
-        if obj.host_binpkgdir is not None and not os.path.isdir(obj.host_binpkgdir):
+        if obj.host_packages_dir is not None and not os.path.isdir(obj.host_packages_dir):
             if raise_exception:
-                raise SettingsError("invalid value for key \"host_binpkgdir\"")
+                raise SettingsError("invalid value for key \"host_packages_dir\"")
             else:
                 return False
 
-        if obj.host_ccachedir is not None and not os.path.isdir(obj.host_ccachedir):
+        if obj.host_ccache_dir is not None and not os.path.isdir(obj.host_ccache_dir):
             if raise_exception:
-                raise SettingsError("invalid value for key \"host_ccachedir\"")
+                raise SettingsError("invalid value for key \"host_ccache_dir\"")
             else:
                 return False
 

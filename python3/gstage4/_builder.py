@@ -79,7 +79,7 @@ class Builder:
                     raise SettingsError("package %s is needed" % (pkg))
 
             if self._ts.build_opts.ccache:
-                if self._s.host_ccachedir is None:
+                if self._s.host_ccache_dir is None:
                     raise SettingsError("ccache is enabled but host ccache directory is not specified")
                 __raiseErrorIfPkgNotFound("dev-util/ccache")
 
@@ -374,21 +374,21 @@ class _Chrooter(WorkDirChrooter):
             self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
-            if self._p._s.host_distdir is not None:
+            if self._p._s.host_distfiles_dir is not None:
                 assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_distdir, t.distdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
-            if self._p._s.host_binpkgdir is not None:
+            if self._p._s.host_packages_dir is not None:
                 assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_binpkgdir, t.binpkgdir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_packages_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
-            if self._p._s.host_ccachedir is not None and os.path.exists(t.ccachedir_hostpath):
+            if self._p._s.host_ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
                 assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccachedir, t.ccachedir_hostpath))
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for BindMountRepository
