@@ -70,7 +70,8 @@ class Builder:
         assert work_dir.verify_existing(raise_exception=False)
 
         self._s = settings
-        os.makedirs(self._s.log_dir, mode=0o750, exist_ok=True)
+        if self._s.log_dir is not None:
+            os.makedirs(self._s.log_dir, mode=0o750, exist_ok=True)
 
         self._ts = target_settings
         if True:
@@ -370,9 +371,10 @@ class _Chrooter(WorkDirChrooter):
             t = TargetDirsAndFiles(self._w.chroot_dir_path)
 
             # log directory mount point
-            assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-            Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.log_dir, t.logdir_hostpath))
-            self._bindMountList.append(t.logdir_hostpath)
+            if self._p._s.log_dir is not None:
+                assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
+                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.log_dir, t.logdir_hostpath))
+                self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
             if self._p._s.host_distfiles_dir is not None:
