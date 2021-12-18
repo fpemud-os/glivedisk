@@ -124,7 +124,10 @@ class TargetSettings(dict):
         self.pkg_install_mask = dict()     # dict<package-wildcard, install-mask>
 
         self.build_opts = TargetSettingsBuildOpts("build_opts")
+        self.build_opts.ccache = False
+
         self.kern_build_opts = TargetSettingsBuildOpts("kern_build_opts")
+
         self.pkg_build_opts = dict()
 
         self.degentoo = False
