@@ -74,19 +74,17 @@ class Builder:
 
         self._ts = target_settings
         if True:
-            def __raiseErrorIfPkgNotFound(pkg):
-                if pkg not in self._ts.install_list and pkg not in self._ts.world_set:
-                    raise SettingsError("package %s is needed" % (pkg))
-
             if self._ts.build_opts.ccache:
                 if self._s.host_ccache_dir is None:
                     raise SettingsError("ccache is enabled but host ccache directory is not specified")
-                __raiseErrorIfPkgNotFound("dev-util/ccache")
+                pkg = "dev-util/ccache"
+                if pkg not in self._ts.install_list and pkg not in self._ts.world_set:
+                    raise SettingsError("package %s is needed" % (pkg))
 
         self._workDirObj = work_dir
 
-        self._workDirObj.open_chroot_dir()
         self._progress = BuildProgress.STEP_INIT
+        self._workDirObj.open_chroot_dir()
         self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
 
     def get_progress(self):
