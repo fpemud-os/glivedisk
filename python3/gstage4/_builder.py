@@ -246,10 +246,8 @@ class Builder:
             robust_layer.simple_fops.rm(t.distdir_hostpath)
             robust_layer.simple_fops.rm(t.binpkgdir_hostpath)
 
-    def _getChrootDirName(self, progress=None):
-        if progress is None:
-            progress = self._progress
-        return "%02d-%s" % (progress.value, progress.name)
+    def _getChrootDirName(self):
+        return "%02d-%s" % (self._progress.value, self._progress.name)
 
 
 class _MyRepoUtil:

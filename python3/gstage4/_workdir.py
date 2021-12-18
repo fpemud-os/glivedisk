@@ -162,7 +162,7 @@ class WorkDir:
     def get_old_chroot_dir_names(self):
         ret = []
         for fn in os.listdir(self._path):
-            if fn != self._CURRENT and os.path.isdir(fn):
+            if fn != self._CURRENT and os.path.isdir(os.path.join(self._path, fn)):
                 ret.append(fn)
         return ret
 
