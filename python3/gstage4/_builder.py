@@ -364,6 +364,9 @@ class _Chrooter(WorkDirChrooter):
         try:
             self._bindMountList = []
 
+            selfDir = os.path.dirname(os.path.realpath(__file__))
+            chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
+            chrootScriptDstDirHostPath = os.path.join(self._w.chroot_dir_path, self._chrootScriptDstDir[1:])
             t = TargetDirsAndFiles(self._w.chroot_dir_path)
 
             # log directory mount point
@@ -395,6 +398,11 @@ class _Chrooter(WorkDirChrooter):
                     assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
                     Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (myRepo.get_hostdir(), myRepo.datadir_hostpath))
                     self._bindMountList.append(myRepo.datadir_hostpath)
+
+            # copy chroot scripts
+            # no clean up needed since these files are in tmpfs
+            Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDirHostPath)
+            Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDirHostPath))
         except BaseException:
             self.unbind()
             raise

@@ -228,10 +228,6 @@ class WorkDirChrooter:
     def bind(self):
         assert not self._bBind
 
-        selfDir = os.path.dirname(os.path.realpath(__file__))
-        chrootScriptSrcDir = os.path.join(selfDir, "scripts-in-chroot")
-        chrootScriptDstDirHostPath = os.path.join(self._workDirObj.chroot_dir_path, self._chrootScriptDstDir[1:])
-
         try:
             # copy resolv.conf
             Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "etc")))
@@ -256,11 +252,6 @@ class WorkDirChrooter:
             # mount /tmp
             self._assertDirStatus("/tmp")
             Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "tmp")))
-
-            # copy chroot scripts
-            # no clean up needed since these files are in tmpfs
-            Util.cmdCall("/bin/cp", "-r", chrootScriptSrcDir, chrootScriptDstDirHostPath)
-            Util.shellCall("/bin/chmod -R 755 %s/*" % (chrootScriptDstDirHostPath))
         except BaseException:
             self._unbind()
             raise

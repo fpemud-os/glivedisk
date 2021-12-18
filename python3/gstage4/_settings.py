@@ -311,7 +311,7 @@ class TargetSettingsBuildOpts:
             else:
                 return False
 
-        if obj.asflags is not None and not isinstance(obj.ccache, bool):
+        if obj.ccache is not None and not isinstance(obj.ccache, bool):
             if raise_exception:
                 raise SettingsError("invalid value for \"ccache\" of %s" % (obj.name))
             else:
