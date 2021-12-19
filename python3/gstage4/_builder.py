@@ -128,7 +128,7 @@ class Builder:
         if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
                 scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-                Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+                Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
 
                 m.shell_exec("", "%s/run-merge.sh --sync" % (scriptDirPath))
 
@@ -231,7 +231,7 @@ class Builder:
     def action_cleanup(self):
         with _Chrooter(self) as m:
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
 
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
