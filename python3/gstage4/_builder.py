@@ -172,7 +172,7 @@ class Builder:
         # install packages, update @world
         with _Chrooter(self) as m:
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
 
             for pkg in installList:
                 m.shell_exec("", "%s/run-merge.sh -1 %s" % (scriptDirPath, pkg))
