@@ -27,9 +27,6 @@ import multiprocessing
 from ._errors import SettingsError
 
 
-MY_NAME = "gstage4"
-
-
 class Settings(dict):
 
     def __init__(self):

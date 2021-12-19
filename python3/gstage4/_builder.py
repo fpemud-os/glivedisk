@@ -127,7 +127,10 @@ class Builder:
 
         if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
-                m.script_exec("", "run-merge.sh --sync")
+                scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
+                Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+
+                m.shell_exec("", "%s/run-merge.sh --sync" % (scriptDirPath))
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
@@ -168,9 +171,12 @@ class Builder:
 
         # install packages, update @world
         with _Chrooter(self) as m:
+            scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
+            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+
             for pkg in installList:
-                m.script_exec("", "run-merge.sh -1 %s" % (pkg))
-            m.script_exec("", "run-update.sh @world")
+                m.shell_exec("", "%s/run-merge.sh -1 %s" % (scriptDirPath, pkg))
+            m.shell_exec("", "%s/run-update.sh @world" % (scriptDirPath))
 
             if m.shell_test("", "which perl-cleaner"):
                 out = m.shell_call("", "perl-cleaner --pretend --all")
@@ -224,14 +230,17 @@ class Builder:
     @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
+            scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
+            Util.cmdCall("/bin/cp -r %s/* %s" % (os.path.dirname(os.path.realpath(__file__), "scripts-in-chroot"), scriptsDirHostPath))
+
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
-                m.script_exec("", "run-depclean.sh")
+                m.shell_exec("", "%s/run-depclean.sh" % (scriptDirPath))
             else:
                 # FIXME
-                m.script_exec("", "run-depclean.sh")
-                m.script_exec("", "run-merge.sh -C sys-devel/gcc")
-                m.script_exec("", "run-merge.sh -C sys-apps/portage")
+                m.shell_exec("", "%s/run-depclean.sh" % (scriptDirPath))
+                m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
+                m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
         if not self._ts.degentoo:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
@@ -413,13 +422,13 @@ class _Chrooter(WorkDirChrooter):
 
     def create_script_dir_in_chroot(self, dir_name):
         assert self.binded
-        assert dir_name.startswith("/")
-        hostPath = os.path.join(self._w.chroot_dir_path, "tmp", dir_name[1:])
+        path = os.path.join("/tmp", dir_name)
+        hostPath = os.path.join(self._w.chroot_dir_path, path[1:])
         assert not os.path.exists(hostPath)
 
         os.makedirs(hostPath, mode=0o755)
         self._scriptDirList.append(hostPath)
-        return hostPath
+        return path, hostPath
 
 
 class TargetDirsAndFiles:
