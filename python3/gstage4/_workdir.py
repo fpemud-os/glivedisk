@@ -210,7 +210,6 @@ class WorkDir:
 class WorkDirChrooter:
 
     def __init__(self, work_dir):
-        self._chrootScriptDstDir = os.path.join("/tmp", MY_NAME)
         self._workDirObj = work_dir
         self._bBind = False
 
@@ -294,16 +293,6 @@ class WorkDirChrooter:
             Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
         else:
             Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
-
-    def script_exec(self, env, cmd, quiet=False):
-        # FIXME
-        env = "LANG=C.utf8 " + env
-        assert self._detectArch() == platform.machine()
-
-        if not quiet:
-            Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(self._chrootScriptDstDir, cmd)))
-        else:
-            Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, os.path.join(self._chrootScriptDstDir, cmd)))
 
     def _assertDirStatus(self, dir):
         assert dir.startswith("/")

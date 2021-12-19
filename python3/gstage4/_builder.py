@@ -363,7 +363,7 @@ class _Chrooter(WorkDirChrooter):
         super().bind()
         try:
             self._bindMountList = []
-            self._execDirList = []
+            self._scriptDirList = []
 
             t = TargetDirsAndFiles(self._w.chroot_dir_path)
 
@@ -402,23 +402,23 @@ class _Chrooter(WorkDirChrooter):
             raise
 
     def unbind(self):
-        if hasattr(self, "_execDirList"):
+        if hasattr(self, "_scriptDirList"):
             # exec directories are in tmpfs, no need to delete
-            del self._execDirList
+            del self._scriptDirList
         if hasattr(self, "_bindMountList"):
             for fullfn in reversed(self._bindMountList):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
             del self._bindMountList
         super().unbind()
 
-    def create_exec_dir_in_chroot(self, dir_name):
+    def create_script_dir_in_chroot(self, dir_name):
         assert self.binded
         assert dir_name.startswith("/")
         hostPath = os.path.join(self._w.chroot_dir_path, "tmp", dir_name[1:])
         assert not os.path.exists(hostPath)
 
         os.makedirs(hostPath, mode=0o755)
-        self._execDirList.append(hostPath)
+        self._scriptDirList.append(hostPath)
         return hostPath
 
 
