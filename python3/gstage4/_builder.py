@@ -129,6 +129,7 @@ class Builder:
             with _Chrooter(self) as m:
                 scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
                 Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
+                Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
 
                 m.shell_exec("", "%s/run-merge.sh --sync" % (scriptDirPath))
 
@@ -173,6 +174,7 @@ class Builder:
         with _Chrooter(self) as m:
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
             Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
+            Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
 
             for pkg in installList:
                 m.shell_exec("", "%s/run-merge.sh -1 %s" % (scriptDirPath, pkg))
@@ -232,6 +234,7 @@ class Builder:
         with _Chrooter(self) as m:
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
             Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
+            Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
 
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
