@@ -146,6 +146,10 @@ class TargetSettings(dict):
             if pkg not in obj.install_list and pkg not in obj.world_set:
                 raise SettingsError("package %s is needed" % (pkg))
 
+        def __worldNeeded(pkg):
+            if pkg not in obj.world_set:
+                raise SettingsError("package %s is needed" % (pkg))
+
         if not isinstance(obj, cls):
             if raise_exception:
                 raise SettingsError("invalid object type")
@@ -303,24 +307,24 @@ class TargetSettings(dict):
                 return False
 
         if obj.package_manager == "portage":
-            __pkgNeeded("sys-apps/portage")
+            __worldNeeded("sys-apps/portage")
         else:
             assert False
 
         if obj.kernel_manager == "genkernel":
-            __pkgNeeded("sys-kernel/genkernel")
+            __worldNeeded("sys-kernel/genkernel")
         else:
             assert False
 
         if obj.service_manager == "openrc":
-            __pkgNeeded("sys-apps/openrc")
+            __worldNeeded("sys-apps/openrc")
         elif obj.service_manager == "systemd":
-            __pkgNeeded("sys-apps/systemd")
+            __worldNeeded("sys-apps/systemd")
         else:
             assert False
 
         if obj.build_opts.ccache:
-            __pkgNeeded("dev-util/ccache")
+            __worldNeeded("dev-util/ccache")
 
         return True
 
