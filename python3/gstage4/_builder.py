@@ -75,13 +75,8 @@ class Builder:
             os.makedirs(self._s.log_dir, mode=0o750, exist_ok=True)
 
         self._ts = target_settings
-        if True:
-            if self._ts.build_opts.ccache:
-                if self._s.host_ccache_dir is None:
-                    raise SettingsError("ccache is enabled but host ccache directory is not specified")
-                pkg = "dev-util/ccache"
-                if pkg not in self._ts.install_list and pkg not in self._ts.world_set:
-                    raise SettingsError("package %s is needed" % (pkg))
+        if self._ts.build_opts.ccache and self._s.host_ccache_dir is None:
+            raise SettingsError("ccache is enabled but host ccache directory is not specified")
 
         self._workDirObj = work_dir
 

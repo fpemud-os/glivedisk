@@ -89,7 +89,3 @@ class SysConfig(abc.ABC):
     @abc.abstractmethod
     def update_target_settings(self):
         pass
-
-
-
-
