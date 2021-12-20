@@ -55,7 +55,8 @@ class BuildProgress(enum.IntEnum):
     STEP_CONFDIR_INITIALIZED = enum.auto()
     STEP_WORLD_SET_UPDATED = enum.auto()
     STEP_KERNEL_INSTALLED = enum.auto()
-    STEP_SYSTEM_CONFIGURED = enum.auto()
+    STEP_SERVICES_ENABLED = enum.auto()
+    STEP_SYSTEM_CUSTOMIZED = enum.auto()
     STEP_CLEANED_UP = enum.auto()
 
 
@@ -206,7 +207,11 @@ class Builder:
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
-    def action_config_system(self, file_list=[], cmd_list=[]):
+    def action_enable_services(self):
+        pass
+
+    @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED, BuildProgress.STEP_SERVICES_ENABLED)
+    def action_customize_system(self, file_list=[], cmd_list=[]):
         # add files
         for fullfn, mode, dstDir in file_list:
             assert dstDir.startswith("/")
@@ -221,7 +226,7 @@ class Builder:
             for cmd in cmd_list:
                 m.shell_call(cmd)
 
-    @Action(BuildProgress.STEP_SYSTEM_CONFIGURED)
+    @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
