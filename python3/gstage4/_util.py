@@ -45,6 +45,7 @@ class Util:
     def loadEnum(filepath, klass):
         return Util.loadObj(filepath)
 
+    @staticmethod
     def pathCompare(path1, path2):
         # Change double slashes to slash
         path1 = re.sub(r"//", r"/", path1)
@@ -57,6 +58,7 @@ class Util:
             return 1
         return 0
 
+    @staticmethod
     def isMount(path):
         """Like os.path.ismount, but also support bind mounts"""
         if os.path.ismount(path):
@@ -69,6 +71,13 @@ class Util:
             if Util.pathCompare(path, mysplit[2]):
                 return 1
         return 0
+
+    @staticmethod
+    def isInstanceList(obj, *instances):
+        for inst in instances:
+            if isinstance(obj, inst):
+                return True
+        return False
 
     @staticmethod
     def cmdCall(cmd, *kargs):

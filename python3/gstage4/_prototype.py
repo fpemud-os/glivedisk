@@ -78,3 +78,18 @@ class EmergeSyncRepository(abc.ABC):
     @abc.abstractmethod
     def get_datadir_path(self):
         pass
+
+
+class SysConfig(abc.ABC):
+
+    @abc.abstractmethod
+    def check_target_settings(self):
+        pass
+
+    @abc.abstractmethod
+    def update_target_settings(self):
+        pass
+
+
+
+

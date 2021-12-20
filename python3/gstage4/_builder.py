@@ -106,26 +106,23 @@ class Builder:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
     @Action(BuildProgress.STEP_UNPACKED)
-    def action_init_repositories(self, repo_list):
-        assert len(repo_list) > 0
-        assert repo_list[0].get_name() == "gentoo"
-
-        for i in range(0, len(repo_list)):
-            repo = repo_list[i]
+    def action_init_repositories(self):
+        for repo in self.repo_list:
+            repoOrOverlay = (repo.get_name() == "gentoo")
             if isinstance(repo, ManualSyncRepository):
-                _MyRepoUtil.createFromManuSyncRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+                _MyRepoUtil.createFromManuSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
             elif isinstance(repo, BindMountRepository):
-                _MyRepoUtil.createFromBindMountRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+                _MyRepoUtil.createFromBindMountRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
             elif isinstance(repo, EmergeSyncRepository):
-                _MyRepoUtil.createFromEmergeSyncRepo(repo, i == 0, self._workDirObj.chroot_dir_path)
+                _MyRepoUtil.createFromEmergeSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
             else:
                 assert False
 
-        for repo in repo_list:
+        for repo in self.repo_list:
             if isinstance(repo, ManualSyncRepository):
                 repo.sync()
 
-        if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
+        if any([isinstance(repo, EmergeSyncRepository) for repo in self.repo_list]):
             with _Chrooter(self) as m:
                 scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
                 Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))

@@ -22,6 +22,7 @@
 
 
 from .. import BindMountRepository
+from .. import EmergeSyncRepository
 
 
 class OverlayFromHost(BindMountRepository):
@@ -38,3 +39,18 @@ class OverlayFromHost(BindMountRepository):
 
     def get_hostdir_path(self):
         return self._hostDir
+
+
+class OverlayFromHostLayman(EmergeSyncRepository):
+
+    def __init__(self, overlay_name):
+        self._name = overlay_name
+
+    def get_name(self):
+        assert False
+
+    def get_repos_conf_file_content(self):
+        assert False
+
+    def get_datadir_path(self):
+        assert False

@@ -24,6 +24,8 @@
 import os
 import re
 import multiprocessing
+from ._util import Util
+from ._prototype import ManualSyncRepository, EmergeSyncRepository, BindMountRepository
 from ._errors import SettingsError
 
 
@@ -105,11 +107,13 @@ class Settings(dict):
 class TargetSettings(dict):
 
     def __init__(self):
+        self.repo_list = []
+
         self.profile = None
 
-        self.install_list = []
-
-        self.world_set = []
+        self.package_manager = "portage"
+        self.kernel_manager = "genkernel"
+        self.service_manager = "openrc"
 
         self.pkg_use = dict()              # dict<package-wildcard, use-flag-list>
         self.pkg_mask = []                 # list<package-wildcard>
@@ -127,6 +131,11 @@ class TargetSettings(dict):
 
         self.pkg_build_opts = dict()
 
+        self.install_list = []
+        self.world_set = []
+
+        self.service_list = []
+
         self.degentoo = False
 
     @classmethod
@@ -139,20 +148,48 @@ class TargetSettings(dict):
             else:
                 return False
 
-        if obj.install_list is None or not isinstance(obj.install_list, list):
+        if obj.repo_list is None or len(obj.repo_list) == 0:
             if raise_exception:
-                raise SettingsError("invalid value for \"install_list\"")
+                raise SettingsError("invalid value of \"repo_list\"")
+            else:
+                return False
+        for r in obj.repo_list:
+            if not Util.isInstanceList(r, ManualSyncRepository, BindMountRepository, EmergeSyncRepository):
+                if raise_exception:
+                    raise SettingsError("some elements in \"repo_list\" have invalid object type")
+                else:
+                    return False
+        if True:
+            tlist = [x.get_name() for x in obj.repo_list]
+            if len(set(tlist)) != len(tlist):
+                if raise_exception:
+                    raise SettingsError("elements with duplicate names found in \"repo_list\"")
+                else:
+                    return False
+            if tlist.count("gentoo") != 1:
+                if raise_exception:
+                    raise SettingsError("there should be one and only one \"gentoo\" repository in \"repo_list\"")
+                else:
+                    return False
+
+        # if obj.package_manager not in ["portage", "pkgcore", "pkgwh"]:
+        if obj.package_manager not in ["portage"]:
+            if raise_exception:
+                raise SettingsError("invalid value of \"package_manager\"")
             else:
                 return False
 
-        if obj.world_set is None or not isinstance(obj.world_set, list):
+        # if obj.kernel_manager not in ["genkernel", "bbki"]:
+        if obj.kernel_manager not in ["genkernel"]:
             if raise_exception:
-                raise SettingsError("invalid value for \"world_set\"")
+                raise SettingsError("invalid value of \"kernel_manager\"")
             else:
                 return False
-        if len(set(obj.world_set) & set(obj.install_list)) > 0:
+
+        # if obj.service_manager not in ["openrc", "systemd"]:
+        if obj.service_manager not in ["systemd"]:
             if raise_exception:
-                raise SettingsError("same element found in install_list and world_set")
+                raise SettingsError("invalid value of \"service_manager\"")
             else:
                 return False
 
@@ -231,6 +268,29 @@ class TargetSettings(dict):
                     raise SettingsError("invalid value for key \"ccache\" in build_opts of package" % (k))  # ccache is only allowed in global build options
                 else:
                     return False
+
+        if obj.install_list is None or not isinstance(obj.install_list, list):
+            if raise_exception:
+                raise SettingsError("invalid value for \"install_list\"")
+            else:
+                return False
+
+        if obj.world_set is None or not isinstance(obj.world_set, list):
+            if raise_exception:
+                raise SettingsError("invalid value for \"world_set\"")
+            else:
+                return False
+        if len(set(obj.world_set) & set(obj.install_list)) > 0:
+            if raise_exception:
+                raise SettingsError("same element found in install_list and world_set")
+            else:
+                return False
+
+        if obj.service_list is None or not isinstance(obj.service_list, list):
+            if raise_exception:
+                raise SettingsError("invalid value for \"service_list\"")
+            else:
+                return False
 
         if obj.degentoo is None or not isinstance(obj.degentoo, bool):
             if raise_exception:
