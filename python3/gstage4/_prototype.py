@@ -80,12 +80,16 @@ class EmergeSyncRepository(abc.ABC):
         pass
 
 
-class SysConfig(abc.ABC):
+class CustomScript(abc.ABC):
 
     @abc.abstractmethod
-    def check_target_settings(self):
+    def fill_script_dir(self, script_dir_hostpath):
         pass
 
     @abc.abstractmethod
-    def update_target_settings(self):
+    def get_description(self):
+        pass
+
+    @abc.abstractmethod
+    def get_script(self):
         pass

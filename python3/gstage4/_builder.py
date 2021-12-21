@@ -30,7 +30,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._errors import SettingsError, SeedStageError
 from ._settings import Settings, TargetSettings, ComputingPower
-from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, EmergeSyncRepository
+from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, EmergeSyncRepository, CustomScript
 from ._workdir import WorkDirChrooter
 
 
@@ -213,21 +213,18 @@ class Builder:
                 for s in self._ts.service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
 
-    @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED, BuildProgress.STEP_SERVICES_ENABLED)
-    def action_customize_system(self, file_list=[], cmd_list=[]):
-        # add files
-        for fullfn, mode, dstDir in file_list:
-            assert dstDir.startswith("/")
-            dstDir = self.rootfsDir + dstDir
-            dstFn = os.path.join(dstDir, os.path.basename(fullfn))
-            os.makedirs(dstDir, exist_ok=True)
-            shutil.copy(fullfn, dstFn)
-            os.chmod(dstFn, mode)
+    @Action(BuildProgress.STEP_SERVICES_ENABLED)
+    def action_customize_system(self, script_list=[]):
+        if len(script_list) == 0:
+            return
 
+        assert all([isinstance(s, CustomScript) for s in script_list])
         with _Chrooter(self) as m:
-            # exec custom script
-            for cmd in cmd_list:
-                m.shell_call(cmd)
+            for i in range(0, len(script_list)):
+                print(script_list[i].get_description())
+                scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("script%d" % (i))
+                script_list[i].fill_script_dir(scriptsDirHostPath)
+                m.shell_exec("", os.path.join(scriptDirPath, script_list[i].get_script()))
 
     @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
