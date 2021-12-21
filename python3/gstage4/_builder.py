@@ -215,16 +215,12 @@ class Builder:
 
     @Action(BuildProgress.STEP_SERVICES_ENABLED)
     def action_customize_system(self, script_list=[]):
-        if len(script_list) == 0:
-            return
-
         assert all([isinstance(s, CustomScript) for s in script_list])
-        with _Chrooter(self) as m:
-            for i in range(0, len(script_list)):
-                print(script_list[i].get_description())
-                scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("script%d" % (i))
-                script_list[i].fill_script_dir(scriptsDirHostPath)
-                m.shell_exec("", os.path.join(scriptDirPath, script_list[i].get_script()))
+
+        if len(script_list) > 0:
+            with _Chrooter(self) as m:
+                for i in range(0, len(script_list)):
+                    m.custom_script_exec("script_%d" % (i), script_list[i])
 
     @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
@@ -430,6 +426,12 @@ class _Chrooter(WorkDirChrooter):
 
         self._scriptDirList.append(hostPath)
         return path, hostPath
+
+    def custom_script_exec(self, dir_name, scriptObj):
+        print(scriptObj.get_description())
+        scriptDirPath, scriptsDirHostPath = self.create_script_dir_in_chroot("script_%s" % (dir_name))
+        scriptObj.fill_script_dir(scriptsDirHostPath)
+        self.shell_exec("", os.path.join(scriptDirPath, scriptObj.get_script()))
 
 
 class TargetDirsAndFiles:
