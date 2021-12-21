@@ -24,7 +24,6 @@
 import os
 import re
 import enum
-import shutil
 import pathlib
 import robust_layer.simple_fops
 from ._util import Util
@@ -137,7 +136,7 @@ class Builder:
         t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_world_set(self):
+    def action_update_world_set(self, preprocess_script_list=[]):
         # create installList and write world file
         installList = []
         if True:
@@ -165,6 +164,9 @@ class Builder:
 
         # install packages, update @world
         with _Chrooter(self) as m:
+            for i in range(0, len(preprocess_script_list)):
+                m.script_exec("script_%d" % (i), preprocess_script_list[i])
+
             scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
             Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
             Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
@@ -179,7 +181,7 @@ class Builder:
                     raise SeedStageError("perl cleaning is needed, your seed stage is too old")
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
-    def action_install_kernel(self):
+    def action_install_kernel(self, preprocess_script_list=[]):
         # FIXME: determine parallelism parameters
         tj = None
         tl = None
@@ -196,6 +198,9 @@ class Builder:
 
         # FIXME
         with _Chrooter(self) as m:
+            for i in range(0, len(preprocess_script_list)):
+                m.script_exec("script_%d" % (i), preprocess_script_list[i])
+
             m.shell_call("", "eselect kernel set 1")
 
             if self._ts.build_opts.ccache:
@@ -207,20 +212,22 @@ class Builder:
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
-    def action_enable_services(self):
-        if len(self._ts.service_list) > 0:
+    def action_enable_services(self, preprocess_script_list=[]):
+        if len(preprocess_script_list) > 0 or len(self._ts.service_list) > 0:
             with _Chrooter(self) as m:
+                for i in range(0, len(preprocess_script_list)):
+                    m.script_exec("script_%d" % (i), preprocess_script_list[i])
                 for s in self._ts.service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
 
     @Action(BuildProgress.STEP_SERVICES_ENABLED)
-    def action_customize_system(self, script_list=[]):
-        assert all([isinstance(s, CustomScript) for s in script_list])
+    def action_customize_system(self, custom_script_list=[]):
+        assert all([isinstance(s, CustomScript) for s in custom_script_list])
 
-        if len(script_list) > 0:
+        if len(custom_script_list) > 0:
             with _Chrooter(self) as m:
-                for i in range(0, len(script_list)):
-                    m.custom_script_exec("script_%d" % (i), script_list[i])
+                for i in range(0, len(custom_script_list)):
+                    m.script_exec("script_%d" % (i), custom_script_list[i])
 
     @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
@@ -427,7 +434,7 @@ class _Chrooter(WorkDirChrooter):
         self._scriptDirList.append(hostPath)
         return path, hostPath
 
-    def custom_script_exec(self, dir_name, scriptObj):
+    def script_exec(self, dir_name, scriptObj):
         print(scriptObj.get_description())
         scriptDirPath, scriptsDirHostPath = self.create_script_dir_in_chroot("script_%s" % (dir_name))
         scriptObj.fill_script_dir(scriptsDirHostPath)
