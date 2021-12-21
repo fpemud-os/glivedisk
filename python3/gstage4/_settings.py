@@ -112,7 +112,7 @@ class TargetSettings(dict):
         self.profile = None
 
         self.package_manager = "portage"
-        self.kernel_manager = "genkernel"
+        self.kernel_manager = "genkernel"   # kernel source and kernel config is select by emerge/pre-command
         self.service_manager = "openrc"
 
         self.pkg_use = dict()              # dict<package-wildcard, use-flag-list>
