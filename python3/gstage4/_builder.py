@@ -162,23 +162,19 @@ class Builder:
                 installList.remove(pkg)
                 installList.insert(0, pkg)
 
-        # install packages, update @world
+        # preprocess, install packages, update @world
+        idx = 1
         with _Chrooter(self) as m:
             for i in range(0, len(preprocess_script_list)):
-                m.script_exec("script_%d" % (i), preprocess_script_list[i])
+                m.script_exec("script_%d" % (idx), preprocess_script_list[i])
+                idx += 1
 
-            scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-            Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
-            Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
+            for i in range(0, len(installList)):
+                m.script_exec("script_%d" % (idx), ScriptInstallPackage(installList[i]))
+                idx += 1
 
-            for pkg in installList:
-                m.shell_exec("", "%s/run-merge.sh -1 %s" % (scriptDirPath, pkg))
-            m.shell_exec("", "%s/run-update.sh @world" % (scriptDirPath))
-
-            if m.shell_test("", "which perl-cleaner"):
-                out = m.shell_call("", "perl-cleaner --pretend --all")
-                if "No package needs to be reinstalled." not in out:
-                    raise SeedStageError("perl cleaning is needed, your seed stage is too old")
+            m.script_exec("script_%d" % (idx), ScriptUpdateWorld())
+            idx += 1
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
@@ -643,3 +639,83 @@ class TargetConfDir:
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._ts.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
+
+
+class ScriptInstallPackage(CustomScript):
+
+    def __init__(self, pkg):
+        self._pkg = pkg
+
+    def fill_script_dir(self, script_dir_hostpath):
+        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
+        with open(fullfn, "w") as f:
+            f.write(self._scriptContent.replace("@@PKG_NAME@@", self._pkg))
+        os.chmod(fullfn, 0o0755)
+
+    def get_description(self):
+        return "Install package %s" % (self._pkg)
+
+    def get_script(self):
+        return self._scriptName
+
+    _scriptName = "main.sh"
+
+    _scriptContent = """
+#!/bin/bash
+
+export EMERGE_WARNING_DELAY=0
+export CLEAN_DELAY=0
+export EBEEP_IGNORE=0
+export EPAUSE_IGNORE=0
+export CONFIG_PROTECT="-* .x"
+
+# using grep to only show:
+#   >>> Emergeing ...
+#   >>> Installing ...
+#   >>> Uninstalling ...
+emerge --color=y -1 @@PKG_NAME@@ 2>&1 | tee /var/log/portage/run-merge.log | grep -E --color=never "^>>> .*\\(.*[0-9]+.*of.*[0-9]+.*\\)"
+test ${PIPESTATUS[0]} -eq 0 || exit 1
+"""
+
+
+class ScriptUpdateWorld(CustomScript):
+
+    def fill_script_dir(self, script_dir_hostpath):
+        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
+        with open(fullfn, "w") as f:
+            f.write(self._scriptContent)
+        os.chmod(fullfn, 0o0755)
+
+    def get_description(self):
+        return "Update @world"
+
+    def get_script(self):
+        return self._scriptName
+
+    _scriptName = "main.sh"
+
+    _scriptContent = """
+#!/bin/bash
+
+export EMERGE_WARNING_DELAY=0
+export CLEAN_DELAY=0
+export EBEEP_IGNORE=0
+export EPAUSE_IGNORE=0
+export CONFIG_PROTECT="-* .x"
+
+# using grep to only show:
+#   >>> Emergeing ...
+#   >>> Installing ...
+#   >>> Uninstalling ...
+#   >>> No outdated packages were found on your system.
+emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log | grep -E --color=never "^>>> (.*\\(.*[0-9]+.*of.*[0-9]+.*\\)|No outdated packages .*)"
+test ${PIPESTATUS[0]} -eq 0 || exit 1
+
+            if m.shell_test("", "which perl-cleaner"):
+                out = m.shell_call("", "perl-cleaner --pretend --all")
+                if "No package needs to be reinstalled." not in out:
+                    raise SeedStageError("perl cleaning is needed, your seed stage is too old")
+
+
+
+"""
