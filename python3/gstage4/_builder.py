@@ -208,7 +208,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
     def action_enable_services(self):
-        if len(self.service_list) > 0:
+        if len(self._ts.service_list) > 0:
             with _Chrooter(self) as m:
                 for s in self._ts.service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
