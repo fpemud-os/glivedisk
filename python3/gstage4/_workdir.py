@@ -25,7 +25,7 @@ import os
 import stat
 import platform
 import robust_layer.simple_fops
-from . import WorkDirError
+from ._errors import WorkDirError
 from ._util import Util
 
 

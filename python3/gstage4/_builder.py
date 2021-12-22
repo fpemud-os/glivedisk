@@ -26,17 +26,17 @@ import re
 import enum
 import pathlib
 import robust_layer.simple_fops
-from . import SeedStage
-from . import ManualSyncRepository
-from . import BindMountRepository
-from . import EmergeSyncRepository
-from . import TargetScript
-from . import Settings
-from . import TargetSettings
-from . import SettingsError
-from . import WorkDirChrooter
-from .target_scripts import GeneratedTargetScript
 from ._util import Util
+from ._prototype import SeedStage
+from ._prototype import ManualSyncRepository
+from ._prototype import BindMountRepository
+from ._prototype import EmergeSyncRepository
+from ._prototype import TargetScript
+from ._errors import SettingsError
+from ._settings import Settings
+from ._settings import TargetSettings
+from ._workdir import WorkDirChrooter
+from .target_scripts import GeneratedTargetScript
 
 
 def Action(*progressStepTuple):
