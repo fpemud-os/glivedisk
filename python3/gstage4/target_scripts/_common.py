@@ -70,7 +70,7 @@ class TargetScriptFromHostDir(TargetScript):
         return self._filename
 
 
-class GeneratedTargetScript(TargetScript):
+class TargetScriptFromBuffer(TargetScript):
 
     def __init__(self, description, script_filename, script_content):
         assert description is not None
