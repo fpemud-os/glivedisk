@@ -719,6 +719,11 @@ class ScriptUpdateWorld(CustomScript):
     _scriptContent = """
 #!/bin/bash
 
+die() {
+    echo "$1"
+    exit 1
+}
+
 export EMERGE_WARNING_DELAY=0
 export CLEAN_DELAY=0
 export EBEEP_IGNORE=0
@@ -733,13 +738,7 @@ export CONFIG_PROTECT="-* .x"
 emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log | grep -E --color=never "^>>> (.*\\(.*[0-9]+.*of.*[0-9]+.*\\)|No outdated packages .*)"
 test ${PIPESTATUS[0]} -eq 0 || exit 1
 
-            if m.shell_test("", "which perl-cleaner"):
-                out = m.shell_call("", "perl-cleaner --pretend --all")
-                if "No package needs to be reinstalled." not in out:
-                    raise SeedStageError("perl cleaning is needed, your seed stage is too old")
-
-
-
+perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, your seed stage is too old"
 """
 
 
