@@ -35,12 +35,12 @@ from ._workdir import WorkDirChrooter
 
 def Action(*progressStepTuple):
     def decorator(func):
-        def wrapper(self, *kargs):
+        def wrapper(self, *kargs, **kwargs):
             progressStepList = list(progressStepTuple)
             assert sorted(progressStepList) == list(progressStepList)
             assert self._progress in progressStepList
             self._workDirObj.open_chroot_dir(from_dir_name=self._getChrootDirName())
-            func(self, *kargs)
+            func(self, *kargs, **kwargs)
             self._progress = BuildProgress(progressStepList[-1] + 1)
             self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
         return wrapper
