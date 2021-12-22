@@ -156,30 +156,6 @@ class TargetSettings(dict):
             else:
                 return False
 
-        if obj.repo_list is None or len(obj.repo_list) == 0:
-            if raise_exception:
-                raise SettingsError("invalid value of \"repo_list\"")
-            else:
-                return False
-        for r in obj.repo_list:
-            if not Util.isInstanceList(r, ManualSyncRepository, BindMountRepository, EmergeSyncRepository):
-                if raise_exception:
-                    raise SettingsError("some elements in \"repo_list\" have invalid object type")
-                else:
-                    return False
-        if True:
-            tlist = [x.get_name() for x in obj.repo_list]
-            if len(set(tlist)) != len(tlist):
-                if raise_exception:
-                    raise SettingsError("elements with duplicate names found in \"repo_list\"")
-                else:
-                    return False
-            if tlist.count("gentoo") != 1:
-                if raise_exception:
-                    raise SettingsError("there should be one and only one \"gentoo\" repository in \"repo_list\"")
-                else:
-                    return False
-
         # if obj.package_manager not in ["portage", "pkgcore", "pkgwh"]:
         if obj.package_manager not in ["portage"]:
             if raise_exception:

@@ -101,7 +101,12 @@ class Builder:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
     @Action(BuildProgress.STEP_UNPACKED)
-    def action_init_repositories(self):
+    def action_init_repositories(self, repo_list):
+        assert repo_list is not None
+        assert all([Util.isInstanceList(x, ManualSyncRepository, BindMountRepository, EmergeSyncRepository) for x in repo_list])
+        assert len([x.get_name() == "gentoo" for x in repo_list]) == 1
+        assert len([x.get_name() for x in repo_list]) == len(set([x.get_name() for x in repo_list]))        # no duplication
+
         for repo in self.repo_list:
             repoOrOverlay = (repo.get_name() == "gentoo")
             if isinstance(repo, ManualSyncRepository):
@@ -119,11 +124,7 @@ class Builder:
 
         if any([isinstance(repo, EmergeSyncRepository) for repo in self.repo_list]):
             with _Chrooter(self) as m:
-                scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-                Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
-                Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
-
-                m.shell_exec("", "%s/run-merge.sh --sync" % (scriptDirPath))
+                m.script_exec(ScriptSync())
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
@@ -137,6 +138,8 @@ class Builder:
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_world_set(self, preprocess_script_list=[]):
+        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+
         # create installList and write world file
         installList = []
         if True:
@@ -163,21 +166,17 @@ class Builder:
                 installList.insert(0, pkg)
 
         # preprocess, install packages, update @world
-        idx = 1
         with _Chrooter(self) as m:
-            for i in range(0, len(preprocess_script_list)):
-                m.script_exec("script_%d" % (idx), preprocess_script_list[i])
-                idx += 1
-
-            for i in range(0, len(installList)):
-                m.script_exec("script_%d" % (idx), ScriptInstallPackage(installList[i]))
-                idx += 1
-
-            m.script_exec("script_%d" % (idx), ScriptUpdateWorld())
-            idx += 1
+            for s in preprocess_script_list:
+                m.script_exec(s)
+            for pkg in installList:
+                m.script_exec(ScriptInstallPackage(pkg))
+            m.script_exec(ScriptUpdateWorld())
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
+        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+
         # FIXME: determine parallelism parameters
         tj = None
         tl = None
@@ -194,8 +193,8 @@ class Builder:
 
         # FIXME
         with _Chrooter(self) as m:
-            for i in range(0, len(preprocess_script_list)):
-                m.script_exec("script_%d" % (i), preprocess_script_list[i])
+            for s in preprocess_script_list:
+                m.script_exec(s)
 
             m.shell_call("", "eselect kernel set 1")
 
@@ -209,10 +208,12 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[]):
+        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+
         if len(preprocess_script_list) > 0 or len(self._ts.service_list) > 0:
             with _Chrooter(self) as m:
-                for i in range(0, len(preprocess_script_list)):
-                    m.script_exec("script_%d" % (i), preprocess_script_list[i])
+                for s in preprocess_script_list:
+                    m.script_exec(s)
                 for s in self._ts.service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
 
@@ -222,24 +223,20 @@ class Builder:
 
         if len(custom_script_list) > 0:
             with _Chrooter(self) as m:
-                for i in range(0, len(custom_script_list)):
-                    m.script_exec("script_%d" % (i), custom_script_list[i])
+                for s in custom_script_list:
+                    m.script_exec(s)
 
     @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
-            scriptDirPath, scriptsDirHostPath = m.create_script_dir_in_chroot("scripts")
-            Util.shellCall("/bin/cp -r %s/* %s" % (os.path.join(os.path.dirname(os.path.realpath(__file__)), "scripts-in-chroot"), scriptsDirHostPath))
-            Util.shellCall("/bin/chmod -R 755 %s/*" % (scriptsDirHostPath))
-
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
-                m.shell_exec("", "%s/run-depclean.sh" % (scriptDirPath))
+                m.script_exec(ScriptDepClean())
             else:
                 # FIXME
-                m.shell_exec("", "%s/run-depclean.sh" % (scriptDirPath))
-                m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
-                m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
+                m.script_exec(ScriptDepClean())
+                # m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
+                # m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
         if not self._ts.degentoo:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
@@ -419,22 +416,19 @@ class _Chrooter(WorkDirChrooter):
             del self._bindMountList
         super().unbind()
 
-    def create_script_dir_in_chroot(self, dir_name):
+    def script_exec(self, scriptObj):
         assert self.binded
-        path = os.path.join("/tmp", dir_name)
+
+        path = os.path.join("/tmp", "script_%d" % (len(self._scriptDirList)))
         hostPath = os.path.join(self._w.chroot_dir_path, path[1:])
 
         assert not os.path.exists(hostPath)
         os.makedirs(hostPath, mode=0o755)
-
         self._scriptDirList.append(hostPath)
-        return path, hostPath
 
-    def script_exec(self, dir_name, scriptObj):
         print(scriptObj.get_description())
-        scriptDirPath, scriptsDirHostPath = self.create_script_dir_in_chroot("script_%s" % (dir_name))
-        scriptObj.fill_script_dir(scriptsDirHostPath)
-        self.shell_exec("", os.path.join(scriptDirPath, scriptObj.get_script()))
+        scriptObj.fill_script_dir(hostPath)
+        self.shell_exec("", os.path.join(path, scriptObj.get_script()))
 
 
 class TargetDirsAndFiles:
@@ -641,6 +635,34 @@ class TargetConfDir:
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
 
 
+class ScriptSync(CustomScript):
+
+    def fill_script_dir(self, script_dir_hostpath):
+        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
+        with open(fullfn, "w") as f:
+            f.write(self._scriptContent)
+        os.chmod(fullfn, 0o0755)
+
+    def get_description(self):
+        return "Sync repositories"
+
+    def get_script(self):
+        return self._scriptName
+
+    _scriptName = "main.sh"
+
+    _scriptContent = """
+#!/bin/bash
+
+export EMERGE_WARNING_DELAY=0
+export CLEAN_DELAY=0
+export EBEEP_IGNORE=0
+export EPAUSE_IGNORE=0
+
+emerge --sync" || exit 1
+"""
+
+
 class ScriptInstallPackage(CustomScript):
 
     def __init__(self, pkg):
@@ -718,4 +740,33 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 
 
 
+"""
+
+
+class ScriptDepClean(CustomScript):
+
+    def fill_script_dir(self, script_dir_hostpath):
+        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
+        with open(fullfn, "w") as f:
+            f.write(self._scriptContent)
+        os.chmod(fullfn, 0o0755)
+
+    def get_description(self):
+        return "Sync repositories"
+
+    def get_script(self):
+        return self._scriptName
+
+    _scriptName = "main.sh"
+
+    _scriptContent = """
+#!/bin/bash
+
+export EMERGE_WARNING_DELAY=0
+export CLEAN_DELAY=0
+export EBEEP_IGNORE=0
+export EPAUSE_IGNORE=0
+export CONFIG_PROTECT="-* .x"
+
+emerge --depclean" || exit 1
 """
