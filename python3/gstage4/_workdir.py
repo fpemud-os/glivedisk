@@ -288,7 +288,6 @@ class WorkDirChrooter:
         assert self._detectArch() == platform.machine()
 
         if not quiet:
-            print("%s" % (cmd))
             Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
         else:
             Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))

@@ -241,6 +241,7 @@ class Builder:
             else:
                 env = ""
                 opt = ""
+            print("genkernel")
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
@@ -456,7 +457,7 @@ class _Chrooter(WorkDirChrooter):
     def script_exec(self, scriptObj):
         assert self.binded
 
-        path = os.path.join("/tmp", "script_%d" % (len(self._scriptDirList)))
+        path = os.path.join("/var/tmp", "script_%d" % (len(self._scriptDirList)))
         hostPath = os.path.join(self._w.chroot_dir_path, path[1:])
 
         assert not os.path.exists(hostPath)
