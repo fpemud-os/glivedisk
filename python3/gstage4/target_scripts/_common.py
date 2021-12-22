@@ -22,7 +22,6 @@
 
 
 import os
-import abc
 from .. import TargetScript
 from .._util import Util
 
