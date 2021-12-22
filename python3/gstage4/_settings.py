@@ -24,8 +24,6 @@
 import os
 import re
 import multiprocessing
-from ._util import Util
-from ._prototype import ManualSyncRepository, EmergeSyncRepository, BindMountRepository
 from ._errors import SettingsError
 
 
