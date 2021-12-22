@@ -79,12 +79,12 @@ class GeneratedTargetScript(TargetScript):
 
         self._desc = description
         self._filename = script_filename
-        self._buf = script_content
+        self._buf = script_content.strip("\n") + "\n"   # remove all redundant carrage returns
 
     def fill_script_dir(self, script_dir_hostpath):
         fullfn = os.path.join(script_dir_hostpath, self._filename)
         with open(fullfn, "w") as f:
-            f.write(self._scriptContent)
+            f.write(self._buf)
         os.chmod(fullfn, 0o0755)
 
     def get_description(self):
