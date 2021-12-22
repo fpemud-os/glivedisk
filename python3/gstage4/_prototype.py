@@ -80,7 +80,7 @@ class EmergeSyncRepository(abc.ABC):
         pass
 
 
-class CustomScript(abc.ABC):
+class TargetScript(abc.ABC):
 
     @abc.abstractmethod
     def fill_script_dir(self, script_dir_hostpath):

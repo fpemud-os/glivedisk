@@ -26,11 +26,17 @@ import re
 import enum
 import pathlib
 import robust_layer.simple_fops
+from . import SeedStage
+from . import ManualSyncRepository
+from . import BindMountRepository
+from . import EmergeSyncRepository
+from . import TargetScript
+from . import Settings
+from . import TargetSettings
+from . import SettingsError
+from . import WorkDirChrooter
+from .target_scripts import GeneratedTargetScript
 from ._util import Util
-from ._errors import SettingsError, SeedStageError
-from ._settings import Settings, TargetSettings, ComputingPower
-from ._prototype import SeedStage, ManualSyncRepository, BindMountRepository, EmergeSyncRepository, CustomScript
-from ._workdir import WorkDirChrooter
 
 
 def Action(*progressStepTuple):
@@ -139,7 +145,7 @@ class Builder:
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
     def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=[]):
         assert len(set(world_set) & set(install_list)) == 0
-        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
 
         # check
         if True:
@@ -206,7 +212,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
-        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
 
         # FIXME: determine parallelism parameters
         tj = None
@@ -239,7 +245,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
-        assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
 
         if len(preprocess_script_list) > 0 or len(service_list) > 0:
             with _Chrooter(self) as m:
@@ -250,7 +256,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
-        assert all([isinstance(s, CustomScript) for s in custom_script_list])
+        assert all([isinstance(s, TargetScript) for s in custom_script_list])
 
         if len(custom_script_list) > 0:
             with _Chrooter(self) as m:
@@ -666,21 +672,10 @@ class TargetConfDir:
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
 
 
-class ScriptSync(CustomScript):
+class ScriptSync(GeneratedTargetScript):
 
-    def fill_script_dir(self, script_dir_hostpath):
-        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
-        with open(fullfn, "w") as f:
-            f.write(self._scriptContent)
-        os.chmod(fullfn, 0o0755)
-
-    def get_description(self):
-        return "Sync repositories"
-
-    def get_script(self):
-        return self._scriptName
-
-    _scriptName = "main.sh"
+    def __init__(self):
+        super().__init__("Sync repositories", "main.sh", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash
@@ -694,24 +689,10 @@ emerge --sync" || exit 1
 """
 
 
-class ScriptInstallPackage(CustomScript):
+class ScriptInstallPackage(GeneratedTargetScript):
 
     def __init__(self, pkg):
-        self._pkg = pkg
-
-    def fill_script_dir(self, script_dir_hostpath):
-        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
-        with open(fullfn, "w") as f:
-            f.write(self._scriptContent.replace("@@PKG_NAME@@", self._pkg))
-        os.chmod(fullfn, 0o0755)
-
-    def get_description(self):
-        return "Install package %s" % (self._pkg)
-
-    def get_script(self):
-        return self._scriptName
-
-    _scriptName = "main.sh"
+        super().__init__("Install package %s" % (pkg), "main.sh", self._scriptContent.replace("@@PKG_NAME@@", pkg))
 
     _scriptContent = """
 #!/bin/bash
@@ -731,21 +712,10 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
 
-class ScriptUpdateWorld(CustomScript):
+class ScriptUpdateWorld(GeneratedTargetScript):
 
-    def fill_script_dir(self, script_dir_hostpath):
-        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
-        with open(fullfn, "w") as f:
-            f.write(self._scriptContent)
-        os.chmod(fullfn, 0o0755)
-
-    def get_description(self):
-        return "Update @world"
-
-    def get_script(self):
-        return self._scriptName
-
-    _scriptName = "main.sh"
+    def __init__(self):
+        super().__init__("Update @world", "main.sh", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash
@@ -773,21 +743,10 @@ perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, yo
 """
 
 
-class ScriptDepClean(CustomScript):
+class ScriptDepClean(GeneratedTargetScript):
 
-    def fill_script_dir(self, script_dir_hostpath):
-        fullfn = os.path.join(script_dir_hostpath, self._scriptName)
-        with open(fullfn, "w") as f:
-            f.write(self._scriptContent)
-        os.chmod(fullfn, 0o0755)
-
-    def get_description(self):
-        return "Sync repositories"
-
-    def get_script(self):
-        return self._scriptName
-
-    _scriptName = "main.sh"
+    def __init__(self):
+        super().__init__("Clean system", "main.sh", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash

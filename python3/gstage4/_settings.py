@@ -24,7 +24,7 @@
 import os
 import re
 import multiprocessing
-from ._errors import SettingsError
+from . import SettingsError
 
 
 class Settings(dict):
