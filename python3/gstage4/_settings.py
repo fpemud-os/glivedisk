@@ -111,7 +111,7 @@ class TargetSettings(dict):
 
         self.package_manager = "portage"
         self.kernel_manager = "genkernel"   # kernel source and kernel config is select by emerge/pre-command
-        self.service_manager = "openrc"
+        self.service_manager = "systemd"
 
         self.pkg_use = dict()              # dict<package-wildcard, use-flag-list>
         self.pkg_mask = []                 # list<package-wildcard>
