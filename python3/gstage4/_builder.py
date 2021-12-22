@@ -175,14 +175,14 @@ class Builder:
         installList = []
         if True:
             # add from install_list
-            for pkg in self._ts.install_list:
+            for pkg in install_list:
                 if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                     installList.append(pkg)
         if True:
             # add from world_set
             t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
             with open(t.world_file_hostpath, "w") as f:
-                for pkg in self._ts.world_set:
+                for pkg in world_set:
                     if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                         installList.append(pkg)
                     f.write("%s\n" % (pkg))
