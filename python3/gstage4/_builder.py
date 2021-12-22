@@ -134,7 +134,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
-        t = TargetConfDir(self._s, self._ts, self._workDirObj.chroot_dir_path)
+        t = TargetConfDirWriter(self._s, self._ts, self._workDirObj.chroot_dir_path)
         t.write_make_conf()
         t.write_package_use()
         t.write_package_mask()
@@ -214,21 +214,10 @@ class Builder:
     def action_install_kernel(self, preprocess_script_list=[]):
         assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
 
-        # FIXME: determine parallelism parameters
-        tj = None
-        tl = None
-        if self._s.host_computing_power.cooling_level <= 1:
-            tj = 1
-            tl = 1
-        else:
-            if self._s.host_computing_power.memory_size >= 24 * 1024 * 1024 * 1024:       # >=24G
-                tj = self._s.host_computing_power.cpu_core_count + 2
-                tl = self._s.host_computing_power.cpu_core_count
-            else:
-                tj = self._s.host_computing_power.cpu_core_count
-                tl = max(1, self._s.host_computing_power.cpu_core_count - 1)
+        t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
+        tj = t.get_make_conf_make_opts_jobs()
+        tl = t.get_make_conf_load_average()
 
-        # FIXME
         with _Chrooter(self) as m:
             for s in preprocess_script_list:
                 m.script_exec(s)
@@ -547,7 +536,7 @@ class TargetDirsAndFiles:
         return os.path.join(self._chroot_path, self.world_file_path[1:])
 
 
-class TargetConfDir:
+class TargetConfDirWriter:
 
     def __init__(self, settings, targetSettings, chrootDir):
         self._s = settings
@@ -671,6 +660,32 @@ class TargetConfDir:
         with open(fpath, "w") as myf:
             for pkg_wildcard, license_list in self._ts.pkg_license.items():
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
+
+
+class TargetConfDirParser:
+
+    def __init__(self, chrootDir):
+        self._dir = TargetDirsAndFiles(chrootDir).confdir_hostpath
+
+    def get_make_conf_make_opts_jobs(self):
+        buf = pathlib.Path(os.path.join(self._dir, "make.conf")).read_text()
+
+        m = re.search("MAKEOPTS=\".*--jobs=([0-9]+)\".*", buf, re.M)
+        if m is not None:
+            return int(m.group(1))
+
+        m = re.search("MAKEOPTS=\".*-j([0-9]+)\".*", buf, re.M)
+        if m is not None:
+            return int(m.group(1))
+
+        assert False
+
+    def get_make_conf_load_average(self):
+        buf = pathlib.Path(os.path.join(self._dir, "make.conf")).read_text()
+        m = re.search("EMERGE_DEFAULT_OPTS=\"--load-average=([0-9]+)\"", buf, re.M)
+        if m is not None:
+            return int(m.group(1))
+        assert False
 
 
 class ScriptSync(TargetScriptFromBuffer):

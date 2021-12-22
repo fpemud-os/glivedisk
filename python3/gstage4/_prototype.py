@@ -93,3 +93,33 @@ class TargetScript(abc.ABC):
     @abc.abstractmethod
     def get_script(self):
         pass
+
+
+class TargetFeature:
+
+    def update_target_settings(self, target_settings, dry_run=False):
+        pass
+
+    def update_repositories(self, repo_list, dry_run=False):
+        pass
+
+    def update_install_list(self, install_list, dry_run=False):
+        pass
+
+    def update_world_set(self, install_list, dry_run=False):
+        pass
+
+    def update_service_list(self, service_list, dry_run=False):
+        pass
+
+    def update_custom_script_list(self, custom_script_list, dry_run=False):
+        pass
+
+    def update_preprocess_script_list_for_action_update_world(self, preprocess_script_list, dry_run=False):
+        pass
+
+    def update_preprocess_script_list_for_action_install_kernel(self, preprocess_script_list, dry_run=False):
+        pass
+
+    def update_preprocess_script_list_for_action_enable_services(self, preprocess_script_list, dry_run=False):
+        pass
