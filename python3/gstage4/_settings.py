@@ -129,24 +129,11 @@ class TargetSettings(dict):
 
         self.pkg_build_opts = dict()
 
-        self.install_list = []
-        self.world_set = []
-
-        self.service_list = []
-
         self.degentoo = False
 
     @classmethod
     def check_object(cls, obj, raise_exception=None):
         assert raise_exception is not None
-
-        def __pkgNeeded(pkg):
-            if pkg not in obj.install_list and pkg not in obj.world_set:
-                raise SettingsError("package %s is needed" % (pkg))
-
-        def __worldNeeded(pkg):
-            if pkg not in obj.world_set:
-                raise SettingsError("package %s is needed" % (pkg))
 
         if not isinstance(obj, cls):
             if raise_exception:
@@ -251,54 +238,11 @@ class TargetSettings(dict):
                 else:
                     return False
 
-        if obj.install_list is None or not isinstance(obj.install_list, list):
-            if raise_exception:
-                raise SettingsError("invalid value for \"install_list\"")
-            else:
-                return False
-
-        if obj.world_set is None or not isinstance(obj.world_set, list):
-            if raise_exception:
-                raise SettingsError("invalid value for \"world_set\"")
-            else:
-                return False
-        if len(set(obj.world_set) & set(obj.install_list)) > 0:
-            if raise_exception:
-                raise SettingsError("same element found in install_list and world_set")
-            else:
-                return False
-
-        if obj.service_list is None or not isinstance(obj.service_list, list):
-            if raise_exception:
-                raise SettingsError("invalid value for \"service_list\"")
-            else:
-                return False
-
         if obj.degentoo is None or not isinstance(obj.degentoo, bool):
             if raise_exception:
                 raise SettingsError("invalid value for key \"degentoo\"")
             else:
                 return False
-
-        if obj.package_manager == "portage":
-            __worldNeeded("sys-apps/portage")
-        else:
-            assert False
-
-        if obj.kernel_manager == "genkernel":
-            __worldNeeded("sys-kernel/genkernel")
-        else:
-            assert False
-
-        if obj.service_manager == "openrc":
-            __worldNeeded("sys-apps/openrc")
-        elif obj.service_manager == "systemd":
-            __worldNeeded("sys-apps/systemd")
-        else:
-            assert False
-
-        if obj.build_opts.ccache:
-            __worldNeeded("dev-util/ccache")
 
         return True
 

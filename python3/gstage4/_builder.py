@@ -137,8 +137,39 @@ class Builder:
         t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_world_set(self, preprocess_script_list=[]):
+    def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=[]):
+        assert len(set(world_set) & set(install_list)) == 0
         assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
+
+        # check
+        if True:
+            def __pkgNeeded(pkg):
+                if pkg not in install_list and pkg not in world_set:
+                    raise SettingsError("package %s is needed" % (pkg))
+
+            def __worldNeeded(pkg):
+                if pkg not in world_set:
+                    raise SettingsError("package %s is needed" % (pkg))
+
+            if self._ts.package_manager == "portage":
+                __worldNeeded("sys-apps/portage")
+            else:
+                assert False
+
+            if self._ts.kernel_manager == "genkernel":
+                __worldNeeded("sys-kernel/genkernel")
+            else:
+                assert False
+
+            if self._ts.service_manager == "openrc":
+                __worldNeeded("sys-apps/openrc")
+            elif self._ts.service_manager == "systemd":
+                __worldNeeded("sys-apps/systemd")
+            else:
+                assert False
+
+            if self._ts.build_opts.ccache:
+                __worldNeeded("dev-util/ccache")
 
         # create installList and write world file
         installList = []
@@ -207,14 +238,14 @@ class Builder:
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
-    def action_enable_services(self, preprocess_script_list=[]):
+    def action_enable_services(self, preprocess_script_list=[], service_list=[]):
         assert all([isinstance(s, CustomScript) for s in preprocess_script_list])
 
-        if len(preprocess_script_list) > 0 or len(self._ts.service_list) > 0:
+        if len(preprocess_script_list) > 0 or len(service_list) > 0:
             with _Chrooter(self) as m:
                 for s in preprocess_script_list:
                     m.script_exec(s)
-                for s in self._ts.service_list:
+                for s in service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
 
     @Action(BuildProgress.STEP_SERVICES_ENABLED)
