@@ -107,7 +107,7 @@ class Builder:
         assert len([x.get_name() == "gentoo" for x in repo_list]) == 1
         assert len([x.get_name() for x in repo_list]) == len(set([x.get_name() for x in repo_list]))        # no duplication
 
-        for repo in self.repo_list:
+        for repo in repo_list:
             repoOrOverlay = (repo.get_name() == "gentoo")
             if isinstance(repo, ManualSyncRepository):
                 _MyRepoUtil.createFromManuSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
@@ -118,11 +118,11 @@ class Builder:
             else:
                 assert False
 
-        for repo in self.repo_list:
+        for repo in repo_list:
             if isinstance(repo, ManualSyncRepository):
                 repo.sync()
 
-        if any([isinstance(repo, EmergeSyncRepository) for repo in self.repo_list]):
+        if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
                 m.script_exec(ScriptSync())
 
