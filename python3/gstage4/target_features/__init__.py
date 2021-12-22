@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-# gstage4 - gentoo stage4 building
-#
 # Copyright (c) 2020-2021 Fpemud <fpemud@sina.com>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,31 +21,6 @@
 # THE SOFTWARE.
 
 
-__package__ = 'gstage4'
-
-__version__ = '0.0.1'
-
-__author__ = 'Fpemud <fpemud@sina.com>'
-
-
-from ._settings import Settings
-from ._settings import TargetSettings
-from ._settings import TargetSettingsBuildOpts
-from ._settings import ComputingPower
-
-from ._prototype import SeedStage
-from ._prototype import ManualSyncRepository
-from ._prototype import EmergeSyncRepository
-from ._prototype import BindMountRepository
-from ._prototype import ScriptInChroot
-from ._prototype import TargetFeature
-
-from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
-
-from ._builder import Builder
-from ._builder import BuildProgress
-
-from ._errors import SettingsError
-from ._errors import SeedStageError
-from ._errors import WorkDirError
+from ._common import TargetScriptFromHostFile
+from ._common import TargetScriptFromHostDir
+from ._common import TargetScriptFromBuffer

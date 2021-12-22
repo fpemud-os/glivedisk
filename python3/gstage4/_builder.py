@@ -31,7 +31,7 @@ from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import BindMountRepository
 from ._prototype import EmergeSyncRepository
-from ._prototype import TargetScript
+from ._prototype import ScriptInChroot
 from ._errors import SettingsError
 from ._settings import Settings
 from ._settings import TargetSettings
@@ -143,9 +143,9 @@ class Builder:
         t.write_package_license()
 
     @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
-    def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=[]):
-        assert len(set(world_set) & set(install_list)) == 0
-        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
+    def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=set()):
+        assert len(world_set & set(install_list)) == 0
+        assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
         # check
         if True:
@@ -212,7 +212,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
-        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
+        assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
         t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
         tj = t.get_make_conf_make_opts_jobs()
@@ -235,7 +235,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
-        assert all([isinstance(s, TargetScript) for s in preprocess_script_list])
+        assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
         if len(preprocess_script_list) > 0 or len(service_list) > 0:
             with _Chrooter(self) as m:
@@ -246,7 +246,7 @@ class Builder:
 
     @Action(BuildProgress.STEP_SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
-        assert all([isinstance(s, TargetScript) for s in custom_script_list])
+        assert all([isinstance(s, ScriptInChroot) for s in custom_script_list])
 
         if len(custom_script_list) > 0:
             with _Chrooter(self) as m:
@@ -691,7 +691,7 @@ class TargetConfDirParser:
 class ScriptSync(TargetScriptFromBuffer):
 
     def __init__(self):
-        super().__init__("Sync repositories", "main.sh", self._scriptContent)
+        super().__init__("Sync repositories", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash
@@ -708,7 +708,7 @@ emerge --sync" || exit 1
 class ScriptInstallPackage(TargetScriptFromBuffer):
 
     def __init__(self, pkg):
-        super().__init__("Install package %s" % (pkg), "main.sh", self._scriptContent.replace("@@PKG_NAME@@", pkg))
+        super().__init__("Install package %s" % (pkg), self._scriptContent.replace("@@PKG_NAME@@", pkg))
 
     _scriptContent = """
 #!/bin/bash
@@ -731,7 +731,7 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 class ScriptUpdateWorld(TargetScriptFromBuffer):
 
     def __init__(self):
-        super().__init__("Update @world", "main.sh", self._scriptContent)
+        super().__init__("Update @world", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash
@@ -762,7 +762,7 @@ perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, yo
 class ScriptDepClean(TargetScriptFromBuffer):
 
     def __init__(self):
-        super().__init__("Clean system", "main.sh", self._scriptContent)
+        super().__init__("Clean system", self._scriptContent)
 
     _scriptContent = """
 #!/bin/bash

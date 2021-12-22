@@ -22,11 +22,11 @@
 
 
 import os
-from .. import TargetScript
+from .. import ScriptInChroot
 from .._util import Util
 
 
-class TargetScriptFromHostFile(TargetScript):
+class ScriptFromHostFile(ScriptInChroot):
 
     def __init__(self, description, script_filepath):
         assert description is not None
@@ -46,7 +46,7 @@ class TargetScriptFromHostFile(TargetScript):
         return os.path.basename(self._filepath)
 
 
-class TargetScriptFromHostDir(TargetScript):
+class ScriptFromHostDir(ScriptInChroot):
 
     def __init__(self, description, dirpath, script_filename):
         assert description is not None
@@ -69,16 +69,15 @@ class TargetScriptFromHostDir(TargetScript):
         return self._filename
 
 
-class TargetScriptFromBuffer(TargetScript):
+class ScriptFromBuffer(ScriptInChroot):
 
-    def __init__(self, description, script_filename, script_content):
+    def __init__(self, description, script_content_buffer):
         assert description is not None
-        assert "/" not in script_filename
-        assert script_content is not None
+        assert script_content_buffer is not None
 
         self._desc = description
-        self._filename = script_filename
-        self._buf = script_content.strip("\n") + "\n"   # remove all redundant carrage returns
+        self._filename = "main.sh"
+        self._buf = script_content_buffer.strip("\n") + "\n"  # remove all redundant carrage returns
 
     def fill_script_dir(self, script_dir_hostpath):
         fullfn = os.path.join(script_dir_hostpath, self._filename)

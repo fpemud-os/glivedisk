@@ -80,7 +80,7 @@ class EmergeSyncRepository(abc.ABC):
         pass
 
 
-class TargetScript(abc.ABC):
+class ScriptInChroot(abc.ABC):
 
     @abc.abstractmethod
     def fill_script_dir(self, script_dir_hostpath):
@@ -94,8 +94,20 @@ class TargetScript(abc.ABC):
     def get_script(self):
         pass
 
+    def __eq__(self, other):
+        if not isinstance(other, ScriptInChroot):
+            return False
+        if self.get_description() != other.get_description():
+            return False
+        return True
 
-class TargetFeature:
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+        
+
+class TargetFeature:        # FIXME: modify name
+
+    # we don't encourage using preprocessing scripts
 
     def update_target_settings(self, target_settings, dry_run=False):
         pass
@@ -106,20 +118,11 @@ class TargetFeature:
     def update_install_list(self, install_list, dry_run=False):
         pass
 
-    def update_world_set(self, install_list, dry_run=False):
+    def update_world_set(self, world_set, dry_run=False):
         pass
 
     def update_service_list(self, service_list, dry_run=False):
         pass
 
     def update_custom_script_list(self, custom_script_list, dry_run=False):
-        pass
-
-    def update_preprocess_script_list_for_action_update_world(self, preprocess_script_list, dry_run=False):
-        pass
-
-    def update_preprocess_script_list_for_action_install_kernel(self, preprocess_script_list, dry_run=False):
-        pass
-
-    def update_preprocess_script_list_for_action_enable_services(self, preprocess_script_list, dry_run=False):
         pass
