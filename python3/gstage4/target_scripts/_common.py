@@ -36,16 +36,13 @@ class TargetScriptFromHostFile(TargetScript):
         self._desc = description
         self._filepath = script_filepath
 
-    @abc.abstractmethod
     def fill_script_dir(self, script_dir_hostpath):
         os.copy(self._filepath, script_dir_hostpath)
         os.chmod(os.path.join(script_dir_hostpath, os.path.basename(self._filepath)), 0o0755)
 
-    @abc.abstractmethod
     def get_description(self):
         return self._desc
 
-    @abc.abstractmethod
     def get_script(self):
         return os.path.basename(self._filepath)
 
@@ -61,17 +58,14 @@ class TargetScriptFromHostDir(TargetScript):
         self._dirpath = dirpath
         self._filename = script_filename
 
-    @abc.abstractmethod
     def fill_script_dir(self, script_dir_hostpath):
         Util.shellCall("/bin/cp %s/* %s" % (self._dirpath, script_dir_hostpath))
         Util.shellCall("/usr/bin/find \"%s\" -type f | xargs /bin/chmod 644" % (script_dir_hostpath))
         Util.shellCall("/usr/bin/find \"%s\" -type d | xargs /bin/chmod 755" % (script_dir_hostpath))
 
-    @abc.abstractmethod
     def get_description(self):
         return self._desc
 
-    @abc.abstractmethod
     def get_script(self):
         return self._filename
 
@@ -87,17 +81,14 @@ class GeneratedTargetScript(TargetScript):
         self._filename = script_filename
         self._buf = script_content
 
-    @abc.abstractmethod
     def fill_script_dir(self, script_dir_hostpath):
         fullfn = os.path.join(script_dir_hostpath, self._filename)
         with open(fullfn, "w") as f:
             f.write(self._scriptContent)
         os.chmod(fullfn, 0o0755)
 
-    @abc.abstractmethod
     def get_description(self):
         return self._desc
 
-    @abc.abstractmethod
     def get_script(self):
         return self._filename
