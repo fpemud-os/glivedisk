@@ -23,4 +23,4 @@
 
 from ._common import TargetScriptFromHostFile
 from ._common import TargetScriptFromHostDir
-from ._common import TargetScriptFromBuffer
+from ._common import ScriptFromBuffer

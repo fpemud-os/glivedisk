@@ -22,7 +22,7 @@
 
 from .. import TargetFeature
 from .. import SettingsError
-from ..target_scripts import TargetScriptFromBuffer
+from ..scripts import ScriptFromBuffer
 
 
 class SshServer(TargetFeature):
@@ -50,7 +50,7 @@ class SshServer(TargetFeature):
 class GettyAutoLogin(TargetFeature):
 
     def update_custom_script_list(self, custom_script_list, dry_run=False):
-        class _MyScript(TargetScriptFromBuffer):
+        class _MyScript(ScriptFromBuffer):
             def __init__(self):
                 super().__init__("Place auto login file", script_content)
 
