@@ -36,7 +36,7 @@ from ._errors import SettingsError
 from ._settings import Settings
 from ._settings import TargetSettings
 from ._workdir import WorkDirChrooter
-from .target_scripts import GeneratedTargetScript
+from .target_scripts import TargetScriptFromBuffer
 
 
 def Action(*progressStepTuple):
@@ -673,7 +673,7 @@ class TargetConfDir:
                 myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
 
 
-class ScriptSync(GeneratedTargetScript):
+class ScriptSync(TargetScriptFromBuffer):
 
     def __init__(self):
         super().__init__("Sync repositories", "main.sh", self._scriptContent)
@@ -690,7 +690,7 @@ emerge --sync" || exit 1
 """
 
 
-class ScriptInstallPackage(GeneratedTargetScript):
+class ScriptInstallPackage(TargetScriptFromBuffer):
 
     def __init__(self, pkg):
         super().__init__("Install package %s" % (pkg), "main.sh", self._scriptContent.replace("@@PKG_NAME@@", pkg))
@@ -713,7 +713,7 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
 
-class ScriptUpdateWorld(GeneratedTargetScript):
+class ScriptUpdateWorld(TargetScriptFromBuffer):
 
     def __init__(self):
         super().__init__("Update @world", "main.sh", self._scriptContent)
@@ -744,7 +744,7 @@ perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, yo
 """
 
 
-class ScriptDepClean(GeneratedTargetScript):
+class ScriptDepClean(TargetScriptFromBuffer):
 
     def __init__(self):
         super().__init__("Clean system", "main.sh", self._scriptContent)
