@@ -107,8 +107,6 @@ class Settings(dict):
 class TargetSettings(dict):
 
     def __init__(self):
-        self.repo_list = []
-
         self.profile = None
 
         self.package_manager = "portage"
