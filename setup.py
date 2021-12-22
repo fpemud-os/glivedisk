@@ -50,7 +50,4 @@ setup(
     package_dir={
         __package__: os.path.join('python3', __package__),
     },
-    package_data={
-        'gstage4': ['scripts-in-chroot/*'],
-    },
 )
