@@ -99,7 +99,6 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
         assert description is not None
 
         self._desc = description
-
         self._filename = "main.sh"
         self._infoList = []
 
@@ -218,5 +217,8 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
 #!/bin/bash
 
 DATA_DIR=$(dirname $(realpath $0))/data
-mv $DATA_DIR/* /
+
+# merge directories and files
+find $DATA_DIR -name '*' -type d -exec mv -f {} / \;
+find $DATA_DIR -name '*' -type f -exec mv -f {} / \;
 """
