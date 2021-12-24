@@ -189,10 +189,7 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
         # create script file
         fullfn = os.path.join(script_dir_hostpath, self._filename)
         with open(fullfn, "w") as f:
-            f.write("#!/bin/bash\n")
-            f.write("\n")
-            f.write("DATA_DIR=$(dirname $(realpath $0))/data\n")
-            f.write("mv $DATA_DIR/* /\n")
+            f.write(self._scriptContent.strip("\n") + "\n")  # remove all redundant carrage returns
         os.chmod(fullfn, 0o0755)
 
     def get_description(self):
@@ -216,3 +213,10 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
                 shutil.copy(srcname, dstname)
                 os.chown(dstname, owner, group)
                 os.chmod(dstname, fmode)
+
+    _scriptContent = """
+#!/bin/bash
+
+DATA_DIR=$(dirname $(realpath $0))/data
+mv $DATA_DIR/* /
+"""
