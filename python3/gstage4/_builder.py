@@ -99,7 +99,7 @@ class Builder:
 
         seed_stage.unpack(self._workDirObj.chroot_dir_path)
 
-        t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+        t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
         os.makedirs(t.logdir_hostpath, exist_ok=True)
         os.makedirs(t.distdir_hostpath, exist_ok=True)
         os.makedirs(t.binpkgdir_hostpath, exist_ok=True)
@@ -186,7 +186,7 @@ class Builder:
                     installList.append(pkg)
         if True:
             # add from world_set
-            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+            t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
             with open(t.world_file_hostpath, "w") as f:
                 for pkg in world_set:
                     if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
@@ -269,7 +269,7 @@ class Builder:
             _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
         else:
             # FIXME
-            t = TargetDirsAndFiles(self._workDirObj.chroot_dir_path)
+            t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
             robust_layer.simple_fops.rm(t.confdir_hostpath)
             robust_layer.simple_fops.rm(t.statedir_hostpath)
             robust_layer.simple_fops.rm(t.pkgdbdir_hostpath)
@@ -397,7 +397,7 @@ class _Chrooter(WorkDirChrooter):
             self._bindMountList = []
             self._scriptDirList = []
 
-            t = TargetDirsAndFiles(self._w.chroot_dir_path)
+            t = TargetFilesAndDirs(self._w.chroot_dir_path)
 
             # log directory mount point
             if self._p._s.log_dir is not None:
@@ -458,7 +458,7 @@ class _Chrooter(WorkDirChrooter):
         self.shell_exec("", os.path.join(path, scriptObj.get_script()))
 
 
-class TargetDirsAndFiles:
+class TargetFilesAndDirs:
 
     def __init__(self, chrootDir):
         self._chroot_path = chrootDir
@@ -541,7 +541,7 @@ class TargetConfDirWriter:
     def __init__(self, settings, targetSettings, chrootDir):
         self._s = settings
         self._ts = targetSettings
-        self._dir = TargetDirsAndFiles(chrootDir).confdir_hostpath
+        self._dir = TargetFilesAndDirs(chrootDir).confdir_hostpath
 
     def write_make_conf(self):
         # determine parallelism parameters
@@ -665,7 +665,7 @@ class TargetConfDirWriter:
 class TargetConfDirParser:
 
     def __init__(self, chrootDir):
-        self._dir = TargetDirsAndFiles(chrootDir).confdir_hostpath
+        self._dir = TargetFilesAndDirs(chrootDir).confdir_hostpath
 
     def get_make_conf_make_opts_jobs(self):
         buf = pathlib.Path(os.path.join(self._dir, "make.conf")).read_text()

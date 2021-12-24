@@ -103,9 +103,9 @@ class ScriptInChroot(abc.ABC):
 
     def __ne__(self, other):
         return (not self.__eq__(other))
-        
 
-class TargetFeature:        # FIXME: modify name
+
+class TargetFeature:
 
     # we don't encourage using preprocessing scripts
 
