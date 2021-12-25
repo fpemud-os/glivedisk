@@ -22,7 +22,7 @@
 
 from .. import TargetFeature
 from .. import SettingsError
-from ..scripts import ScriptFromBuffer
+from ..scripts import ScriptPlacingFiles
 
 
 class SshServer(TargetFeature):
@@ -30,14 +30,14 @@ class SshServer(TargetFeature):
     def update_world_set(self, world_set, dry_run=False):
         if "net-misc/openssh" not in world_set:
             if dry_run:
-                raise SettingsError("package net-misc/openssh is needed")
+                raise SettingsError("package \"net-misc/openssh\" is needed")
             else:
                 world_set.add("net-misc/openssh")
 
     def update_service_list(self, service_list, dry_run=False):
         if "sshd" not in service_list:
             if dry_run:
-                raise SettingsError("service sshd is needed")
+                raise SettingsError("service \"sshd\" is needed")
             else:
                 service_list.append("sshd")
 
@@ -49,13 +49,20 @@ class SshServer(TargetFeature):
 class GettyAutoLogin(TargetFeature):
 
     def update_custom_script_list(self, custom_script_list, dry_run=False):
-        class _MyScript(ScriptFromBuffer):
-            def __init__(self):
-                super().__init__("Place auto login file", script_content)
+        s = ScriptPlacingFiles("Place auto login file")
+        s.append_file("/etc/systemd/system/getty@.service.d/getty-autologin.conf",
+                      0,
+                      0,
+                      buf=self._fileContent.strip("\n") + "\n")  # remove all redundant carrage returns)
 
-        s = _MyScript()
         if s not in custom_script_list:
             if dry_run:
-                raise SettingsError("custom script %s is needed" % (s.get_description()))
+                raise SettingsError("custom script \"%s\" is needed" % (s.get_description()))
             else:
-                custom_script_list.append(s)
+                custom_script_list.append()
+
+    _fileContent = """
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+"""

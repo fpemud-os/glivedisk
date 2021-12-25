@@ -93,7 +93,7 @@ class ScriptFromBuffer(ScriptInChroot):
         return self._filename
 
 
-class ScriptPlacingFilesAndDirs(ScriptInChroot):
+class ScriptPlacingFiles(ScriptInChroot):
 
     def __init__(self, description):
         assert description is not None
@@ -119,6 +119,7 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
 
     def append_dir(self, target_dirpath, owner, group, dmode=None, fmode=None, hostpath=None, recursive=False):
         assert target_dirpath.startswith("/")
+        assert isinstance(owner, int) and isinstance(group, int)
         assert isinstance(owner, int) and isinstance(group, int)
         if dmode is not None:
             assert 0o000 <= dmode <= 0o777
@@ -219,6 +220,6 @@ class ScriptPlacingFilesAndDirs(ScriptInChroot):
 DATA_DIR=$(dirname $(realpath $0))/data
 
 # merge directories and files
-find $DATA_DIR -name '*' -type d -exec mv -f {} / \;
-find $DATA_DIR -name '*' -type f -exec mv -f {} / \;
+find $DATA_DIR -name '*' -type d -exec mv -f {} / \\;
+find $DATA_DIR -name '*' -type f -exec mv -f {} / \\;
 """
