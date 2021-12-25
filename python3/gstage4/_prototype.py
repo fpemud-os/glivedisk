@@ -107,22 +107,32 @@ class ScriptInChroot(abc.ABC):
 
 class TargetFeature:
 
+    # def __init__(self):
+    #     protoMethodList = [{x[2:]:inspect.signature() for x in dir(self) if x.startswith("__update")]
+    #     methodList = [x for x in v if not x.startswith("_") and callable(x)]
+
+    #     for m in methodList:
+    #         if m in protoMethodList:
+
+    #     print(dir(MyClass))
+
+    # it's more like a convension, not interface definition
     # we don't encourage using preprocessing scripts
 
-    def update_target_settings(self, target_settings, dry_run=False):
+    def __update_target_settings(self, target_settings, dry_run=False):
         pass
 
-    def update_repositories(self, repo_list, dry_run=False):
+    def __update_repositories(self, repo_list, dry_run=False):
         pass
 
-    def update_install_list(self, install_list, dry_run=False):
+    def __update_install_list(self, install_list, dry_run=False):
         pass
 
-    def update_world_set(self, world_set, dry_run=False):
+    def __update_world_set(self, world_set, dry_run=False):
         pass
 
-    def update_service_list(self, service_list, dry_run=False):
+    def __update_service_list(self, service_list, dry_run=False):
         pass
 
-    def update_custom_script_list(self, custom_script_list, dry_run=False):
+    def __update_custom_script_list(self, custom_script_list, dry_run=False):
         pass
