@@ -47,6 +47,7 @@ setup(
         '{0}.seed_stages'.format(__package__),
         '{0}.repositories'.format(__package__),
         '{0}.scripts'.format(__package__),
+        '{0}.target_features'.format(__package__),
         ],
     package_dir={
         __package__: os.path.join('python3', __package__),
