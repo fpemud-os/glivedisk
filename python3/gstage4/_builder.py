@@ -387,16 +387,14 @@ class _MyRepo:
 class _Chrooter(WorkDirChrooter):
 
     def __init__(self, parent):
+        super().__init__(parent._workDirObj)
         self._p = parent
         self._w = parent._workDirObj
-        super().__init__(self._w)
+        self._bindMountList = []
 
     def bind(self):
         super().bind()
         try:
-            self._bindMountList = []
-            self._scriptDirList = []
-
             t = TargetFilesAndDirs(self._w.chroot_dir_path)
 
             # log directory mount point
@@ -434,28 +432,10 @@ class _Chrooter(WorkDirChrooter):
             raise
 
     def unbind(self):
-        if hasattr(self, "_scriptDirList"):
-            # exec directories are in tmpfs, no need to delete
-            del self._scriptDirList
-        if hasattr(self, "_bindMountList"):
-            for fullfn in reversed(self._bindMountList):
-                Util.cmdCall("/bin/umount", "-l", fullfn)
-            del self._bindMountList
+        for fullfn in reversed(self._bindMountList):
+            Util.cmdCall("/bin/umount", "-l", fullfn)
+        self._bindMountList = []
         super().unbind()
-
-    def script_exec(self, scriptObj):
-        assert self.binded
-
-        path = os.path.join("/var/tmp", "script_%d" % (len(self._scriptDirList)))
-        hostPath = os.path.join(self._w.chroot_dir_path, path[1:])
-
-        assert not os.path.exists(hostPath)
-        os.makedirs(hostPath, mode=0o755)
-        self._scriptDirList.append(hostPath)
-
-        print(scriptObj.get_description())
-        scriptObj.fill_script_dir(hostPath)
-        self.shell_exec("", os.path.join(path, scriptObj.get_script()))
 
 
 class TargetFilesAndDirs:

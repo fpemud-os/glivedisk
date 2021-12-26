@@ -210,7 +210,8 @@ class WorkDirChrooter:
 
     def __init__(self, work_dir):
         self._workDirObj = work_dir
-        self._bBind = False
+        self._mountList = []
+        self._scriptDirList = []
 
     def __enter__(self):
         self.bind()
@@ -221,53 +222,60 @@ class WorkDirChrooter:
 
     @property
     def binded(self):
-        return self._bBind
+        return len(self._mountList) > 0
 
     def bind(self):
-        assert not self._bBind
+        assert len(self._mountList) == 0
 
         try:
             # copy resolv.conf
             Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "etc")))
 
             # mount /proc
-            self._assertDirStatus("/proc")
-            Util.shellCall("/bin/mount -t proc proc \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "proc")))
+            fullfn = os.path.join(self._workDirObj.chroot_dir_path, "proc")
+            assert os.path.exists(fullfn) and not Util.isMount(fullfn)
+            Util.shellCall("/bin/mount -t proc proc \"%s\"" % (fullfn))
+            self._mountList.append(fullfn)
 
             # mount /sys
-            self._assertDirStatus("/sys")
-            Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "sys")))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "sys")))
+            fullfn = os.path.join(self._workDirObj.chroot_dir_path, "sys")
+            assert os.path.exists(fullfn) and not Util.isMount(fullfn)
+            Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (fullfn))
+            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (fullfn))
+            self._mountList.append(fullfn)
 
             # mount /dev
-            self._assertDirStatus("/dev")
-            Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "dev")))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "dev")))
+            fullfn = os.path.join(self._workDirObj.chroot_dir_path, "dev")
+            assert os.path.exists(fullfn) and not Util.isMount(fullfn)
+            Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (fullfn))
+            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (fullfn))
+            self._mountList.append(fullfn)
 
             # FIXME: mount /run
             pass
 
             # mount /tmp
-            self._assertDirStatus("/tmp")
-            Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (os.path.join(self._workDirObj.chroot_dir_path, "tmp")))
+            fullfn = os.path.join(self._workDirObj.chroot_dir_path, "tmp")
+            assert os.path.exists(fullfn) and not Util.isMount(fullfn)
+            Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (fullfn))
+            self._mountList.append(fullfn)
         except BaseException:
             self._unbind()
             raise
 
-        # change status
-        self._bBind = True
-
     def unbind(self):
-        assert self._bBind
+        assert len(self._mountList) > 0
         self._unbind()
-        self._bBind = False
 
     def interactive_shell(self):
+        assert len(self._mountList) > 0
+
         cmd = "/bin/bash"       # FIXME: change to read shell
         return Util.shellExec("/usr/bin/chroot \"%s\" %s" % (self._workDirObj.chroot_dir_path, cmd))
 
     def shell_call(self, env, cmd):
         # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+        assert len(self._mountList) > 0
 
         # FIXME
         env = "LANG=C.utf8 " + env
@@ -276,6 +284,8 @@ class WorkDirChrooter:
         return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
     def shell_test(self, env, cmd):
+        assert len(self._mountList) > 0
+
         # FIXME
         env = "LANG=C.utf8 " + env
         assert self._detectArch() == platform.machine()
@@ -283,6 +293,8 @@ class WorkDirChrooter:
         return Util.shellCallTestSuccess("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
     def shell_exec(self, env, cmd, quiet=False):
+        assert len(self._mountList) > 0
+
         # FIXME
         env = "LANG=C.utf8 " + env
         assert self._detectArch() == platform.machine()
@@ -292,24 +304,29 @@ class WorkDirChrooter:
         else:
             Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._workDirObj.chroot_dir_path, cmd))
 
-    def _assertDirStatus(self, dir):
-        assert dir.startswith("/")
-        fullfn = os.path.join(self._workDirObj.chroot_dir_path, dir[1:])
-        assert os.path.exists(fullfn)
-        assert not Util.isMount(fullfn)
+    def script_exec(self, scriptObj):
+        assert len(self._mountList) > 0
+
+        path = os.path.join("/var/tmp", "script_%d" % (len(self._scriptDirList)))
+        hostPath = os.path.join(self._workDirObj.chroot_dir_path, path[1:])
+
+        assert not os.path.exists(hostPath)
+        os.makedirs(hostPath, mode=0o755)
+        self._scriptDirList.append(hostPath)
+
+        print(scriptObj.get_description())
+        scriptObj.fill_script_dir(hostPath)
+        self.shell_exec("", os.path.join(path, scriptObj.get_script()))
 
     def _unbind(self):
-        def _procOne(fn):
-            fullfn = os.path.join(self._workDirObj.chroot_dir_path, fn[1:])
+        for fullfn in reversed(self._mountList):
             if os.path.exists(fullfn) and Util.isMount(fullfn):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
 
-        _procOne("/tmp")
-        _procOne("/dev")
-        _procOne("/sys")
-        _procOne("/proc")
-
         robust_layer.simple_fops.rm(os.path.join(self._workDirObj.chroot_dir_path, "etc", "resolv.conf"))
+
+        self._scriptDirList = []            # script directories are in tmpfs, no need to delete
+        self._mountList = []
 
     def _detectArch(self):
         # FIXME: use profile function of pkgwh to get arch from CHOST
