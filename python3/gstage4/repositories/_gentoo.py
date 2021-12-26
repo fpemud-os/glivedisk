@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 
+import tarfile
 from .. import ManualSyncRepository
 from .. import EmergeSyncRepository
 from .. import BindMountRepository
@@ -74,8 +75,41 @@ class GentooSnapshot(ManualSyncRepository):
     def get_datadir_path(self):
         return "/var/db/repos/gentoo"
 
-    def sync(self):
+    def sync(self, datadir_hostpath):
         assert False
+
+
+class GentooSnapshotArchive(ManualSyncRepository):
+
+    def __init__(self, filepath, digest_filepath=None):
+        self._path = filepath
+        if self._path.endswith(".lzo.sqfs"):
+            self._hashPath = None
+        elif self._path.endswith(".xz.sqfs"):
+            self._hashPath = None
+        elif self._path.endswith(".tar.xz"):
+            assert digest_filepath.endswith(".tar.xz.gpgsig") or digest_filepath.endswith(".tar.xz.md5sum") or digest_filepath.endswith(".tar.xz.umd5sum")
+            self._hashPath = digest_filepath
+        else:
+            # FIXME?
+            assert False
+
+    def get_name(self):
+        return "gentoo"
+
+    def get_datadir_path(self):
+        return "/var/db/repos/gentoo"
+
+    def sync(self, datadir_hostpath):
+        if self._path.endswith(".lzo.sqfs"):
+            assert False
+        elif self._path.endswith(".xz.sqfs"):
+            assert False
+        elif self._path.endswith(".tar.xz"):
+            with tarfile.open(self._path, mode="r:xz") as tf:
+                tf.extractall(datadir_hostpath)
+        else:
+            assert False
 
 
 class GentooFromHost(BindMountRepository):

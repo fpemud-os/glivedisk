@@ -46,7 +46,7 @@ class ManualSyncRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def sync(self):
+    def sync(self, datadir_hostpath):
         pass
 
 
