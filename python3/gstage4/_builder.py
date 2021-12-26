@@ -670,11 +670,11 @@ class TargetConfDirParser:
     def get_make_conf_make_opts_jobs(self):
         buf = pathlib.Path(os.path.join(self._dir, "make.conf")).read_text()
 
-        m = re.search("MAKEOPTS=\".*--jobs=([0-9]+)\".*", buf, re.M)
+        m = re.search("MAKEOPTS=\".*--jobs=([0-9]+).*\"", buf, re.M)
         if m is not None:
             return int(m.group(1))
 
-        m = re.search("MAKEOPTS=\".*-j([0-9]+)\".*", buf, re.M)
+        m = re.search("MAKEOPTS=\".*-j([0-9]+).*\"", buf, re.M)
         if m is not None:
             return int(m.group(1))
 
@@ -682,7 +682,7 @@ class TargetConfDirParser:
 
     def get_make_conf_load_average(self):
         buf = pathlib.Path(os.path.join(self._dir, "make.conf")).read_text()
-        m = re.search("EMERGE_DEFAULT_OPTS=\"--load-average=([0-9]+)\"", buf, re.M)
+        m = re.search("EMERGE_DEFAULT_OPTS=\".*--load-average=([0-9]+).*\"", buf, re.M)
         if m is not None:
             return int(m.group(1))
         assert False
