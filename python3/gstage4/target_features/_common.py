@@ -46,7 +46,7 @@ class SshServer(TargetFeature):
         pass
 
 
-class Chrony(TargetFeature):
+class ChronyDaemon(TargetFeature):
 
     def update_world_set(self, world_set, dry_run=False):
         if "net-misc/chrony" not in world_set:

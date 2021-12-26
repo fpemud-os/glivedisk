@@ -22,4 +22,6 @@
 
 
 from ._common import SshServer
+from ._common import ChronyDaemon
+from ._common import NetworkManager
 from ._common import GettyAutoLogin
