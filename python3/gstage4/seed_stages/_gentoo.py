@@ -141,6 +141,12 @@ class CloudGentooStage3Archive(SeedStage):
             self._resp.close()
             self._resp = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
 
 class GentooStage3Archive(SeedStage):
 
@@ -184,3 +190,9 @@ class GentooStage3Archive(SeedStage):
             self._tf.close()
             self._tf = None
         self._hash = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
