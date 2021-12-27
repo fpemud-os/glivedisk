@@ -50,7 +50,7 @@ class ManualSyncRepository(abc.ABC):
         pass
 
 
-class BindMountRepository(abc.ABC):
+class MountRepository(abc.ABC):
 
     @abc.abstractmethod
     def get_name(self):
@@ -61,7 +61,8 @@ class BindMountRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_hostdir_path(self):
+    def get_mount_params(self):
+        # returns (source, mount-options)
         pass
 
 
@@ -72,11 +73,11 @@ class EmergeSyncRepository(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_repos_conf_file_content(self):
+    def get_datadir_path(self):
         pass
 
     @abc.abstractmethod
-    def get_datadir_path(self):
+    def get_repos_conf_file_content(self):
         pass
 
 

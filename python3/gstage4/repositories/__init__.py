@@ -21,9 +21,10 @@
 # THE SOFTWARE.
 
 
-from ._gentoo import GentooRsync
+from ._gentoo import CloudGentoo
+from ._gentoo import CloudGentooSnapshot
 from ._gentoo import GentooSnapshot
-from ._gentoo import GentooSnapshotArchive
+from ._gentoo import GentooSquashedSnapshot
 from ._gentoo import GentooFromHost
 
 from ._host_overlay import OverlayFromHost

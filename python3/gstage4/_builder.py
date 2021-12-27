@@ -29,7 +29,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
-from ._prototype import BindMountRepository
+from ._prototype import MountRepository
 from ._prototype import EmergeSyncRepository
 from ._prototype import ScriptInChroot
 from ._errors import SettingsError
@@ -109,7 +109,7 @@ class Builder:
     @Action(BuildProgress.STEP_UNPACKED)
     def action_init_repositories(self, repo_list):
         assert repo_list is not None
-        assert all([Util.isInstanceList(x, ManualSyncRepository, BindMountRepository, EmergeSyncRepository) for x in repo_list])
+        assert all([Util.isInstanceList(x, ManualSyncRepository, EmergeSyncRepository, MountRepository) for x in repo_list])
         assert len([x.get_name() == "gentoo" for x in repo_list]) == 1
         assert len([x.get_name() for x in repo_list]) == len(set([x.get_name() for x in repo_list]))        # no duplication
 
@@ -117,10 +117,10 @@ class Builder:
             repoOrOverlay = (repo.get_name() == "gentoo")
             if isinstance(repo, ManualSyncRepository):
                 _MyRepoUtil.createFromManuSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
-            elif isinstance(repo, BindMountRepository):
-                _MyRepoUtil.createFromBindMountRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
             elif isinstance(repo, EmergeSyncRepository):
                 _MyRepoUtil.createFromEmergeSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
+            elif isinstance(repo, MountRepository):
+                _MyRepoUtil.createFromMountRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
             else:
                 assert False
 
@@ -301,8 +301,8 @@ class _MyRepoUtil:
         return myRepo
 
     @classmethod
-    def createFromBindMountRepo(cls, repo, repoOrOverlay, chrootDir):
-        assert isinstance(repo, BindMountRepository)
+    def createFromMountRepo(cls, repo, repoOrOverlay, chrootDir):
+        assert isinstance(repo, MountRepository)
 
         myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
 
@@ -310,7 +310,9 @@ class _MyRepoUtil:
         buf += "[%s]\n" % (repo.get_name())
         buf += "auto-sync = no\n"
         buf += "location = %s\n" % (repo.get_datadir_path())
-        buf += "host-dir = %s\n" % (repo.get_hostdir_path())
+        if True:
+            src, mntOpts = repo.get_mount_params()
+            buf += "mount-params = \"%s\", \"%s\"\n" % (src, mntOpts)
         cls._writeReposConfFile(myRepo, buf)
 
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
@@ -336,7 +338,7 @@ class _MyRepoUtil:
 
     @classmethod
     def cleanupReposConfDir(cls, chrootDir):
-        Util.shellCall("/bin/sed '/host-dir = /d' %s/*" % (cls._getReposConfDir(chrootDir)))
+        Util.shellCall("/bin/sed '/mount-params = /d' %s/*" % (cls._getReposConfDir(chrootDir)))
 
     @staticmethod
     def _getReposConfDir(chrootDir):
@@ -379,9 +381,9 @@ class _MyRepo:
     def datadir_path(self):
         return re.search(r'location = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M).group(1)
 
-    def get_hostdir(self):
-        m = re.search(r'host-dir = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M)
-        return m.group(1) if m is not None else None
+    def get_mount_params(self):
+        m = re.search(r'mount-params = "(\S+)", "(\S+)"', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M)
+        return (m.group(1), m.group(2)) if m is not None else None
 
 
 class _Chrooter(WorkDirChrooter):
@@ -421,11 +423,12 @@ class _Chrooter(WorkDirChrooter):
                 Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
-            # mount points for BindMountRepository
+            # mount points for MountRepository
             for myRepo in _MyRepoUtil.scanReposConfDir(self._w.chroot_dir_path):
-                if myRepo.get_hostdir() is not None:
+                mp = myRepo.get_mount_params()
+                if mp is not None:
                     assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
-                    Util.shellCall("/bin/mount --bind \"%s\" \"%s\" -o ro" % (myRepo.get_hostdir(), myRepo.datadir_hostpath))
+                    Util.shellCall("/bin/mount \"%s\" \"%s\" -o %s,ro" % (mp[0], myRepo.datadir_hostpath, mp[1]))
                     self._bindMountList.append(myRepo.datadir_hostpath)
         except BaseException:
             self.unbind()

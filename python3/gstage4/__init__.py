@@ -38,7 +38,7 @@ from ._settings import ComputingPower
 from ._prototype import SeedStage
 from ._prototype import ManualSyncRepository
 from ._prototype import EmergeSyncRepository
-from ._prototype import BindMountRepository
+from ._prototype import MountRepository
 from ._prototype import ScriptInChroot
 from ._prototype import TargetFeature
 

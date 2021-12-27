@@ -21,16 +21,21 @@
 # THE SOFTWARE.
 
 
+import os
 import tarfile
+import urllib.request
 from .. import ManualSyncRepository
 from .. import EmergeSyncRepository
-from .. import BindMountRepository
+from .. import MountRepository
 
 
-class GentooRsync(EmergeSyncRepository):
+class CloudGentoo(EmergeSyncRepository):
 
     def get_name(self):
         return "gentoo"
+
+    def get_datadir_path(self):
+        return "/var/db/repos/gentoo"
 
     def get_repos_conf_file_content(self):
         url = "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage"
@@ -57,11 +62,8 @@ class GentooRsync(EmergeSyncRepository):
         buf += "sync-openpgp-key-refresh-retry-delay-mult = 4\n"
         return buf
 
-    def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
 
-
-class GentooSnapshot(ManualSyncRepository):
+class CloudGentooSnapshot(ManualSyncRepository):
 
     def __init__(self, date=None):
         if date is not None:
@@ -76,23 +78,21 @@ class GentooSnapshot(ManualSyncRepository):
         return "/var/db/repos/gentoo"
 
     def sync(self, datadir_hostpath):
-        assert False
+        url = "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage"
+        url = os.path.join(url, "snapshots", "gentoo-%s.tar.xz" % (self._date))
+        with urllib.request.urlopen(url) as resp:
+            with tarfile.open(fileobj=resp, mode="r:xz") as tf:
+                tf.extractall(datadir_hostpath)
 
 
-class GentooSnapshotArchive(ManualSyncRepository):
+class GentooSnapshot(ManualSyncRepository):
 
-    def __init__(self, filepath, digest_filepath=None):
+    def __init__(self, filepath, digest_filepath):
+        assert filepath.endswith(".tar.xz")
+        assert digest_filepath in [filepath + ".gpgsig", filepath + ".md5sum", filepath + ".umd5sum"]
+
         self._path = filepath
-        if self._path.endswith(".lzo.sqfs"):
-            self._hashPath = None
-        elif self._path.endswith(".xz.sqfs"):
-            self._hashPath = None
-        elif self._path.endswith(".tar.xz"):
-            assert digest_filepath.endswith(".tar.xz.gpgsig") or digest_filepath.endswith(".tar.xz.md5sum") or digest_filepath.endswith(".tar.xz.umd5sum")
-            self._hashPath = digest_filepath
-        else:
-            # FIXME?
-            assert False
+        self._hashPath = digest_filepath
 
     def get_name(self):
         return "gentoo"
@@ -101,18 +101,27 @@ class GentooSnapshotArchive(ManualSyncRepository):
         return "/var/db/repos/gentoo"
 
     def sync(self, datadir_hostpath):
-        if self._path.endswith(".lzo.sqfs"):
-            assert False
-        elif self._path.endswith(".xz.sqfs"):
-            assert False
-        elif self._path.endswith(".tar.xz"):
-            with tarfile.open(self._path, mode="r:xz") as tf:
-                tf.extractall(datadir_hostpath)
-        else:
-            assert False
+        with tarfile.open(self._path, mode="r:xz") as tf:
+            tf.extractall(datadir_hostpath)
 
 
-class GentooFromHost(BindMountRepository):
+class GentooSquashedSnapshot(MountRepository):
+
+    def __init__(self, filepath):
+        assert filepath.endswith(".lzo.sqfs") or filepath.endswith(".xz.sqfs")
+        self._path = filepath
+
+    def get_name(self):
+        return "gentoo"
+
+    def get_datadir_path(self):
+        return "/var/db/repos/gentoo"
+
+    def get_mount_params(self):
+        return (self._path, "")
+
+
+class GentooFromHost(MountRepository):
 
     def __init__(self, hostdir):
         self._hostDir = hostdir
@@ -123,5 +132,5 @@ class GentooFromHost(BindMountRepository):
     def get_datadir_path(self):
         return "/var/db/repos/gentoo"
 
-    def get_hostdir_path(self):
-        return self._hostDir
+    def get_mount_params(self):
+        return (self._hostDir, "bind")

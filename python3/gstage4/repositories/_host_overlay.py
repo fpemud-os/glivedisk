@@ -21,11 +21,11 @@
 # THE SOFTWARE.
 
 
-from .. import BindMountRepository
+from .. import MountRepository
 from .. import EmergeSyncRepository
 
 
-class OverlayFromHost(BindMountRepository):
+class OverlayFromHost(MountRepository):
 
     def __init__(self, overlay_name, hostdir):
         self._name = overlay_name
@@ -37,8 +37,8 @@ class OverlayFromHost(BindMountRepository):
     def get_datadir_path(self):
         return "/var/db/overlays/%s" % (self._name)
 
-    def get_hostdir_path(self):
-        return self._hostDir
+    def get_mount_params(self):
+        return (self._hostDir, "bind")
 
 
 class OverlayFromHostLayman(EmergeSyncRepository):
