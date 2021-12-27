@@ -40,7 +40,6 @@ from ._prototype import ManualSyncRepository
 from ._prototype import EmergeSyncRepository
 from ._prototype import MountRepository
 from ._prototype import ScriptInChroot
-from ._prototype import TargetFeature
 
 from ._workdir import WorkDir
 from ._workdir import WorkDirChrooter

@@ -35,7 +35,7 @@ class SeedStage(abc.ABC):
         pass
 
 
-class ManualSyncRepository(abc.ABC):
+class Repository(abc.ABC):
 
     @abc.abstractmethod
     def get_name(self):
@@ -44,21 +44,26 @@ class ManualSyncRepository(abc.ABC):
     @abc.abstractmethod
     def get_datadir_path(self):
         pass
+
+    def __eq__(self, other):
+        if not isinstance(other, Repository):
+            return False
+        if self.get_name() != other.get_name():
+            return False
+        return True
+
+    def __ne__(self, other):
+        return (not self.__eq__(other))
+
+
+class ManualSyncRepository(Repository):
 
     @abc.abstractmethod
     def sync(self, datadir_hostpath):
         pass
 
 
-class MountRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass
-
-    @abc.abstractmethod
-    def get_datadir_path(self):
-        pass
+class MountRepository(Repository):
 
     @abc.abstractmethod
     def get_mount_params(self):
@@ -66,15 +71,7 @@ class MountRepository(abc.ABC):
         pass
 
 
-class EmergeSyncRepository(abc.ABC):
-
-    @abc.abstractmethod
-    def get_name(self):
-        pass
-
-    @abc.abstractmethod
-    def get_datadir_path(self):
-        pass
+class EmergeSyncRepository(Repository):
 
     @abc.abstractmethod
     def get_repos_conf_file_content(self):
@@ -104,36 +101,3 @@ class ScriptInChroot(abc.ABC):
 
     def __ne__(self, other):
         return (not self.__eq__(other))
-
-
-class TargetFeature:
-
-    # def __init__(self):
-    #     protoMethodList = [{x[2:]:inspect.signature() for x in dir(self) if x.startswith("__update")]
-    #     methodList = [x for x in v if not x.startswith("_") and callable(x)]
-
-    #     for m in methodList:
-    #         if m in protoMethodList:
-
-    #     print(dir(MyClass))
-
-    # it's more like a convension, not interface definition
-    # we don't encourage using preprocessing scripts
-
-    def __update_target_settings(self, target_settings, dry_run=False):
-        pass
-
-    def __update_repositories(self, repo_list, dry_run=False):
-        pass
-
-    def __update_install_list(self, install_list, dry_run=False):
-        pass
-
-    def __update_world_set(self, world_set, dry_run=False):
-        pass
-
-    def __update_service_list(self, service_list, dry_run=False):
-        pass
-
-    def __update_custom_script_list(self, custom_script_list, dry_run=False):
-        pass

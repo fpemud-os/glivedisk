@@ -20,69 +20,46 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from .. import TargetFeature
-from .. import SettingsError
-from ..scripts import ScriptPlacingFiles
+from gstage4.scripts import ScriptPlacingFiles
 
 
-class SshServer(TargetFeature):
+class SshServer:
 
-    def update_world_set(self, world_set, dry_run=False):
-        if "net-misc/openssh" not in world_set:
-            if dry_run:
-                raise SettingsError("package \"net-misc/openssh\" is needed")
-            else:
-                world_set.add("net-misc/openssh")
+    def update_world_set(self, world_set):
+        world_set.add("net-misc/openssh")
 
-    def update_service_list(self, service_list, dry_run=False):
+    def update_service_list(self, service_list):
         if "sshd" not in service_list:
-            if dry_run:
-                raise SettingsError("service \"sshd\" is needed")
-            else:
-                service_list.append("sshd")
+            service_list.append("sshd")
 
-    def update_custom_script_list(self, custom_script_list, dry_run=False):
+    def update_custom_script_list(self, custom_script_list):
         # FIXME
         pass
 
 
-class ChronyDaemon(TargetFeature):
+class ChronyDaemon:
 
-    def update_world_set(self, world_set, dry_run=False):
-        if "net-misc/chrony" not in world_set:
-            if dry_run:
-                raise SettingsError("package \"net-misc/chrony\" is needed")
-            else:
-                world_set.add("net-misc/chrony")
+    def update_world_set(self, world_set):
+        world_set.add("net-misc/chrony")
 
-    def update_service_list(self, service_list, dry_run=False):
+    def update_service_list(self, service_list):
         if "chronyd" not in service_list:
-            if dry_run:
-                raise SettingsError("service \"chronyd\" is needed")
-            else:
-                service_list.append("chronyd")
+            service_list.append("chronyd")
 
 
-class NetworkManager(TargetFeature):
+class NetworkManager:
 
-    def update_world_set(self, world_set, dry_run=False):
-        if "net-misc/networkmanager" not in world_set:
-            if dry_run:
-                raise SettingsError("package \"net-misc/networkmanager\" is needed")
-            else:
-                world_set.add("net-misc/networkmanager")
+    def update_world_set(self, world_set):
+        world_set.add("net-misc/networkmanager")
 
-    def update_service_list(self, service_list, dry_run=False):
+    def update_service_list(self, service_list):
         if "NetworkManager" not in service_list:
-            if dry_run:
-                raise SettingsError("service \"NetworkManager\" is needed")
-            else:
-                service_list.append("NetworkManager")
+            service_list.append("NetworkManager")
 
 
-class GettyAutoLogin(TargetFeature):
+class GettyAutoLogin:
 
-    def update_custom_script_list(self, custom_script_list, dry_run=False):
+    def update_custom_script_list(self, custom_script_list):
         s = ScriptPlacingFiles("Place auto login file")
         s.append_file("/etc/systemd/system/getty@.service.d/getty-autologin.conf",
                       0,
@@ -90,10 +67,7 @@ class GettyAutoLogin(TargetFeature):
                       buf=self._fileContent.strip("\n") + "\n")  # remove all redundant carrage returns)
 
         if s not in custom_script_list:
-            if dry_run:
-                raise SettingsError("custom script \"%s\" is needed" % (s.get_description()))
-            else:
-                custom_script_list.append()
+            custom_script_list.append(s)
 
     _fileContent = """
 [Service]
