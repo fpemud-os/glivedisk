@@ -47,22 +47,22 @@ def Action(*progressStepTuple):
             assert self._progress in progressStepList
             self._workDirObj.open_chroot_dir(from_dir_name=self._getChrootDirName())
             func(self, *kargs, **kwargs)
-            self._progress = BuildProgress(progressStepList[-1] + 1)
+            self._progress = BuildStep(progressStepList[-1] + 1)
             self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
         return wrapper
     return decorator
 
 
-class BuildProgress(enum.IntEnum):
-    STEP_INIT = enum.auto()
-    STEP_UNPACKED = enum.auto()
-    STEP_REPOSITORIES_INITIALIZED = enum.auto()
-    STEP_CONFDIR_INITIALIZED = enum.auto()
-    STEP_WORLD_SET_UPDATED = enum.auto()
-    STEP_KERNEL_INSTALLED = enum.auto()
-    STEP_SERVICES_ENABLED = enum.auto()
-    STEP_SYSTEM_CUSTOMIZED = enum.auto()
-    STEP_CLEANED_UP = enum.auto()
+class BuildStep(enum.IntEnum):
+    INIT = enum.auto()
+    UNPACKED = enum.auto()
+    REPOSITORIES_INITIALIZED = enum.auto()
+    CONFDIR_INITIALIZED = enum.auto()
+    WORLD_UPDATED = enum.auto()
+    KERNEL_INSTALLED = enum.auto()
+    SERVICES_ENABLED = enum.auto()
+    SYSTEM_CUSTOMIZED = enum.auto()
+    CLEANED_UP = enum.auto()
 
 
 class Builder:
@@ -86,14 +86,14 @@ class Builder:
 
         self._workDirObj = work_dir
 
-        self._progress = BuildProgress.STEP_INIT
+        self._progress = BuildStep.INIT
         self._workDirObj.open_chroot_dir()
         self._workDirObj.close_chroot_dir(to_dir_name=self._getChrootDirName())
 
     def get_progress(self):
         return self._progress
 
-    @Action(BuildProgress.STEP_INIT)
+    @Action(BuildStep.INIT)
     def action_unpack(self, seed_stage):
         assert isinstance(seed_stage, SeedStage)
 
@@ -106,7 +106,7 @@ class Builder:
         if self._ts.build_opts.ccache:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
 
-    @Action(BuildProgress.STEP_UNPACKED)
+    @Action(BuildStep.UNPACKED)
     def action_init_repositories(self, repo_list):
         assert repo_list is not None
         assert all([Util.isInstanceList(x, ManualSyncRepository, EmergeSyncRepository, MountRepository) for x in repo_list])
@@ -132,7 +132,7 @@ class Builder:
             with _Chrooter(self) as m:
                 m.script_exec(ScriptSync())
 
-    @Action(BuildProgress.STEP_REPOSITORIES_INITIALIZED)
+    @Action(BuildStep.REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
         t = TargetConfDirWriter(self._s, self._ts, self._workDirObj.chroot_dir_path)
         t.write_make_conf()
@@ -142,7 +142,7 @@ class Builder:
         t.write_package_accept_keywords()
         t.write_package_license()
 
-    @Action(BuildProgress.STEP_CONFDIR_INITIALIZED)
+    @Action(BuildStep.CONFDIR_INITIALIZED)
     def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=set()):
         assert len(world_set & set(install_list)) == 0
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
@@ -210,7 +210,7 @@ class Builder:
                 m.script_exec(ScriptInstallPackage(pkg))
             m.script_exec(ScriptUpdateWorld())
 
-    @Action(BuildProgress.STEP_WORLD_SET_UPDATED)
+    @Action(BuildStep.WORLD_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
@@ -233,7 +233,7 @@ class Builder:
             print("genkernel")
             m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
-    @Action(BuildProgress.STEP_WORLD_SET_UPDATED, BuildProgress.STEP_KERNEL_INSTALLED)
+    @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
@@ -244,7 +244,7 @@ class Builder:
                 for s in service_list:
                     m.shell_exec("", "systemctl enable %s" % (s))
 
-    @Action(BuildProgress.STEP_SERVICES_ENABLED)
+    @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in custom_script_list])
 
@@ -253,7 +253,7 @@ class Builder:
                 for s in custom_script_list:
                     m.script_exec(s)
 
-    @Action(BuildProgress.STEP_SYSTEM_CUSTOMIZED)
+    @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
             if not self._ts.degentoo:
