@@ -45,7 +45,7 @@ from ._workdir import WorkDir
 from ._workdir import WorkDirChrooter
 
 from ._builder import Builder
-from ._builder import BuildProgress
+from ._builder import BuildStep
 
 from ._errors import SettingsError
 from ._errors import SeedStageError
