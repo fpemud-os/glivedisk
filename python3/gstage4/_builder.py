@@ -126,7 +126,7 @@ class Builder:
 
         for repo in repo_list:
             if isinstance(repo, ManualSyncRepository):
-                repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path[1:]))
+                repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
 
         if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
             with _Chrooter(self) as m:
