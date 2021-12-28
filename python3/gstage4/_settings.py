@@ -111,11 +111,11 @@ class TargetSettings(dict):
         self.kernel_manager = "genkernel"   # kernel source and kernel config is select by emerge/pre-command
         self.service_manager = "systemd"
 
-        self.pkg_use = dict()              # list<(package-wildcard, use-flag-list)>
+        self.pkg_use = dict()              # dict<package-wildcard, use-flag-list>
         self.pkg_mask = []                 # list<package-wildcard>
         self.pkg_unmask = []               # list<package-wildcard>
-        self.pkg_accept_keywords = dict()  # list<(package-wildcard, accept-keyword-list)>
-        self.pkg_license = dict()          # list<(package-wildcard, license-list)>
+        self.pkg_accept_keywords = dict()  # dict<package-wildcard, accept-keyword-list>
+        self.pkg_license = dict()          # dict<package-wildcard, license-list>
 
         self.install_mask = []             # list<install-mask>
         self.pkg_install_mask = dict()     # dict<package-wildcard, install-mask>
@@ -160,56 +160,27 @@ class TargetSettings(dict):
             else:
                 return False
 
-        if obj.pkg_use is None or not isinstance(obj.pkg_use, list):
+        if obj.pkg_use is None or not isinstance(obj.pkg_use, dict):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_use\"")
             else:
                 return False
-        if not all(isinstance(x, tuple) and len(x) == 2 for x in obj.pkg_use):
-            if raise_exception:
-                raise SettingsError("invalid value for \"pkg_use\"")
-            else:
-                return False
-
         if obj.pkg_mask is None or not isinstance(obj.pkg_mask, list):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_mask\"")
             else:
                 return False
-        if not all(isinstance(x, str) for x in obj.pkg_mask):
-            if raise_exception:
-                raise SettingsError("invalid value for \"pkg_mask\"")
-            else:
-                return False
-
         if obj.pkg_unmask is None or not isinstance(obj.pkg_unmask, list):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_unmask\"")
             else:
                 return False
-        if not all(isinstance(x, str) for x in obj.pkg_unmask):
-            if raise_exception:
-                raise SettingsError("invalid value for \"pkg_unmask\"")
-            else:
-                return False
-
-        if obj.pkg_accept_keywords is None or not isinstance(obj.pkg_accept_keywords, list):
+        if obj.pkg_accept_keywords is None or not isinstance(obj.pkg_accept_keywords, dict):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_accept_keywords\"")
             else:
                 return False
-        if not all(isinstance(x, tuple) and len(x) == 2 for x in obj.pkg_accept_keywords):
-            if raise_exception:
-                raise SettingsError("invalid value for \"pkg_accept_keywords\"")
-            else:
-                return False
-
-        if obj.pkg_license is None or not isinstance(obj.pkg_license, list):
-            if raise_exception:
-                raise SettingsError("invalid value for \"pkg_license\"")
-            else:
-                return False
-        if not all(isinstance(x, tuple) and len(x) == 2 for x in obj.pkg_license):
+        if obj.pkg_license is None or not isinstance(obj.pkg_license, dict):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_license\"")
             else:
@@ -272,12 +243,6 @@ class TargetSettings(dict):
                 return False
 
         return True
-
-
-class TargetSettingsPkgUseItem:
-
-    def __init__(self):
-        pass
 
 
 class TargetSettingsBuildOpts:

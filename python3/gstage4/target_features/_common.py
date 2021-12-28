@@ -23,16 +23,6 @@
 from gstage4.scripts import ScriptPlacingFiles
 
 
-class NoDeprecated:
-
-    def update_target_settings(self, target_settings):
-
-            "*/*": "-deprecated",
-            "*/*": "-fallback",
-            "*/*": "-quvi",         # media-libs/libquvi depends on dev-lang/lua[deprecated]
-
-
-
 class SshServer:
 
     def update_world_set(self, world_set):
