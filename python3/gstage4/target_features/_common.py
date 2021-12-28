@@ -23,13 +23,29 @@
 from gstage4.scripts import ScriptPlacingFiles
 
 
-class NoDeprecated:
+class DoNotUseDeprecated:
 
     def update_target_settings(self, target_settings):
-        pass
-        # "*/*": "-deprecated",
-        # "*/*": "-fallback",
-        # "*/*": "-quvi",         # media-libs/libquvi depends on dev-lang/lua[deprecated]
+        assert "00-no-deprecated" not in target_settings.pkg_use_files
+        target_settings.pkg_use_files["00-no-deprecated"] = _useFileContent
+
+    _useFileContent = """
+# disable deprecated functions
+*/*    -deprecated
+*/*    -fallback
+
+# media-libs/libquvi depends on dev-lang/lua[deprecated]
+*/*    -quvi
+
+# media-libs/libdv depends on libsdl-version-1, which is deprecated
+*/*    -dv
+
+# framebuffer device is deprecated by DRM
+*/*    -fbdev
+
+# "wpa_supplicant" is deprecated by "iwd", "nss" is deprecated by "gnutls", "wext" is deprecated
+net-misc/networkmanager    iwd -nss -wext
+"""
 
 
 class SshServer:
@@ -75,8 +91,8 @@ class GettyAutoLogin:
                       0,
                       buf=self._fileContent.strip("\n") + "\n")  # remove all redundant carrage returns)
 
-        if s not in custom_script_list:
-            custom_script_list.append(s)
+        assert s not in custom_script_list
+        custom_script_list.append(s)
 
     _fileContent = """
 [Service]

@@ -108,17 +108,23 @@ class TargetSettings(dict):
         self.profile = None
 
         self.package_manager = "portage"
-        self.kernel_manager = "genkernel"   # kernel source and kernel config is select by emerge/pre-command
+        self.kernel_manager = "genkernel"         # kernel source and kernel config is select by emerge/pre-command
         self.service_manager = "systemd"
 
-        self.pkg_use = dict()              # dict<package-wildcard, use-flag-list>
-        self.pkg_mask = []                 # list<package-wildcard>
-        self.pkg_unmask = []               # list<package-wildcard>
-        self.pkg_accept_keywords = dict()  # dict<package-wildcard, accept-keyword-list>
-        self.pkg_license = dict()          # dict<package-wildcard, license-list>
+        self.pkg_use = dict()                    # dict<package-wildcard, use-flag-list>
+        self.pkg_mask = []                       # list<package-wildcard>
+        self.pkg_unmask = []                     # list<package-wildcard>
+        self.pkg_accept_keywords = dict()        # dict<package-wildcard, accept-keyword-list>
+        self.pkg_license = dict()                # dict<package-wildcard, license-list>
 
-        self.install_mask = []             # list<install-mask>
-        self.pkg_install_mask = dict()     # dict<package-wildcard, install-mask>
+        self.pkg_use_files = dict()              # dict<file-name, file-content>
+        self.pkg_mask_files = dict()             # dict<file-name, file-content>
+        self.pkg_unmask_files = dict()           # dict<file-name, file-content>
+        self.pkg_accept_keywords_files = dict()  # dict<file-name, file-content>
+        self.pkg_license_files = dict()          # dict<file-name, file-content>
+
+        self.install_mask = []                   # list<install-mask>
+        self.pkg_install_mask = dict()           # dict<package-wildcard, install-mask>
 
         self.build_opts = TargetSettingsBuildOpts("build_opts")
         self.build_opts.ccache = False
@@ -194,6 +200,32 @@ class TargetSettings(dict):
         if obj.pkg_install_mask is None or not isinstance(obj.pkg_install_mask, dict):
             if raise_exception:
                 raise SettingsError("invalid value for \"pkg_install_mask\"")
+            else:
+                return False
+
+        if not isinstance(obj.pkg_use_files, dict):
+            if raise_exception:
+                raise SettingsError("invalid value for \"pkg_use_files\"")
+            else:
+                return False
+        if not isinstance(obj.pkg_mask_files, dict):
+            if raise_exception:
+                raise SettingsError("invalid value for \"pkg_mask_files\"")
+            else:
+                return False
+        if not isinstance(obj.pkg_unmask_files, dict):
+            if raise_exception:
+                raise SettingsError("invalid value for \"pkg_unmask_files\"")
+            else:
+                return False
+        if not isinstance(obj.pkg_accept_keywords_files, dict):
+            if raise_exception:
+                raise SettingsError("invalid value for \"pkg_accept_keywords_files\"")
+            else:
+                return False
+        if not isinstance(obj.pkg_license_files, dict):
+            if raise_exception:
+                raise SettingsError("invalid value for \"pkg_license_files\"")
             else:
                 return False
 
