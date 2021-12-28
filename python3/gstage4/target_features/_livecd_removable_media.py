@@ -35,8 +35,8 @@ class CreateLiveCdOnRemovableMedia:
         world_set.add("sys-fs/parted")
         world_set.add("sys-fs/squashfs-tools")
 
-    def get_worker_script(self, rootfs_work_dir, dev_path, usb_stick_name, usb_stick_label):
-        return _WorkerScript(rootfs_work_dir, dev_path, usb_stick_name, usb_stick_label)
+    def get_worker_script(self, rootfs_dir, dev_path, usb_stick_name, usb_stick_label):
+        return _WorkerScript(rootfs_dir, dev_path, usb_stick_name, usb_stick_label)
 
 
 class _WorkerScript(ScriptInChroot):
