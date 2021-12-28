@@ -595,7 +595,7 @@ class TargetConfDirWriter:
 
             # set MAKEOPTS and EMERGE_DEFAULT_OPTS
             myf.write('MAKEOPTS="%s"\n' % (' '.join(paraMakeOpts)))
-            myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y --autounmask-continue %s"\n' % (' '.join(paraEmergeOpts)))
+            myf.write('EMERGE_DEFAULT_OPTS="--quiet-build=y --autounmask-continue --autounmask-license %s"\n' % (' '.join(paraEmergeOpts)))
             myf.write('\n')
 
     def write_package_use(self):
@@ -758,11 +758,12 @@ class TargetConfDirCleaner:
         self._dir = TargetFilesAndDirs(chrootDir).confdir_hostpath
 
     def cleanup_repos_conf_dir(self):
-        Util.shellCall("/bin/sed '/mount-params = /d' %s/repos.conf/*" % (self._dir))
+        Util.shellCall("/bin/sed -i '/mount-params = /d' %s/repos.conf/*" % (self._dir))
 
     def cleanup_make_conf(self):
         # FIXME: remove remaining spaces
-        Util.shellCall("/bin/sed 's/--autounmask-continue//g' %s/make.conf" % (self._dir))
+        Util.shellCall("/bin/sed -i 's/--autounmask-continue//g' %s/make.conf" % (self._dir))
+        Util.shellCall("/bin/sed -i 's/--autounmask-license//g' %s/make.conf" % (self._dir))
 
 
 class ScriptSync(ScriptFromBuffer):
