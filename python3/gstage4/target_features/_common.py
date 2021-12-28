@@ -20,17 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+
 from gstage4.scripts import ScriptPlacingFiles
 
 
 class DoNotUseDeprecatedPackagesAndFunctions:
 
     def update_target_settings(self, target_settings):
-        assert "00-no-deprecated" not in target_settings.pkg_use_files
-        assert "00-no-deprecated" not in target_settings.pkg_mask_files
+        assert "10-no-deprecated" not in target_settings.pkg_use_files
+        assert "10-no-deprecated" not in target_settings.pkg_mask_files
 
-        target_settings.pkg_use_files["00-no-deprecated"] = self._useFileContent
-        target_settings.pkg_mask_files["00-no-deprecated"] = self._maskFileContent
+        target_settings.pkg_use_files["10-no-deprecated"] = self._useFileContent
+        target_settings.pkg_mask_files["10-no-deprecated"] = self._maskFileContent
 
     _useFileContent = """
 # disable deprecated functions
