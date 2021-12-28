@@ -618,9 +618,9 @@ class TargetConfDirWriter:
             for file_name, file_content in self._ts.pkg_use_files.items():
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
-            with open(os.path.join(fpath, "90-main", "w")) as myf:
+            with open(os.path.join(fpath, "90-main"), "w") as myf:
                 myf.write(buf)
-            with open(os.path.join(fpath, "99-autouse", "w")) as myf:
+            with open(os.path.join(fpath, "99-autouse"), "w") as myf:
                 myf.write("")
         else:
             # create file
@@ -643,9 +643,9 @@ class TargetConfDirWriter:
             for file_name, file_content in self._ts.pkg_mask_files.items():
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
-            with open(os.path.join(fpath, "90-main", "w")) as myf:
+            with open(os.path.join(fpath, "90-main"), "w") as myf:
                 myf.write(buf)
-            with open(os.path.join(fpath, "99-bugmask", "w")) as myf:
+            with open(os.path.join(fpath, "99-bugmask"), "w") as myf:
                 myf.write("")
         else:
             # create file
@@ -668,7 +668,7 @@ class TargetConfDirWriter:
             for file_name, file_content in self._ts.pkg_unmask_files.items():
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
-            with open(os.path.join(fpath, "90-main", "w")) as myf:
+            with open(os.path.join(fpath, "90-main"), "w") as myf:
                 myf.write(buf)
         else:
             # create file
@@ -691,9 +691,9 @@ class TargetConfDirWriter:
             for file_name, file_content in self._ts.pkg_accept_keywords_files.items():
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
-            with open(os.path.join(fpath, "90-main", "w")) as myf:
+            with open(os.path.join(fpath, "90-main"), "w") as myf:
                 myf.write(buf)
-            with open(os.path.join(fpath, "99-autokeyword", "w")) as myf:
+            with open(os.path.join(fpath, "99-autokeyword"), "w") as myf:
                 myf.write("")
         else:
             # create file
@@ -716,9 +716,9 @@ class TargetConfDirWriter:
             for file_name, file_content in self._ts.pkg_license_files.items():
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
-            with open(os.path.join(fpath, "90-main", "w")) as myf:
+            with open(os.path.join(fpath, "90-main"), "w") as myf:
                 myf.write(buf)
-            with open(os.path.join(fpath, "99-autolicense", "w")) as myf:
+            with open(os.path.join(fpath, "99-autolicense"), "w") as myf:
                 myf.write("")
         else:
             # create file
