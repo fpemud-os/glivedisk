@@ -171,7 +171,7 @@ class ScriptPlacingFiles(ScriptInChroot):
                         os.chown(fullfn, owner, group)
                         os.chmod(fullfn, dmode)
                     else:
-                        self._copytree(hostpath, target_dirpath, owner, group, dmode, fmode)
+                        self._copytree(hostpath, fullfn, owner, group, dmode, fmode)
                 else:
                     os.mkdir(fullfn)
                     os.chown(fullfn, owner, group)
