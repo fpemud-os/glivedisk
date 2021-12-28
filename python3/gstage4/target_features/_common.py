@@ -23,11 +23,14 @@
 from gstage4.scripts import ScriptPlacingFiles
 
 
-class DoNotUseDeprecated:
+class DoNotUseDeprecatedPackagesAndFunctions:
 
     def update_target_settings(self, target_settings):
         assert "00-no-deprecated" not in target_settings.pkg_use_files
-        target_settings.pkg_use_files["00-no-deprecated"] = _useFileContent
+        assert "00-no-deprecated" not in target_settings.pkg_mask_files
+
+        target_settings.pkg_use_files["00-no-deprecated"] = self._useFileContent
+        target_settings.pkg_mask_files["00-no-deprecated"] = self._maskFileContent
 
     _useFileContent = """
 # disable deprecated functions
@@ -45,6 +48,25 @@ class DoNotUseDeprecated:
 
 # "wpa_supplicant" is deprecated by "iwd", "nss" is deprecated by "gnutls", "wext" is deprecated
 net-misc/networkmanager    iwd -nss -wext
+"""
+
+    _maskFileContent = """
+# deprecated gnome libs
+gnome-base/gconf
+gnome-base/gnome-vfs
+
+# these packages depends on dev-lang/lua[deprecated]
+media-libs/libquvi
+media-libs/libquvi-scripts
+
+# FUSE2 is deprecated
+sys-fs/fuse:0
+
+# replaced by net-wireless/iwd
+net-wireless/wpa_supplicant
+
+# libstdc++ is integrated in gcc
+sys-libs/libstdc++-v3
 """
 
 
