@@ -231,7 +231,7 @@ class Builder:
                 env = ""
                 opt = ""
             print("genkernel")
-            m.shell_exec(env, "genkernel --no-mountboot --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
+            m.shell_exec(env, "genkernel --no-mountboot --kernel-filename=vmlinuz --initramfs-filename=initramfs.img --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):

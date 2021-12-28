@@ -21,13 +21,23 @@
 # THE SOFTWARE.
 
 
-from ._common import DoNotUseDeprecatedPackagesAndFunctions
-from ._common import SshServer
-from ._common import ChronyDaemon
-from ._common import NetworkManager
-from ._common import GettyAutoLogin
+class CreateLiveCdAsIsoFile:
 
-from ._livecd_cdrom import CreateLiveCdAsIsoFile
-from ._livecd_cdrom import CreateLiveCdOnCdrom
+    def update_world_set(self, world_set):
+        # FIXME
+        assert False
 
-from ._livecd_removable_media import CreateLiveCdOnRemovableMedia
+    def get_worker_script(self, rootfs_work_dir, dev_path, cdrom_name, cdrom_label):
+        # FIXME
+        assert False
+
+
+class CreateLiveCdOnCdrom:
+
+    def update_world_set(self, world_set):
+        # FIXME
+        assert False
+
+    def get_worker_script(self, rootfs_work_dir, dev_path, cdrom_name, cdrom_label):
+        # FIXME
+        assert False
