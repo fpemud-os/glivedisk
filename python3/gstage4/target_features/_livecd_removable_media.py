@@ -24,7 +24,7 @@
 import os
 import subprocess
 from gstage4 import WorkDir
-from gstage4.scripts import ScriptInChroot
+from gstage4 import ScriptInChroot
 
 
 class CreateLiveCdOnRemovableMedia:
