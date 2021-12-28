@@ -47,7 +47,7 @@ class DoNotUseDeprecatedPackagesAndFunctions:
 */*    -fbdev
 
 # "wpa_supplicant" is deprecated by "iwd", "nss" is deprecated by "gnutls", "wext" is deprecated
-net-misc/networkmanager    iwd -nss -wext
+net-misc/networkmanager    iwd gnutls -nss -wext
 """
 
     _maskFileContent = """
