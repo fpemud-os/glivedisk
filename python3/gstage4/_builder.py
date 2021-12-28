@@ -242,7 +242,7 @@ class Builder:
                 for s in preprocess_script_list:
                     m.script_exec(s)
                 for s in service_list:
-                    m.shell_exec("", "systemctl enable %s" % (s))
+                    m.shell_exec("", "systemctl enable %s -q" % (s))
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
