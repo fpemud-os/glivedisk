@@ -139,142 +139,90 @@ class TargetSettings(dict):
     def check_object(cls, obj, raise_exception=None):
         assert raise_exception is not None
 
-        if not isinstance(obj, cls):
-            if raise_exception:
+        def __checkFilenames(filenames, name):
+            for fn in filenames:
+                if re.fullmatch(r'[0-8][0-9]-\S+', fn) is None:
+                    raise SettingsError("invalid filename \"%s\" for %s" % (fn, name))
+
+        try:
+            if not isinstance(obj, cls):
                 raise SettingsError("invalid object type")
-            else:
-                return False
 
-        # if obj.package_manager not in ["portage", "pkgcore", "pkgwh"]:
-        if obj.package_manager not in ["portage"]:
-            if raise_exception:
+            # if obj.package_manager not in ["portage", "pkgcore", "pkgwh"]:
+            if obj.package_manager not in ["portage"]:
                 raise SettingsError("invalid value of \"package_manager\"")
-            else:
-                return False
 
-        # if obj.kernel_manager not in ["genkernel", "bbki"]:
-        if obj.kernel_manager not in ["genkernel"]:
-            if raise_exception:
+            # if obj.kernel_manager not in ["genkernel", "bbki"]:
+            if obj.kernel_manager not in ["genkernel"]:
                 raise SettingsError("invalid value of \"kernel_manager\"")
-            else:
-                return False
 
-        # if obj.service_manager not in ["openrc", "systemd"]:
-        if obj.service_manager not in ["systemd"]:
-            if raise_exception:
+            # if obj.service_manager not in ["openrc", "systemd"]:
+            if obj.service_manager not in ["systemd"]:
                 raise SettingsError("invalid value of \"service_manager\"")
-            else:
-                return False
 
-        if obj.pkg_use is None or not isinstance(obj.pkg_use, dict):
-            if raise_exception:
+            if obj.pkg_use is None or not isinstance(obj.pkg_use, dict):
                 raise SettingsError("invalid value for \"pkg_use\"")
-            else:
-                return False
-        if obj.pkg_mask is None or not isinstance(obj.pkg_mask, list):
-            if raise_exception:
+            if obj.pkg_mask is None or not isinstance(obj.pkg_mask, list):
                 raise SettingsError("invalid value for \"pkg_mask\"")
-            else:
-                return False
-        if obj.pkg_unmask is None or not isinstance(obj.pkg_unmask, list):
-            if raise_exception:
+            if obj.pkg_unmask is None or not isinstance(obj.pkg_unmask, list):
                 raise SettingsError("invalid value for \"pkg_unmask\"")
-            else:
-                return False
-        if obj.pkg_accept_keywords is None or not isinstance(obj.pkg_accept_keywords, dict):
-            if raise_exception:
+            if obj.pkg_accept_keywords is None or not isinstance(obj.pkg_accept_keywords, dict):
                 raise SettingsError("invalid value for \"pkg_accept_keywords\"")
-            else:
-                return False
-        if obj.pkg_license is None or not isinstance(obj.pkg_license, dict):
-            if raise_exception:
+            if obj.pkg_license is None or not isinstance(obj.pkg_license, dict):
                 raise SettingsError("invalid value for \"pkg_license\"")
-            else:
-                return False
 
-        if obj.install_mask is None or not isinstance(obj.install_mask, list):
-            if raise_exception:
+            if obj.install_mask is None or not isinstance(obj.install_mask, list):
                 raise SettingsError("invalid value for \"install_mask\"")
-            else:
-                return False
-        if obj.pkg_install_mask is None or not isinstance(obj.pkg_install_mask, dict):
-            if raise_exception:
+            if obj.pkg_install_mask is None or not isinstance(obj.pkg_install_mask, dict):
                 raise SettingsError("invalid value for \"pkg_install_mask\"")
-            else:
-                return False
 
-        if not isinstance(obj.pkg_use_files, dict):
-            if raise_exception:
+            if not isinstance(obj.pkg_use_files, dict):
                 raise SettingsError("invalid value for \"pkg_use_files\"")
-            else:
-                return False
-        if not isinstance(obj.pkg_mask_files, dict):
-            if raise_exception:
+            __checkFilenames(obj.pkg_use_files.keys())
+
+            if not isinstance(obj.pkg_mask_files, dict):
                 raise SettingsError("invalid value for \"pkg_mask_files\"")
-            else:
-                return False
-        if not isinstance(obj.pkg_unmask_files, dict):
-            if raise_exception:
+            __checkFilenames(obj.pkg_mask_files.keys())
+
+            if not isinstance(obj.pkg_unmask_files, dict):
                 raise SettingsError("invalid value for \"pkg_unmask_files\"")
-            else:
-                return False
-        if not isinstance(obj.pkg_accept_keywords_files, dict):
-            if raise_exception:
+            __checkFilenames(obj.pkg_unmask_files.keys())
+
+            if not isinstance(obj.pkg_accept_keywords_files, dict):
                 raise SettingsError("invalid value for \"pkg_accept_keywords_files\"")
-            else:
-                return False
-        if not isinstance(obj.pkg_license_files, dict):
-            if raise_exception:
+            __checkFilenames(obj.pkg_accept_keywords_files.keys())
+
+            if not isinstance(obj.pkg_license_files, dict):
                 raise SettingsError("invalid value for \"pkg_license_files\"")
-            else:
-                return False
+            __checkFilenames(obj.pkg_license_files.keys())
 
-        if obj.build_opts is None or not TargetSettingsBuildOpts.check_object(obj.build_opts, raise_exception=raise_exception):
-            if raise_exception:
+            if obj.build_opts is None or not TargetSettingsBuildOpts.check_object(obj.build_opts, raise_exception=raise_exception):
                 raise SettingsError("invalid value for \"build_opts\"")
-            else:
-                return False
-        if obj.build_opts.ccache is None:
-            if raise_exception:
-                raise SettingsError("invalid value for key \"ccache\" in build_opts")
-            else:
-                return False
+            if obj.build_opts.ccache is None:
+                raise SettingsError("invalid value for key \"ccache\" in \"build_opts\"")
 
-        if obj.kern_build_opts is None or not TargetSettingsBuildOpts.check_object(obj.kern_build_opts, raise_exception=raise_exception):
-            if raise_exception:
+            if obj.kern_build_opts is None or not TargetSettingsBuildOpts.check_object(obj.kern_build_opts, raise_exception=raise_exception):
                 raise SettingsError("invalid value for \"kern_build_opts\"")
-            else:
-                return False
-        if obj.kern_build_opts.ccache is not None:
-            if raise_exception:
-                raise SettingsError("invalid value for key \"ccache\" in kern_build_opts")  # ccache is only allowed in global build options
-            else:
-                return False
+            if obj.kern_build_opts.ccache is not None:
+                raise SettingsError("invalid value for key \"ccache\" in \"kern_build_opts\"")  # ccache is only allowed in global build options
 
-        if obj.pkg_build_opts is None or not isinstance(obj.pkg_build_opts, dict):
-            if raise_exception:
+            if obj.pkg_build_opts is None or not isinstance(obj.pkg_build_opts, dict):
                 raise SettingsError("invalid value for \"pkg_build_opts\"")
-            else:
-                return False
-        for k, v in obj.pkg_build_opts.items():
-            if v is None or not TargetSettingsBuildOpts.check_object(v, raise_exception=raise_exception):
-                if raise_exception:
+            for k, v in obj.pkg_build_opts.items():
+                if v is None or not TargetSettingsBuildOpts.check_object(v, raise_exception=raise_exception):
                     raise SettingsError("invalid value for \"build_opts\" of package %s" % (k))
-                else:
-                    return False
-            if v.ccache is not None:
-                if raise_exception:
-                    raise SettingsError("invalid value for key \"ccache\" in build_opts of package" % (k))  # ccache is only allowed in global build options
-                else:
-                    return False
+                if v.ccache is not None:
+                    raise SettingsError("invalid value for key \"ccache\" in build_opts of package %s" % (k))  # ccache is only allowed in global build options
 
-        if obj.degentoo is None or not isinstance(obj.degentoo, bool):
-            if raise_exception:
+            if obj.degentoo is None or not isinstance(obj.degentoo, bool):
                 raise SettingsError("invalid value for key \"degentoo\"")
+
+            return True
+        except SettingsError:
+            if raise_exception:
+                raise
             else:
                 return False
-
-        return True
 
 
 class TargetSettingsBuildOpts:

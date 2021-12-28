@@ -600,49 +600,128 @@ class TargetConfDirWriter:
         # Modify and write out package.use (in chroot)
         fpath = os.path.join(self._dir, "package.use")
         robust_layer.simple_fops.rm(fpath)
-        with open(fpath, "w") as myf:
-            # compile all locales
-            myf.write("*/* compile-locales")
 
-            # write cusom USE flags
-            for pkg_wildcard, use_flag_list in self._ts.pkg_use.items():
-                if "compile-locales" in use_flag_list:
-                    raise SettingsError("USE flag \"compile-locales\" is not allowed")
-                if "-compile-locales" in use_flag_list:
-                    raise SettingsError("USE flag \"-compile-locales\" is not allowed")
-                myf.write("%s %s\n" % (pkg_wildcard, " ".join(use_flag_list)))
+        # generate main file content
+        buf = "*/* compile-locales\n"   # compile all locales
+        for pkg_wildcard, use_flag_list in self._ts.pkg_use.items():
+            if "compile-locales" in use_flag_list:
+                raise SettingsError("USE flag \"compile-locales\" is not allowed")
+            if "-compile-locales" in use_flag_list:
+                raise SettingsError("USE flag \"-compile-locales\" is not allowed")
+            buf += "%s %s\n" % (pkg_wildcard, " ".join(use_flag_list))
+
+        if len(self._ts.pkg_use_files) > 0:
+            # create directory
+            os.mkdir(fpath)
+            for file_name, file_content in self._ts.pkg_use_files.items():
+                with open(os.path.join(fpath, file_name), "w") as myf:
+                    myf.write(file_content)
+            with open(os.path.join(fpath, "90-main", "w")) as myf:
+                myf.write(buf)
+            with open(os.path.join(fpath, "99-autouse", "w")) as myf:
+                myf.write("")
+        else:
+            # create file
+            with open(fpath, "w") as myf:
+                myf.write(buf)
 
     def write_package_mask(self):
         # Modify and write out package.mask (in chroot)
         fpath = os.path.join(self._dir, "package.mask")
         robust_layer.simple_fops.rm(fpath)
-        with open(fpath, "w") as myf:
-            for pkg_wildcard in self._ts.pkg_mask:
-                myf.write("%s\n" % (pkg_wildcard))
+
+        # generate main file content
+        buf = ""
+        for pkg_wildcard in self._ts.pkg_mask:
+            buf += "%s\n" % (pkg_wildcard)
+
+        if len(self._ts.pkg_mask_files) > 0:
+            # create directory
+            os.mkdir(fpath)
+            for file_name, file_content in self._ts.pkg_mask_files.items():
+                with open(os.path.join(fpath, file_name), "w") as myf:
+                    myf.write(file_content)
+            with open(os.path.join(fpath, "90-main", "w")) as myf:
+                myf.write(buf)
+            with open(os.path.join(fpath, "99-bugmask", "w")) as myf:
+                myf.write("")
+        else:
+            # create file
+            with open(fpath, "w") as myf:
+                myf.write(buf)
 
     def write_package_unmask(self):
         # Modify and write out package.unmask (in chroot)
         fpath = os.path.join(self._dir, "package.unmask")
         robust_layer.simple_fops.rm(fpath)
-        with open(fpath, "w") as myf:
-            for pkg_wildcard in self._ts.pkg_unmask:
-                myf.write("%s\n" % (pkg_wildcard))
+
+        # generate main file content
+        buf = ""
+        for pkg_wildcard in self._ts.pkg_unmask:
+            buf += "%s\n" % (pkg_wildcard)
+
+        if len(self._ts.pkg_unmask_files) > 0:
+            # create directory
+            os.mkdir(fpath)
+            for file_name, file_content in self._ts.pkg_unmask_files.items():
+                with open(os.path.join(fpath, file_name), "w") as myf:
+                    myf.write(file_content)
+            with open(os.path.join(fpath, "90-main", "w")) as myf:
+                myf.write(buf)
+        else:
+            # create file
+            with open(fpath, "w") as myf:
+                myf.write(buf)
 
     def write_package_accept_keywords(self):
         # Modify and write out package.accept_keywords (in chroot)
         fpath = os.path.join(self._dir, "package.accept_keywords")
         robust_layer.simple_fops.rm(fpath)
-        with open(fpath, "w") as myf:
-            for pkg_wildcard, keyword_list in self._ts.pkg_accept_keywords.items():
-                myf.write("%s %s\n" % (pkg_wildcard, " ".join(keyword_list)))
+
+        # generate main file content
+        buf = ""
+        for pkg_wildcard, keyword_list in self._ts.pkg_accept_keywords.items():
+            buf += "%s %s\n" % (pkg_wildcard, " ".join(keyword_list))
+
+        if len(self._ts.pkg_accept_keywords_files) > 0:
+            # create directory
+            os.mkdir(fpath)
+            for file_name, file_content in self._ts.pkg_accept_keywords_files.items():
+                with open(os.path.join(fpath, file_name), "w") as myf:
+                    myf.write(file_content)
+            with open(os.path.join(fpath, "90-main", "w")) as myf:
+                myf.write(buf)
+            with open(os.path.join(fpath, "99-autokeyword", "w")) as myf:
+                myf.write("")
+        else:
+            # create file
+            with open(fpath, "w") as myf:
+                myf.write(buf)
 
     def write_package_license(self):
         # Modify and write out package.license (in chroot)
         fpath = os.path.join(self._dir, "package.license")
         robust_layer.simple_fops.rm(fpath)
-        with open(fpath, "w") as myf:
-            for pkg_wildcard, license_list in self._ts.pkg_license.items():
-                myf.write("%s %s\n" % (pkg_wildcard, " ".join(license_list)))
+
+        # generate main file content
+        buf = ""
+        for pkg_wildcard, license_list in self._ts.pkg_license.items():
+            buf += "%s %s\n" % (pkg_wildcard, " ".join(license_list))
+
+        if len(self._ts.pkg_license_files) > 0:
+            # create directory
+            os.mkdir(fpath)
+            for file_name, file_content in self._ts.pkg_license_files.items():
+                with open(os.path.join(fpath, file_name), "w") as myf:
+                    myf.write(file_content)
+            with open(os.path.join(fpath, "90-main", "w")) as myf:
+                myf.write(buf)
+            with open(os.path.join(fpath, "99-autolicense", "w")) as myf:
+                myf.write("")
+        else:
+            # create file
+            with open(fpath, "w") as myf:
+                myf.write(buf)
 
 
 class TargetConfDirParser:
