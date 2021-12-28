@@ -178,23 +178,23 @@ class TargetSettings(dict):
 
             if not isinstance(obj.pkg_use_files, dict):
                 raise SettingsError("invalid value for \"pkg_use_files\"")
-            __checkFilenames(obj.pkg_use_files.keys())
+            __checkFilenames(obj.pkg_use_files.keys(), "pkg_use_files")
 
             if not isinstance(obj.pkg_mask_files, dict):
                 raise SettingsError("invalid value for \"pkg_mask_files\"")
-            __checkFilenames(obj.pkg_mask_files.keys())
+            __checkFilenames(obj.pkg_mask_files.keys(), "pkg_mask_files")
 
             if not isinstance(obj.pkg_unmask_files, dict):
                 raise SettingsError("invalid value for \"pkg_unmask_files\"")
-            __checkFilenames(obj.pkg_unmask_files.keys())
+            __checkFilenames(obj.pkg_unmask_files.keys(), "pkg_unmask_files")
 
             if not isinstance(obj.pkg_accept_keywords_files, dict):
                 raise SettingsError("invalid value for \"pkg_accept_keywords_files\"")
-            __checkFilenames(obj.pkg_accept_keywords_files.keys())
+            __checkFilenames(obj.pkg_accept_keywords_files.keys(), "pkg_accept_keywords_files")
 
             if not isinstance(obj.pkg_license_files, dict):
                 raise SettingsError("invalid value for \"pkg_license_files\"")
-            __checkFilenames(obj.pkg_license_files.keys())
+            __checkFilenames(obj.pkg_license_files.keys(), "pkg_license_files")
 
             if obj.build_opts is None or not TargetSettingsBuildOpts.check_object(obj.build_opts, raise_exception=raise_exception):
                 raise SettingsError("invalid value for \"build_opts\"")
