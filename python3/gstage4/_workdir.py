@@ -307,7 +307,7 @@ class WorkDirChrooter:
     def script_exec(self, scriptObj):
         assert len(self._mountList) > 0
 
-        path = os.path.join("/var/tmp", "script_%d" % (len(self._scriptDirList)))
+        path = os.path.join("/var", "tmp", "script_%d" % (len(self._scriptDirList)))
         hostPath = os.path.join(self._workDirObj.chroot_dir_path, path[1:])
 
         assert not os.path.exists(hostPath)
@@ -322,11 +322,13 @@ class WorkDirChrooter:
         for fullfn in reversed(self._mountList):
             if os.path.exists(fullfn) and Util.isMount(fullfn):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
+        self._mountList = []
 
         robust_layer.simple_fops.rm(os.path.join(self._workDirObj.chroot_dir_path, "etc", "resolv.conf"))
 
-        self._scriptDirList = []            # script directories are in tmpfs, no need to delete
-        self._mountList = []
+        for hostPath in reversed(self._scriptDirList):
+            robust_layer.simple_fops.rm(hostPath)
+        self._scriptDirList = []
 
     def _detectArch(self):
         # FIXME: use profile function of pkgwh to get arch from CHOST
