@@ -253,7 +253,7 @@ class Builder:
                 for s in custom_script_list:
                     m.script_exec(s)
 
-    @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
+    @Action(BuildStep.CONFDIR_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
             if not self._ts.degentoo:
@@ -266,7 +266,9 @@ class Builder:
                 # m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
         if not self._ts.degentoo:
-            _MyRepoUtil.cleanupReposConfDir(self._workDirObj.chroot_dir_path)
+            t = TargetConfDirCleaner(self._workDirObj.chroot_dir_path)
+            t.cleanup_repos_conf_dir()
+            t.cleanup_make_conf()
         else:
             # FIXME
             t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
@@ -748,6 +750,19 @@ class TargetConfDirParser:
         if m is not None:
             return int(m.group(1))
         assert False
+
+
+class TargetConfDirCleaner:
+
+    def __init__(self, chrootDir):
+        self._dir = TargetFilesAndDirs(chrootDir).confdir_hostpath
+
+    def cleanup_repos_conf_dir(self):
+        Util.shellCall("/bin/sed '/mount-params = /d' %s/repos.conf/*" % (self._dir))
+
+    def cleanup_make_conf(self):
+        # FIXME: remove remaining spaces
+        Util.shellCall("/bin/sed 's/--autounmask-continue//g' %s/make.conf" % (self._dir))
 
 
 class ScriptSync(ScriptFromBuffer):
