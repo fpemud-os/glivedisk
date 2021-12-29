@@ -136,9 +136,10 @@ class Util:
     @staticmethod
     def portageIsPkgInstalled(rootDir, pkg):
         dir = os.path.join(rootDir, "var", "db", "pkg", os.path.dirname(pkg))
-        for fn in os.listdir(dir):
-            if fn.startswith(os.path.basename(pkg)):
-                return True
+        if os.path.exists(dir):
+            for fn in os.listdir(dir):
+                if fn.startswith(os.path.basename(pkg)):
+                    return True
         return False
 
 
