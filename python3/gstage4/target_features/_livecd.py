@@ -39,6 +39,28 @@ class CreateLiveCdOnRemovableMedia:
         return _WorkerScript(rootfs_dir, dev_path, usb_stick_name, usb_stick_label)
 
 
+class CreateLiveCdAsIsoFile:
+
+    def update_world_set(self, world_set):
+        # FIXME
+        assert False
+
+    def get_worker_script(self, rootfs_work_dir, dev_path, cdrom_name, cdrom_label):
+        # FIXME
+        assert False
+
+
+class CreateLiveCdOnCdrom:
+
+    def update_world_set(self, world_set):
+        # FIXME
+        assert False
+
+    def get_worker_script(self, rootfs_work_dir, dev_path, cdrom_name, cdrom_label):
+        # FIXME
+        assert False
+
+
 class _WorkerScript(ScriptInChroot):
 
     def __init__(self, rootfs_dir, dev_path, name, label):
