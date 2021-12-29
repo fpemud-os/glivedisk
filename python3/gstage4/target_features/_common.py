@@ -36,7 +36,7 @@ class Portage:
 class Genkernel:
 
     def update_target_settings(self, target_settings):
-        target_settings.kernnel_manager = "genkernel"
+        target_settings.kernel_manager = "genkernel"
 
     def update_world_set(self, world_set):
         world_set.add("sys-kernel/genkernel")
