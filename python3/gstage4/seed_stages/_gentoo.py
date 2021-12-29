@@ -165,8 +165,8 @@ class GentooStage3Archive(SeedStage):
         return self._hashPath
 
     def get_arch(self):
-        # FIXME
-        return os.path.basename(self._path).split("-")[0]
+        # FIXME: stage3-amd64-blabla.tar.xz
+        return os.path.basename(self._path).split("-")[1]
 
     def get_digest(self):
         return self._hash
