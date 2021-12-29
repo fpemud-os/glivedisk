@@ -35,7 +35,7 @@ from ._prototype import ScriptInChroot
 from ._errors import SettingsError
 from ._settings import Settings
 from ._settings import TargetSettings
-from ._workdir import WorkDirChrooter
+from ._chrooter import Chrooter
 from .scripts import ScriptFromBuffer
 
 
@@ -132,8 +132,8 @@ class Builder:
                 repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
 
         if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
-            with _Chrooter(self) as m:
-                m.script_exec(ScriptSync())
+            with _MyChrooter(self) as m:
+                m.script_exec(ScriptSync(), quiet=self._getQuiet())
 
     @Action(BuildStep.REPOSITORIES_INITIALIZED)
     def action_init_confdir(self):
@@ -210,12 +210,12 @@ class Builder:
                 installList.insert(0, pkg)
 
         # preprocess, install packages, update @world
-        with _Chrooter(self) as m:
+        with _MyChrooter(self) as m:
             for s in preprocess_script_list:
-                m.script_exec(s)
+                m.script_exec(s, quiet=self._getQuiet())
             for pkg in installList:
-                m.script_exec(ScriptInstallPackage(pkg, self._ts.verbose_level))
-            m.script_exec(ScriptUpdateWorld(self._ts.verbose_level))
+                m.script_exec(ScriptInstallPackage(pkg, self._ts.verbose_level), quiet=self._getQuiet())
+            m.script_exec(ScriptUpdateWorld(self._ts.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
@@ -228,9 +228,9 @@ class Builder:
             tj = t.get_make_conf_make_opts_jobs()
             tl = t.get_make_conf_load_average()
 
-            with _Chrooter(self) as m:
+            with _MyChrooter(self) as m:
                 for s in preprocess_script_list:
-                    m.script_exec(s)
+                    m.script_exec(s, quiet=self._getQuiet())
 
                 m.shell_call("", "eselect kernel set 1")
 
@@ -254,9 +254,9 @@ class Builder:
             assert len(service_list) == 0
         elif self._ts.service_manager == "systemd":
             if len(preprocess_script_list) > 0 or len(service_list) > 0:
-                with _Chrooter(self) as m:
+                with _MyChrooter(self) as m:
                     for s in preprocess_script_list:
-                        m.script_exec(s)
+                        m.script_exec(s, quiet=self._getQuiet())
                     for s in service_list:
                         m.shell_exec("", "systemctl enable %s -q" % (s))
         else:
@@ -267,19 +267,19 @@ class Builder:
         assert all([isinstance(s, ScriptInChroot) for s in custom_script_list])
 
         if len(custom_script_list) > 0:
-            with _Chrooter(self) as m:
+            with _MyChrooter(self) as m:
                 for s in custom_script_list:
-                    m.script_exec(s)
+                    m.script_exec(s, quiet=self._getQuiet())
 
     @Action(BuildStep.REPOSITORIES_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
-        with _Chrooter(self) as m:
+        with _MyChrooter(self) as m:
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
-                m.script_exec(ScriptDepClean(self._ts.verbose_level))
+                m.script_exec(ScriptDepClean(self._ts.verbose_level), quiet=self._getQuiet())
             else:
                 # FIXME
-                m.script_exec(ScriptDepClean(self._ts.verbose_level))
+                m.script_exec(ScriptDepClean(self._ts.verbose_level), quiet=self._getQuiet())
                 # m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
                 # m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
@@ -300,6 +300,9 @@ class Builder:
 
     def _getChrootDirName(self):
         return "%02d-%s" % (self._progress.value, self._progress.name)
+
+    def _getQuiet(self):
+        return (self._ts.verbose_level == 0)
 
 
 class _MyRepoUtil:
@@ -406,10 +409,10 @@ class _MyRepo:
         return (m.group(1), m.group(2)) if m is not None else None
 
 
-class _Chrooter(WorkDirChrooter):
+class _MyChrooter(Chrooter):
 
     def __init__(self, parent):
-        super().__init__(parent._workDirObj)
+        super().__init__(parent._workDirObj.chroot_dir_path)
         self._p = parent
         self._w = parent._workDirObj
         self._bindMountList = []

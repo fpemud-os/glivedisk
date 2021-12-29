@@ -42,7 +42,8 @@ from ._prototype import MountRepository
 from ._prototype import ScriptInChroot
 
 from ._workdir import WorkDir
-from ._workdir import WorkDirChrooter
+
+from ._chrooter import Chrooter
 
 from ._builder import Builder
 from ._builder import BuildStep
