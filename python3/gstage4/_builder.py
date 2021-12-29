@@ -163,14 +163,14 @@ class Builder:
             else:
                 assert False
 
-            if self._ts.kernel_manager == "":
+            if self._ts.kernel_manager == "none":
                 pass
             elif self._ts.kernel_manager == "genkernel":
                 __worldNeeded("sys-kernel/genkernel")
             else:
                 assert False
 
-            if self._ts.service_manager == "":
+            if self._ts.service_manager == "none":
                 pass
             elif self._ts.service_manager == "openrc":
                 __worldNeeded("sys-apps/openrc")
@@ -219,7 +219,7 @@ class Builder:
     def action_install_kernel(self, preprocess_script_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
-        if self._ts.kernel_manager == "":
+        if self._ts.kernel_manager == "none":
             assert len(preprocess_script_list) == 0
         elif self._ts.kernel_manager == "genkernel":
             t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
@@ -247,7 +247,7 @@ class Builder:
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
-        if self._ts.service_manager == "":
+        if self._ts.service_manager == "none":
             assert len(preprocess_script_list) == 0
             assert len(service_list) == 0
         elif self._ts.service_manager == "systemd":
