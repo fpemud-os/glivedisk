@@ -26,6 +26,10 @@ import abc
 
 class SeedStage(abc.ABC):
 
+    @abc.abstractclassmethod
+    def get_arch(self):
+        pass
+
     @abc.abstractmethod
     def get_digest(self):
         pass

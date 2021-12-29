@@ -96,6 +96,7 @@ class Builder:
     @Action(BuildStep.INIT)
     def action_unpack(self, seed_stage):
         assert isinstance(seed_stage, SeedStage)
+        assert seed_stage.get_arch() == self._ts.arch
 
         seed_stage.unpack(self._workDirObj.chroot_dir_path)
 

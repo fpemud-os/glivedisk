@@ -55,6 +55,8 @@ class CloudGentooStage3Archive(SeedStage):
             assert False
         elif self._arch == "m68k":
             assert False
+        elif self._arch == "mips":
+            assert False
         elif self._arch == "ppc":
             assert False
         elif self._arch == "riscv":
@@ -70,14 +72,6 @@ class CloudGentooStage3Archive(SeedStage):
         else:
             assert False
 
-    @property
-    def arch(self):
-        return self._arch
-
-    @property
-    def variant(self):
-        return self._variant
-
     def connect(self):
         if self._arch == "alpha":
             assert False
@@ -92,6 +86,8 @@ class CloudGentooStage3Archive(SeedStage):
         elif self._arch == "ia64":
             assert False
         elif self._arch == "m68k":
+            assert False
+        elif self._arch == "mips":
             assert False
         elif self._arch == "ppc":
             assert False
@@ -126,6 +122,9 @@ class CloudGentooStage3Archive(SeedStage):
             self._resp = None
             raise
 
+    def get_arch(self):
+        return self._arch
+
     def get_digest(self):
         with urllib.request.urlopen(self._stage3HashFileUrl) as resp:
             return resp.read()
@@ -158,16 +157,6 @@ class GentooStage3Archive(SeedStage):
         self._hash = pathlib.Path(self._hashPath).read_text()
 
     @property
-    def arch(self):
-        # FIXME
-        assert False
-
-    @property
-    def variant(self):
-        # FIXME
-        assert False
-
-    @property
     def file_name(self):
         return self._path
 
@@ -175,15 +164,15 @@ class GentooStage3Archive(SeedStage):
     def digest_file_name(self):
         return self._hashPath
 
-    @property
-    def file_date(self):
-        assert False
-
-    def unpack(self, target_dir):
-        self._tf.extractall(target_dir)
+    def get_arch(self):
+        # FIXME
+        return os.path.basename(self._path).split("-")[0]
 
     def get_digest(self):
         return self._hash
+
+    def unpack(self, target_dir):
+        self._tf.extractall(target_dir)
 
     def close(self):
         if self._tf is not None:

@@ -27,7 +27,7 @@ import multiprocessing
 from ._errors import SettingsError
 
 
-class Settings(dict):
+class Settings:
 
     def __init__(self):
         self.program_name = None
@@ -102,9 +102,11 @@ class Settings(dict):
         return True
 
 
-class TargetSettings(dict):
+class TargetSettings:
 
     def __init__(self):
+        self.arch = None
+
         self.profile = None
 
         self.package_manager = "portage"
@@ -147,6 +149,37 @@ class TargetSettings(dict):
         try:
             if not isinstance(obj, cls):
                 raise SettingsError("invalid object type")
+
+            if obj.arch == "alpha":
+                pass
+            elif obj.arch == "amd64":
+                pass
+            elif obj.arch == "arm":
+                pass
+            elif obj.arch == "arm64":
+                pass
+            elif obj.arch == "hppa":
+                pass
+            elif obj.arch == "ia64":
+                pass
+            elif obj.arch == "m68k":
+                pass
+            elif obj.arch == "mips":
+                pass
+            elif obj.arch == "ppc":
+                pass
+            elif obj.arch == "riscv":
+                pass
+            elif obj.arch == "s390":
+                pass
+            elif obj.arch == "sh":
+                pass
+            elif obj.arch == "sparc":
+                pass
+            elif obj.arch == "x86":
+                pass
+            else:
+                raise SettingsError("invalid value of arch")
 
             # if obj.package_manager not in ["portage", "pkgcore", "pkgwh"]:
             if obj.package_manager not in ["portage"]:

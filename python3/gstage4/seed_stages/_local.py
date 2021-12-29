@@ -29,18 +29,12 @@ class Localhost(SeedStage):
     Uses localhost as the seed stage.
     """
 
-    @property
-    def arch(self):
+    def get_arch(self):
         # FIXME
         assert False
-
-    @property
-    def variant(self):
-        # FIXME
-        assert False
-
-    def unpack(self, target_dir):
-        self._tf.extractall(target_dir)
 
     def get_digest(self):
         return ""
+
+    def unpack(self, target_dir):
+        self._tf.extractall(target_dir)
