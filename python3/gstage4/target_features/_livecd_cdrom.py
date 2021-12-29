@@ -59,6 +59,15 @@ class CreateLiveCdAsIsoFile:
 
 class CreateLiveCdOnCdrom:
 
+    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_zisofs=False):
+        assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
+        assert len(cdrom_vol_id) <= 32
+
+        self._arch = arch
+        self._name = cdrom_name
+        self._volId = cdrom_vol_id
+        self._zisofs = using_zisofs
+
     def update_world_set(self, world_set):
         # FIXME
         assert False

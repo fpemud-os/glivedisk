@@ -110,8 +110,8 @@ class TargetSettings:
         self.profile = None
 
         self.package_manager = "portage"
-        self.kernel_manager = "genkernel"         # kernel source and kernel config is select by emerge/pre-command
-        self.service_manager = "systemd"
+        self.kernel_manager = "none"             # "none", "genkernel". kernel source and kernel config is select by emerge/pre-command
+        self.service_manager = "none"            # "none", "systemd"
 
         self.pkg_use = dict()                    # dict<package-wildcard, use-flag-list>
         self.pkg_mask = []                       # list<package-wildcard>
@@ -185,12 +185,12 @@ class TargetSettings:
             if obj.package_manager not in ["portage"]:
                 raise SettingsError("invalid value of \"package_manager\"")
 
-            # if obj.kernel_manager not in ["genkernel", "bbki"]:
-            if obj.kernel_manager not in ["genkernel"]:
+            # if obj.kernel_manager not in ["none", "genkernel", "bbki"]:
+            if obj.kernel_manager not in ["none", "genkernel"]:
                 raise SettingsError("invalid value of \"kernel_manager\"")
 
-            # if obj.service_manager not in ["openrc", "systemd"]:
-            if obj.service_manager not in ["systemd"]:
+            # if obj.service_manager not in ["none", "openrc", "systemd"]:
+            if obj.service_manager not in ["none", "systemd"]:
                 raise SettingsError("invalid value of \"service_manager\"")
 
             if obj.pkg_use is None or not isinstance(obj.pkg_use, dict):

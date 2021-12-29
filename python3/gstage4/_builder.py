@@ -163,12 +163,16 @@ class Builder:
             else:
                 assert False
 
-            if self._ts.kernel_manager == "genkernel":
+            if self._ts.kernel_manager == "":
+                pass
+            elif self._ts.kernel_manager == "genkernel":
                 __worldNeeded("sys-kernel/genkernel")
             else:
                 assert False
 
-            if self._ts.service_manager == "openrc":
+            if self._ts.service_manager == "":
+                pass
+            elif self._ts.service_manager == "openrc":
                 __worldNeeded("sys-apps/openrc")
             elif self._ts.service_manager == "systemd":
                 __worldNeeded("sys-apps/systemd")
@@ -215,35 +219,46 @@ class Builder:
     def action_install_kernel(self, preprocess_script_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
-        t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
-        tj = t.get_make_conf_make_opts_jobs()
-        tl = t.get_make_conf_load_average()
+        if self._ts.kernel_manager == "":
+            assert len(preprocess_script_list) == 0
+        elif self._ts.kernel_manager == "genkernel":
+            t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
+            tj = t.get_make_conf_make_opts_jobs()
+            tl = t.get_make_conf_load_average()
 
-        with _Chrooter(self) as m:
-            for s in preprocess_script_list:
-                m.script_exec(s)
+            with _Chrooter(self) as m:
+                for s in preprocess_script_list:
+                    m.script_exec(s)
 
-            m.shell_call("", "eselect kernel set 1")
+                m.shell_call("", "eselect kernel set 1")
 
-            if self._ts.build_opts.ccache:
-                env = "CCACHE_DIR=/var/tmp/ccache"
-                opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
-            else:
-                env = ""
-                opt = ""
-            print("genkernel")
-            m.shell_exec(env, "genkernel --no-mountboot --kernel-filename=vmlinuz --initramfs-filename=initramfs.img --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
+                if self._ts.build_opts.ccache:
+                    env = "CCACHE_DIR=/var/tmp/ccache"
+                    opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
+                else:
+                    env = ""
+                    opt = ""
+                print("genkernel")
+                m.shell_exec(env, "genkernel --no-mountboot --kernel-filename=vmlinuz --initramfs-filename=initramfs.img --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
+        else:
+            assert False
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
-        if len(preprocess_script_list) > 0 or len(service_list) > 0:
-            with _Chrooter(self) as m:
-                for s in preprocess_script_list:
-                    m.script_exec(s)
-                for s in service_list:
-                    m.shell_exec("", "systemctl enable %s -q" % (s))
+        if self._ts.service_manager == "":
+            assert len(preprocess_script_list) == 0
+            assert len(service_list) == 0
+        elif self._ts.service_manager == "systemd":
+            if len(preprocess_script_list) > 0 or len(service_list) > 0:
+                with _Chrooter(self) as m:
+                    for s in preprocess_script_list:
+                        m.script_exec(s)
+                    for s in service_list:
+                        m.shell_exec("", "systemctl enable %s -q" % (s))
+        else:
+            assert False
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
