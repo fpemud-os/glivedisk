@@ -59,6 +59,8 @@ class _WorkerScript(ScriptInChroot):
     def fill_script_dir(self, script_dir_hostpath):
         # create rootfs dir
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
+        print(self._rootfsDir)
+        print(fullfn)
         shutil.copytree(self._rootfsDir, fullfn, symlinks=True)
 
         # create grub.cfg.in file
