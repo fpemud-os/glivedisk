@@ -454,7 +454,7 @@ class _MyChrooter(Chrooter):
                     Util.shellCall("/bin/mount \"%s\" \"%s\" -o %s" % (mp[0], myRepo.datadir_hostpath, (mp[1] + ",ro") if mp[1] != "" else "ro"))
                     self._bindMountList.append(myRepo.datadir_hostpath)
         except BaseException:
-            self.unbind()
+            self.unbind(remove_scripts=False)
             raise
 
     def unbind(self):

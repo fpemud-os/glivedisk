@@ -81,12 +81,12 @@ class Chrooter:
             Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (fullfn))
             self._mountList.append(fullfn)
         except BaseException:
-            self._unbind()
+            self._unbind(False)
             raise
 
-    def unbind(self):
+    def unbind(self, remove_scripts=True):
         assert len(self._mountList) > 0
-        self._unbind()
+        self._unbind(bool(remove_scripts))
 
     def interactive_shell(self):
         assert len(self._mountList) > 0
@@ -140,7 +140,9 @@ class Chrooter:
         scriptObj.fill_script_dir(hostPath)
         self.shell_exec("", os.path.join(path, scriptObj.get_script()), quiet)
 
-    def _unbind(self):
+    def _unbind(self, remove_scripts):
+        assert isinstance(remove_scripts, bool)
+
         for fullfn in reversed(self._mountList):
             if os.path.exists(fullfn) and Util.isMount(fullfn):
                 Util.cmdCall("/bin/umount", "-l", fullfn)
@@ -148,8 +150,9 @@ class Chrooter:
 
         robust_layer.simple_fops.rm(os.path.join(self._dir, "etc", "resolv.conf"))
 
-        for hostPath in reversed(self._scriptDirList):
-            robust_layer.simple_fops.rm(hostPath)
+        if remove_scripts:
+            for hostPath in reversed(self._scriptDirList):
+                robust_layer.simple_fops.rm(hostPath)
         self._scriptDirList = []
 
     def _detectArch(self):
