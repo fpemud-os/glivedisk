@@ -48,7 +48,7 @@ class CreateLiveCdAsIsoFile:
             world_set.add("sys-boot/sgibootcd")
         else:
             world_set.add("sys-boot/syslinux")
-            world_set.add("sys-cdr/cdrtools")
+            world_set.add("app-cdr/cdrtools")
 
     def get_worker_script(self, rootfs_dir, filepath):
         assert rootfs_dir is not None
