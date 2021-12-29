@@ -852,5 +852,5 @@ export EBEEP_IGNORE=0
 export EPAUSE_IGNORE=0
 export CONFIG_PROTECT="-* .x"
 
-emerge --depclean" || exit 1
+emerge --depclean
 """
