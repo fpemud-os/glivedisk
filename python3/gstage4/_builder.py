@@ -214,8 +214,8 @@ class Builder:
             for s in preprocess_script_list:
                 m.script_exec(s, quiet=self._getQuiet())
             for pkg in installList:
-                m.script_exec(ScriptInstallPackage(pkg, self._ts.verbose_level), quiet=self._getQuiet())
-            m.script_exec(ScriptUpdateWorld(self._ts.verbose_level), quiet=self._getQuiet())
+                m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+            m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
@@ -276,10 +276,10 @@ class Builder:
         with _MyChrooter(self) as m:
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
-                m.script_exec(ScriptDepClean(self._ts.verbose_level), quiet=self._getQuiet())
+                m.script_exec(ScriptDepClean(self._s.verbose_level), quiet=self._getQuiet())
             else:
                 # FIXME
-                m.script_exec(ScriptDepClean(self._ts.verbose_level), quiet=self._getQuiet())
+                m.script_exec(ScriptDepClean(self._s.verbose_level), quiet=self._getQuiet())
                 # m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
                 # m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
@@ -302,7 +302,7 @@ class Builder:
         return "%02d-%s" % (self._progress.value, self._progress.name)
 
     def _getQuiet(self):
-        return (self._ts.verbose_level == 0)
+        return (self._s.verbose_level == 0)
 
 
 class _MyRepoUtil:
