@@ -106,6 +106,8 @@ class Builder:
         os.makedirs(t.binpkgdir_hostpath, exist_ok=True)
         if self._ts.build_opts.ccache:
             os.makedirs(t.ccachedir_hostpath, exist_ok=True)
+        with open(t.world_file_hostpath, "w") as f:
+            f.write("")
 
     @Action(BuildStep.UNPACKED)
     def action_init_repositories(self, repo_list):
@@ -269,7 +271,7 @@ class Builder:
                 for s in custom_script_list:
                     m.script_exec(s)
 
-    @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
+    @Action(BuildStep.REPOSITORIES_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _Chrooter(self) as m:
             if not self._ts.degentoo:
@@ -620,7 +622,8 @@ class TargetConfDirWriter:
         robust_layer.simple_fops.rm(fpath)
 
         # generate main file content
-        buf = "*/* compile-locales\n"   # compile all locales
+        # buf = "*/* compile-locales\n"   # compile all locales
+        buf = ""
         for pkg_wildcard, use_flag_list in self._ts.pkg_use.items():
             if "compile-locales" in use_flag_list:
                 raise SettingsError("USE flag \"compile-locales\" is not allowed")
