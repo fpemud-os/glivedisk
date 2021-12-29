@@ -54,7 +54,7 @@ class CreateLiveCdAsIsoFile:
         assert rootfs_dir is not None
         assert filepath is not None
 
-        return _WorkerScript(rootfs_dir, filepath, self._name, self._volId, self._zisofs)
+        return _WorkerScript(self._arch, rootfs_dir, filepath, self._name, self._volId, self._zisofs)
 
 
 class CreateLiveCdOnCdrom:
