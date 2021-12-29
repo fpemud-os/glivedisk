@@ -24,6 +24,33 @@
 from gstage4.scripts import ScriptPlacingFiles
 
 
+class Portage:
+
+    def update_target_settings(self, target_settings):
+        target_settings.package_manager = "portage"
+
+    def update_world_set(self, world_set):
+        world_set.add("sys-apps/portage")
+
+
+class Genkernel:
+
+    def update_target_settings(self, target_settings):
+        target_settings.kernnel_manager = "genkernel"
+
+    def update_world_set(self, world_set):
+        world_set.add("sys-kernel/genkernel")
+
+
+class Systemd:
+
+    def update_target_settings(self, target_settings):
+        target_settings.service_manager = "systemd"
+
+    def update_world_set(self, world_set):
+        world_set.add("sys-apps/systemd")
+
+
 class DoNotUseDeprecatedPackagesAndFunctions:
 
     def update_target_settings(self, target_settings):
