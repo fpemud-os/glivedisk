@@ -37,8 +37,8 @@ class CreateLiveCdOnRemovableMedia:
 
     def update_world_set(self, world_set):
         world_set.add("sys-boot/grub")
+        world_set.add("sys-block/parted")
         world_set.add("sys-fs/dosfstools")
-        world_set.add("sys-fs/parted")
         world_set.add("sys-fs/squashfs-tools")
 
     def get_worker_script(self, rootfs_dir, dev_path):
