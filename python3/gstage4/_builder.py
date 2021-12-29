@@ -212,8 +212,8 @@ class Builder:
             for s in preprocess_script_list:
                 m.script_exec(s)
             for pkg in installList:
-                m.script_exec(ScriptInstallPackage(pkg))
-            m.script_exec(ScriptUpdateWorld())
+                m.script_exec(ScriptInstallPackage(pkg, self._ts.verbose_level))
+            m.script_exec(ScriptUpdateWorld(self._ts.verbose_level))
 
     @Action(BuildStep.WORLD_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
@@ -274,10 +274,10 @@ class Builder:
         with _Chrooter(self) as m:
             if not self._ts.degentoo:
                 m.shell_call("", "eselect news read all")
-                m.script_exec(ScriptDepClean())
+                m.script_exec(ScriptDepClean(self._ts.verbose_level))
             else:
                 # FIXME
-                m.script_exec(ScriptDepClean())
+                m.script_exec(ScriptDepClean(self._ts.verbose_level))
                 # m.shell_exec("", "%s/run-merge.sh -C sys-devel/gcc" % (scriptDirPath))
                 # m.shell_exec("", "%s/run-merge.sh -C sys-apps/portage" % (scriptDirPath))
 
@@ -801,10 +801,20 @@ emerge --sync" || exit 1
 
 class ScriptInstallPackage(ScriptFromBuffer):
 
-    def __init__(self, pkg):
-        super().__init__("Install package %s" % (pkg), self._scriptContent.replace("@@PKG_NAME@@", pkg))
+    def __init__(self, pkg, verbose_level):
+        buf = self._scriptContentFirstHalf
+        if verbose_level == 0:
+            buf += self._scriptContentSecondHalfVerboseLv0
+        elif verbose_level == 1:
+            buf += self._scriptContentSecondHalfVerboseLv1
+        elif verbose_level == 2:
+            buf += self._scriptContentSecondHalfVerboseLv2
+        else:
+            assert False
 
-    _scriptContent = """
+        super().__init__("Install package %s" % (pkg), buf.replace("@@PKG_NAME@@", pkg))
+
+    _scriptContentFirstHalf = """
 #!/bin/bash
 
 export EMERGE_WARNING_DELAY=0
@@ -812,7 +822,13 @@ export CLEAN_DELAY=0
 export EBEEP_IGNORE=0
 export EPAUSE_IGNORE=0
 export CONFIG_PROTECT="-* .x"
+"""
 
+    _scriptContentSecondHalfVerboseLv0 = """
+emerge --color=y -1 @@PKG_NAME@@ > /var/log/portage/run-merge.log 2>&1" || exit 1
+"""
+
+    _scriptContentSecondHalfVerboseLv1 = """
 # using grep to only show:
 #   >>> Emergeing ...
 #   >>> Installing ...
@@ -821,13 +837,29 @@ emerge --color=y -1 @@PKG_NAME@@ 2>&1 | tee /var/log/portage/run-merge.log | gre
 test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
+    _scriptContentSecondHalfVerboseLv2 = """
+emerge --color=y -1 @@PKG_NAME@@ 2>&1 | tee /var/log/portage/run-update.log"
+test ${PIPESTATUS[0]} -eq 0 || exit 1
+"""
+
 
 class ScriptUpdateWorld(ScriptFromBuffer):
 
-    def __init__(self):
-        super().__init__("Update @world", self._scriptContent)
+    def __init__(self, verbose_level):
+        buf = self._scriptContentFirstHalf
+        if verbose_level == 0:
+            buf += self._scriptContentSecondHalfVerboseLv0
+        elif verbose_level == 1:
+            buf += self._scriptContentSecondHalfVerboseLv1
+        elif verbose_level == 2:
+            buf += self._scriptContentSecondHalfVerboseLv2
+        else:
+            assert False
+        buf += self._scriptContentThirdHalf
 
-    _scriptContent = """
+        super().__init__("Update @world", buf)
+
+    _scriptContentFirstHalf = """
 #!/bin/bash
 
 die() {
@@ -840,7 +872,13 @@ export CLEAN_DELAY=0
 export EBEEP_IGNORE=0
 export EPAUSE_IGNORE=0
 export CONFIG_PROTECT="-* .x"
+"""
 
+    _scriptContentSecondHalfVerboseLv0 = """
+emerge --color=y -uDN --with-bdeps=y @world > /var/log/portage/run-update.log 2>&1" || exit 1
+"""
+
+    _scriptContentSecondHalfVerboseLv1 = """
 # using grep to only show:
 #   >>> Emergeing ...
 #   >>> Installing ...
@@ -848,15 +886,30 @@ export CONFIG_PROTECT="-* .x"
 #   >>> No outdated packages were found on your system.
 emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log | grep -E --color=never "^>>> (.*\\(.*[0-9]+.*of.*[0-9]+.*\\)|No outdated packages .*)"
 test ${PIPESTATUS[0]} -eq 0 || exit 1
+"""
 
+    _scriptContentSecondHalfVerboseLv2 = """
+emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log"
+test ${PIPESTATUS[0]} -eq 0 || exit 1
+"""
+
+    _scriptContentThirdHalf = """
 perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, your seed stage is too old"
 """
 
 
 class ScriptDepClean(ScriptFromBuffer):
 
-    def __init__(self):
-        super().__init__("Clean system", self._scriptContent)
+    def __init__(self, verbose_level):
+        buf = self._scriptContent
+        if verbose_level == 0:
+            buf = buf.replace("%OUTPUT%", "> /var/log/portage/run-depclean.log 2>&1")
+        elif verbose_level in [1, 2]:
+            buf = buf.replace("%OUTPUT%", "2>&1 | tee /var/log/portage/run-depclean.log")
+        else:
+            assert False
+
+        super().__init__("Clean system", buf)
 
     _scriptContent = """
 #!/bin/bash
@@ -867,5 +920,5 @@ export EBEEP_IGNORE=0
 export EPAUSE_IGNORE=0
 export CONFIG_PROTECT="-* .x"
 
-emerge --depclean
+emerge --depclean %OUTPUT%
 """

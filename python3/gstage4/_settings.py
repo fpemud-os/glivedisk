@@ -34,7 +34,7 @@ class Settings:
 
         self.log_dir = None
 
-        self.verbose = False
+        self.verbose_level = 1
 
         self.host_computing_power = None
 
@@ -69,9 +69,9 @@ class Settings:
             else:
                 return False
 
-        if not isinstance(obj.verbose, bool):
+        if not (0 <= obj.verbose_level <= 2):
             if raise_exception:
-                raise SettingsError("invalid value for key \"verbose\"")
+                raise SettingsError("invalid value for key \"verbose_level\"")
             else:
                 return False
 
