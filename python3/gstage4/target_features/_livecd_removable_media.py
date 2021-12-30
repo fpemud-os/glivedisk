@@ -22,7 +22,6 @@
 
 
 import os
-import shutil
 import subprocess
 from gstage4 import ScriptInChroot
 
@@ -60,9 +59,7 @@ class _WorkerScript(ScriptInChroot):
     def fill_script_dir(self, script_dir_hostpath):
         # create rootfs dir
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
-        print(self._rootfsDir)
-        print(fullfn)
-        shutil.copytree(self._rootfsDir, fullfn, symlinks=True)               # FIXME: why copytree stucks?
+        subprocess.check_call("cp", "-a", self._rootfsDir, fullfn)      # shutil.copytree() does not support device nodes
 
         # create grub.cfg.in file
         buf = self._grubCfgContent
