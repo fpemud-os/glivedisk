@@ -271,7 +271,7 @@ class Builder:
                 for s in custom_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
 
-    @Action(BuildStep.REPOSITORIES_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
+    @Action(BuildStep.CONFDIR_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _MyChrooter(self) as m:
             if not self._ts.degentoo:
