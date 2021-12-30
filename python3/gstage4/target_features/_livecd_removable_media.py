@@ -58,7 +58,7 @@ class _WorkerScript(ScriptInChroot):
 
     def fill_script_dir(self, script_dir_hostpath):
         # create rootfs dir
-        fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
+        fullfn = os.path.join(script_dir_hostpath, "rootfs")
         subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
         # create grub.cfg.in file
@@ -88,8 +88,6 @@ class _WorkerScript(ScriptInChroot):
         return self._scriptDirScriptName
 
     _scriptDirScriptName = "main.sh"
-
-    _scriptDirRootfsDirName = "rootfs"
 
     _scriptDirGrubCfgFileName = "grub.cfg.in"
 

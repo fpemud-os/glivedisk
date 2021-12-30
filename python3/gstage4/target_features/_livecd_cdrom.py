@@ -89,7 +89,7 @@ class _WorkerScript(ScriptInChroot):
 
     def fill_script_dir(self, script_dir_hostpath):
         # create rootfs dir
-        fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
+        fullfn = os.path.join(script_dir_hostpath, "rootfs")
         subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
         # generate script content
@@ -109,7 +109,6 @@ class _WorkerScript(ScriptInChroot):
         buf = buf.replace(r"%MKISOFS_ZISOFS_OPTS%", self._mkisofs_zisofs_opts)
         buf = buf.replace(r"%VOL_ID%", self._label)
         buf = buf.replace(r"%FILEPATH%", self._devPath)
-        buf = buf.replace(r"%TARGET_PATH%", self._rootfsDir)
 
         # create script file
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirScriptName)
@@ -125,8 +124,6 @@ class _WorkerScript(ScriptInChroot):
 
     _scriptDirScriptName = "main.sh"
 
-    _scriptDirRootfsDirName = "rootfs"
-
     _scriptContentAlpha = """
 #!/bin/bash
 
@@ -135,7 +132,9 @@ die() {
     exit 1
 }
 
-xorriso -as genisofs -alpha-boot boot/bootlx -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "%TARGET_PATH%" || die "Cannot make ISO image"
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+xorriso -as genisofs -alpha-boot boot/bootlx -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"
 """
 
     _scriptContentHppa = """
@@ -146,7 +145,9 @@ die() {
     exit 1
 }
 
-mkisofs -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "%TARGET_PATH%"/ || die "Cannot make ISO image"
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+mkisofs -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"
 # pushd "${clst_target_path}/"
 # palo -f boot/palo.conf -C "${1}"
 # popd
@@ -154,27 +155,32 @@ mkisofs -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "%TARGET_PA
 
     _scriptContentSparc = """
 #!/bin/bash
-grub-mkrescue --sparc-boot -o "%FILEPATH%" ""%TARGET_PATH%""
+
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+grub-mkrescue --sparc-boot -o "%FILEPATH%" "${SRC_DIR}"
 """
 
     # FIXME
     _scriptContentMips = """
 #!/bin/bash
 
-[ ! -d "%TARGET_PATH%/loopback" ] && mkdir "%TARGET_PATH%/loopback"
-[ ! -d "%TARGET_PATH%/sgibootcd" ] && mkdir "%TARGET_PATH%/sgibootcd"
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+[ ! -d "${SRC_DIR}/loopback" ] && mkdir "${SRC_DIR}/loopback"
+[ ! -d "${SRC_DIR}/sgibootcd" ] && mkdir "${SRC_DIR}/sgibootcd"
 
 # Setup variables
-[ -f "%TARGET_PATH%/livecd" ] && rm -f "%TARGET_PATH%/livecd"
-img="%TARGET_PATH%/loopback/image.squashfs"
-knl="%TARGET_PATH%/kernels"
-arc="%TARGET_PATH%/arcload"
-cfg="%TARGET_PATH%/sgibootcd/sgibootcd.cfg"
+[ -f "${SRC_DIR}/livecd" ] && rm -f "${SRC_DIR}/livecd"
+img="${SRC_DIR}/loopback/image.squashfs"
+knl="${SRC_DIR}/kernels"
+arc="${SRC_DIR}/arcload"
+cfg="${SRC_DIR}/sgibootcd/sgibootcd.cfg"
 echo "" > "${cfg}"
 
 # If the image file exists in $clst_target_path, move it to the loopback dir
-[ -e "%TARGET_PATH%/image.squashfs" ] \
-    && mv -f "%TARGET_PATH%/image.squashfs" "%TARGET_PATH%/loopback"
+[ -e "${SRC_DIR}/image.squashfs" ] \
+    && mv -f "${SRC_DIR}/image.squashfs" "${SRC_DIR}/loopback"
 
 # An sgibootcd config is essentially a collection of commandline params
 # stored in a text file.  We could pass these on the command line, but it's
@@ -214,11 +220,17 @@ echo -e "p10=#volume" >> ${cfg}
 
     _scriptContentGrubRescue = """
 #!/bin/bash
-grub-mkrescue -o "%FILEPATH%" ""%TARGET_PATH%""
+
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+grub-mkrescue -o "%FILEPATH%" ""${SRC_DIR}""
 """
 
     _scriptContentIsoLinux = """
 #!/bin/bash
-mkisofs -J -R -l %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table "%TARGET_PATH%"/
+
+SRC_DIR=$(dirname $(realpath $0))/rootfs
+
+mkisofs -J -R -l %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table "${SRC_DIR}"/
 isohybrid "%FILEPATH%"
 """
