@@ -92,7 +92,7 @@ class _WorkerScript(ScriptInChroot):
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
         subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
-        # create script file
+        # generate script content
         if self._arch == "alpha":
             buf = self._scriptContentAlpha
         elif self._arch == "hppa":
@@ -110,8 +110,12 @@ class _WorkerScript(ScriptInChroot):
         buf = buf.replace(r"%VOL_ID%", self._label)
         buf = buf.replace(r"%FILEPATH%", self._devPath)
         buf = buf.replace(r"%TARGET_PATH%", self._rootfsDir)
-        with open(os.path.join(script_dir_hostpath, self._scriptDirScriptName), "w") as f:
+
+        # create script file
+        fullfn = os.path.join(script_dir_hostpath, self._scriptDirScriptName)
+        with open(fullfn, "w") as f:
             f.write(buf)
+        os.chmod(fullfn, 0o0755)
 
     def get_description(self):
         return "Generate %s" % (self._name)

@@ -68,14 +68,18 @@ class _WorkerScript(ScriptInChroot):
         with open(os.path.join(script_dir_hostpath, self._scriptDirGrubCfgFileName), "w") as f:
             f.write(buf)
 
-        # create script file
+        # generate script content
         buf = self._scriptContent
         buf = buf.strip("\n") + "\n"            # remove all redundant carrage returns
         buf = buf.replace(r"%DEV_PATH%", self._devPath)
         buf = buf.replace(r"%LABEL%", self._label)
         buf = buf.replace(r"%ARCH%", "x86_64")   # FIXME
+
+        # create script file
+        fullfn = os.path.join(script_dir_hostpath, self._scriptDirScriptName)
         with open(os.path.join(script_dir_hostpath, self._scriptDirScriptName), "w") as f:
             f.write(buf)
+        os.chmod(fullfn, 0o0755)
 
     def get_description(self):
         return "Generate %s" % (self._name)
