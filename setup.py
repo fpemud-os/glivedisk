@@ -42,8 +42,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
         ],
-    packages=find_packages("python3"),
     package_dir={
         __package__: os.path.join('python3', __package__),
     },
+    packages=find_packages("python3"),
+    include_package_data=True,
 )
