@@ -62,8 +62,7 @@ class _WorkerScript(ScriptInChroot):
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
         print(self._rootfsDir)
         print(fullfn)
-        subprocess.check_call("cp", "-a", self._rootfsDir, fullfn)
-        # shutil.copytree(self._rootfsDir, fullfn, symlinks=True)               # FIXME: why copytree stucks?
+        shutil.copytree(self._rootfsDir, fullfn, symlinks=True)               # FIXME: why copytree stucks?
 
         # create grub.cfg.in file
         buf = self._grubCfgContent
