@@ -90,7 +90,7 @@ class _WorkerScript(ScriptInChroot):
     def fill_script_dir(self, script_dir_hostpath):
         # create rootfs dir
         fullfn = os.path.join(script_dir_hostpath, self._scriptDirRootfsDirName)
-        subprocess.check_call("cp", "-a", self._rootfsDir, fullfn)      # shutil.copytree() does not support device nodes
+        subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
         # create script file
         if self._arch == "alpha":
