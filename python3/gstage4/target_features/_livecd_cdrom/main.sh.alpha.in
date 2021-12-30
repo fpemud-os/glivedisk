@@ -7,4 +7,4 @@ die() {
 
 SRC_DIR=$(dirname $(realpath $0))/livecd
 
-xorriso -as genisofs -alpha-boot boot/bootlx -R -l -J %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"
+xorriso -as genisofs -alpha-boot boot/bootlx -R -l -J -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"

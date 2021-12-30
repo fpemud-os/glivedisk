@@ -31,14 +31,13 @@ from gstage4 import ScriptInChroot
 
 class CreateLiveCdAsIsoFile:
 
-    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_zisofs=False, using_memtest=False):
+    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_memtest=False):
         assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
         assert len(cdrom_vol_id) <= 32
 
         self._arch = arch
         self._name = cdrom_name
         self._volId = cdrom_vol_id
-        self._zisofs = using_zisofs
         self._memtest = using_memtest
 
     def update_world_set(self, world_set):
@@ -64,19 +63,19 @@ class CreateLiveCdAsIsoFile:
         assert rootfs_dir is not None
         assert filepath is not None
 
-        return _WorkerScript(self._arch, rootfs_dir, filepath, self._name, self._volId, self._zisofs, self._memtest)
+        return _WorkerScript(self._arch, rootfs_dir, filepath, self._name, self._volId, self._memtest)
 
 
 class CreateLiveCdOnCdrom:
 
-    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_zisofs=False, using_memtest=False):
+    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_memtest=False):
         assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
         assert len(cdrom_vol_id) <= 32
 
         self._arch = arch
         self._name = cdrom_name
         self._volId = cdrom_vol_id
-        self._zisofs = using_zisofs
+        self._memtest = using_memtest
 
     def update_world_set(self, world_set):
         # FIXME
@@ -89,22 +88,16 @@ class CreateLiveCdOnCdrom:
 
 class _WorkerScript(ScriptInChroot):
 
-    def __init__(self, arch, rootfs_dir, filepath, name, vol_id, using_zisofs, using_memtest):
+    def __init__(self, arch, rootfs_dir, filepath, name, vol_id, using_memtest):
         self._arch = arch
         self._rootfsDir = rootfs_dir
         self._devPath = filepath
         self._name = name
         self._label = vol_id
-        self._zisofs = using_zisofs
         self._memtest = using_memtest
 
     def fill_script_dir(self, script_dir_hostpath):
         selfDir = os.path.dirname(os.path.realpath(__file__))
-
-        if not self._zisofs:
-            koptsLoop = "looptype=squashfs loop=/image.squashfs"
-        else:
-            koptsLoop = "looptype=zisofs loop=/zisofs"
 
         # create livecd dir
         fullfn = os.path.join(script_dir_hostpath, "livecd")
@@ -140,11 +133,11 @@ class _WorkerScript(ScriptInChroot):
                 f.write("\n")
                 f.write("label %s\n" % (self._name))
                 f.write("  kernel /boot/vmlinuz\n")
-                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap %s cdroot initrd=/boot/initramfs.img vga=791\n" % (koptsLoop))
+                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img vga=791\n")
                 f.write("\n")
                 f.write("label %s-nofb\n" % (self._name))
                 f.write("  kernel /boot/vmlinuz\n")
-                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap %s cdroot initrd=/boot/initramfs.img\n" % (koptsLoop))
+                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img\n")
                 f.write("\n")
                 if self._memtest:
                     f.write("label memtest86\n")
@@ -184,7 +177,6 @@ class _WorkerScript(ScriptInChroot):
 
         # generate script content
         buf = pathlib.Path(os.path.join(selfDir, filename)).read_text()
-        buf = buf.replace(r"%MKISOFS_ZISOFS_OPTS%", ("-z" if self._zisofs else ""))
         buf = buf.replace(r"%VOL_ID%", self._label)
         buf = buf.replace(r"%FILEPATH%", self._devPath)
 
