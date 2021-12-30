@@ -6,10 +6,10 @@ import email.utils
 import distutils.util
 try:
     # First try to load most advanced setuptools setup.
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except:
     # Fall back if setuptools is not installed.
-    from distutils.core import setup
+    from distutils.core import setup, find_packages
 
 # package metadata
 __package__ = 'gstage4'
@@ -42,13 +42,7 @@ setup(
         'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
         ],
-    packages=[
-        __package__,
-        '{0}.seed_stages'.format(__package__),
-        '{0}.repositories'.format(__package__),
-        '{0}.scripts'.format(__package__),
-        '{0}.target_features'.format(__package__),
-        ],
+    packages=find_packages(),
     package_dir={
         __package__: os.path.join('python3', __package__),
     },
