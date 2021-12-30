@@ -1,0 +1,5 @@
+#!/bin/bash
+
+SRC_DIR=$(dirname $(realpath $0))/livecd
+
+grub-mkrescue --sparc-boot -o "%FILEPATH%" "${SRC_DIR}"

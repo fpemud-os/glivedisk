@@ -22,6 +22,7 @@
 
 
 import os
+import pathlib
 import subprocess
 from gstage4 import ScriptInChroot
 
@@ -57,6 +58,8 @@ class _WorkerScript(ScriptInChroot):
         self._label = label
 
     def fill_script_dir(self, script_dir_hostpath):
+        selfDir = os.path.dirname(os.path.realpath(__file__))
+
         # create rootfs dir
         fullfn = os.path.join(script_dir_hostpath, "rootfs")
         subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
@@ -65,11 +68,11 @@ class _WorkerScript(ScriptInChroot):
         buf = self._grubCfgContent
         buf = buf.replace(r"%NAME%", self._name)
         buf = buf.replace(r"%ARCH%", "x86_64")   # FIXME
-        with open(os.path.join(script_dir_hostpath, self._scriptDirGrubCfgFileName), "w") as f:
+        with open(os.path.join(script_dir_hostpath, "grub.cfg.in"), "w") as f:
             f.write(buf)
 
         # generate script content
-        buf = self._scriptContent
+        buf = pathlib.Path(os.path.join(selfDir, "main.sh.in")).read_text()
         buf = buf.strip("\n") + "\n"            # remove all redundant carrage returns
         buf = buf.replace(r"%DEV_PATH%", self._devPath)
         buf = buf.replace(r"%LABEL%", self._label)
@@ -88,37 +91,6 @@ class _WorkerScript(ScriptInChroot):
         return self._scriptDirScriptName
 
     _scriptDirScriptName = "main.sh"
-
-    _scriptDirGrubCfgFileName = "grub.cfg.in"
-
-    _scriptContent = """
-#!/bin/bash
-
-FILES_DIR=$(dirname $(realpath $0))
-
-parted --script %DEV_PATH% \
-    mklabel msdos \
-    mkpart primary fat32 0% 100%
-mkfs.vfat -F 32 -n %LABEL% %DEV_PATH%
-
-UUID=`blkid %DEV_PATH% -s UUID -o value`
-BASE_DIR=/mnt
-BOOT_DIR=${BASE_DIR}/boot
-DATA_DIR=${BASE_DIR}/data/%ARCH%
-
-mount %DEV_PATH%1 ${BASE_DIR}
-mkdir -p ${BOOT_DIR} ${DATA_DIR}
-
-mv ${FILES_DIR}/rootfs/boot/vmlinuz ${BOOT_DIR}
-mv ${FILES_DIR}/rootfs/boot/initramfs.img ${BOOT_DIR}
-mksquashfs ${FILESDIR}/rootfs ${DATA_DIR}/rootfs.sqfs -no-progress -noappend -quiet
-sha512sum ${DATA_DIR}/rootfs.sqfs > ${DATA_DIR}/rootfs.sqfs.sha512
-sed -i "s#${DATA_DIR}/\?##" ${DATA_DIR}/rootfs.sqfs.sha512                       # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
-
-grub-install --removable --target=x86_64-efi --boot-directory=${BOOT_DIR} --efi-directory=${BASE_DIR} --no-nvram
-grub-install --removable --target=i386-pc --boot-directory=${BOOT_DIR}
-sed "s/%UUID%/${UUID}/g" ${FILES_DIR}/grub.cfg.in > ${BOOT_DIR}/grub/grub.cfg
-"""
 
     _grubCfgContent = """
 # Global settings
