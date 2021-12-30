@@ -231,6 +231,6 @@ grub-mkrescue -o "%FILEPATH%" ""${SRC_DIR}""
 
 SRC_DIR=$(dirname $(realpath $0))/rootfs
 
-mkisofs -J -R -l %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table "${SRC_DIR}"/
+mkisofs -J -R -l %MKISOFS_ZISOFS_OPTS% -V "%VOL_ID%" -o "%FILEPATH%" -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table "${SRC_DIR}"/ || exit 1
 isohybrid "%FILEPATH%"
 """
