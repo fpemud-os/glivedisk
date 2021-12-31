@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SRC_DIR=$(dirname $(realpath $0))/livecd
+SRC_DIR=$(dirname $(realpath $0))/rootfs
 
 [ ! -d "${SRC_DIR}/loopback" ] && mkdir "${SRC_DIR}/loopback"
 [ ! -d "${SRC_DIR}/sgibootcd" ] && mkdir "${SRC_DIR}/sgibootcd"

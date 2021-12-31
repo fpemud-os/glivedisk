@@ -5,7 +5,7 @@ die() {
     exit 1
 }
 
-SRC_DIR=$(dirname $(realpath $0))/livecd
+SRC_DIR=$(dirname $(realpath $0))/rootfs
 
 mkisofs -R -l -J -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"
 # pushd "${clst_target_path}/"

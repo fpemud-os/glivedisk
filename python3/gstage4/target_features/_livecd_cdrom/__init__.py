@@ -56,8 +56,6 @@ class CreateLiveCdAsIsoFile:
 
         if self._memtest:
             world_set.add("sys-apps/memtest86+")
-        else:
-            assert "sys-apps/memtest86+" not in world_set
 
     def get_worker_script(self, rootfs_dir, filepath):
         assert rootfs_dir is not None
@@ -99,8 +97,8 @@ class _WorkerScript(ScriptInChroot):
     def fill_script_dir(self, script_dir_hostpath):
         selfDir = os.path.dirname(os.path.realpath(__file__))
 
-        # create livecd dir
-        fullfn = os.path.join(script_dir_hostpath, "livecd")
+        # create rootfs dir
+        fullfn = os.path.join(script_dir_hostpath, "rootfs")
         subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
         # generate script

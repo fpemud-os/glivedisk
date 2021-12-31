@@ -5,6 +5,6 @@ die() {
     exit 1
 }
 
-SRC_DIR=$(dirname $(realpath $0))/livecd
+SRC_DIR=$(dirname $(realpath $0))/rootfs
 
 xorriso -as genisofs -alpha-boot boot/bootlx -R -l -J -V "%VOL_ID%" -o "%FILEPATH%" "${SRC_DIR}"/ || die "Cannot make ISO image"

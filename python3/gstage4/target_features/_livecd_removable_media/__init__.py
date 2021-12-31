@@ -22,6 +22,7 @@
 
 
 import os
+import shutil
 import pathlib
 import subprocess
 from gstage4 import ScriptInChroot
@@ -29,45 +30,60 @@ from gstage4 import ScriptInChroot
 
 class CreateLiveCdOnRemovableMedia:
 
-    def __init__(self, disk_name, disk_label):
+    """
+    Creates livecd on remoable media, such as USB stick.
+    This class needs "blkid", "parted", "mkfs.vfat" executables in host system.
+    """
+
+    def __init__(self, dev_path, disk_name, disk_label):
+        assert dev_path is not None
         assert disk_name is not None
         assert disk_label is not None
 
+        self._devPath = dev_path
         self._name = disk_name
         self._label = disk_label
 
     def update_world_set(self, world_set):
         world_set.add("sys-boot/grub")
-        world_set.add("sys-block/parted")
-        world_set.add("sys-fs/dosfstools")
-        world_set.add("sys-fs/squashfs-tools")
 
-    def get_worker_script(self, rootfs_dir, dev_path):
+    def prepare_target_device(self):
+        subprocess.check_call(["parted", "--script", self._devPath, "mklabel", "msdos", "mkpart", "primary", "fat32", r"0%", r"100%"])
+        subprocess.check_call(["mkfs.vfat", "-F", "32", "-n", self._label, self._devPath])
+
+    def get_worker_script(self, rootfs_dir):
         assert rootfs_dir is not None
-        assert dev_path is not None
 
-        return _WorkerScript(rootfs_dir, dev_path, self._name, self._label)
+        uuid = subprocess.check_output(["blkid", "-s", "UUID", "-o", "value", self._devPath]).rstrip("\n")
+        return _WorkerScript(rootfs_dir, self._devPath, uuid, self._name, self._label)
 
 
 class _WorkerScript(ScriptInChroot):
 
-    def __init__(self, rootfs_dir, dev_path, name, label):
+    def __init__(self, rootfs_dir, dev_path, dev_uuid, name, label):
         self._rootfsDir = rootfs_dir
         self._devPath = dev_path
+        self._devUuid = dev_uuid
         self._name = name
         self._label = label
 
     def fill_script_dir(self, script_dir_hostpath):
         selfDir = os.path.dirname(os.path.realpath(__file__))
 
-        # create rootfs dir
-        fullfn = os.path.join(script_dir_hostpath, "rootfs")
-        subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
+        # create rootfs.sqfs and rootfs.sqfs.sha512
+        sqfsFile = os.path.join(script_dir_hostpath, "rootfs.sqfs")
+        sqfsSumFile = os.path.join(script_dir_hostpath, "rootfs.sqfs.sha512")
+        shutil.copy(os.path.join(self._rootfsDir, "boot", "vmlinuz"), script_dir_hostpath)
+        shutil.copy(os.path.join(self._rootfsDir, "boot", "initramfs.img"), script_dir_hostpath)
+        subprocess.check_call(["mksquashfs", self._rootfsDir, sqfsFile, "-ef", os.path.join(self._rootfsDir, "boot", "*"), "-wildcards", "-no-progress", "-noappend", "-quiet"])
+        subprocess.check_call("sha512sum %s > %s" % (sqfsFile, sqfsSumFile), shell=True)
+        subprocess.check_call(["sed", "-i", "s#%s/\?##" % (script_dir_hostpath), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
 
         # create grub.cfg.in file
         buf = self._grubCfgContent
         buf = buf.replace(r"%NAME%", self._name)
         buf = buf.replace(r"%ARCH%", "x86_64")   # FIXME
+        buf = buf.replace(r"%UUID%", self._devUuid)
         with open(os.path.join(script_dir_hostpath, "grub.cfg.in"), "w") as f:
             f.write(buf)
 
