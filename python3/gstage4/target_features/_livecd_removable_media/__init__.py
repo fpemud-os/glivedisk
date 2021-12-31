@@ -75,7 +75,7 @@ class _WorkerScript(ScriptInChroot):
         sqfsSumFile = os.path.join(script_dir_hostpath, "rootfs.sqfs.sha512")
         shutil.copy(os.path.join(self._rootfsDir, "boot", "vmlinuz"), script_dir_hostpath)
         shutil.copy(os.path.join(self._rootfsDir, "boot", "initramfs.img"), script_dir_hostpath)
-        subprocess.check_call(["mksquashfs", self._rootfsDir, sqfsFile, "-ef", os.path.join(self._rootfsDir, "boot"), "-no-progress", "-noappend", "-quiet"])
+        subprocess.check_call("mksquashfs %s %s -no-progress -noappend -quiet -e boot/*" % (self._rootfsDir, sqfsFile), shell=True)
         subprocess.check_call("sha512sum %s > %s" % (sqfsFile, sqfsSumFile), shell=True)
         subprocess.check_call(["sed", "-i", "s#%s/\?##" % (script_dir_hostpath), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
 
