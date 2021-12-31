@@ -49,7 +49,7 @@ class CreateLiveCdOnRemovableMedia:
 
     def prepare_target_device(self):
         subprocess.check_call(["parted", "--script", self._devPath, "mklabel", "msdos", "mkpart", "primary", "fat32", r"0%", r"100%"])
-        subprocess.check_call(["mkfs.vfat", "-F", "32", "-n", self._label, self._devPath])
+        subprocess.check_call(["mkfs.vfat", "-F", "32", "-n", self._label, self._devPath + "1"])
 
     def get_worker_script(self, rootfs_dir):
         assert rootfs_dir is not None
