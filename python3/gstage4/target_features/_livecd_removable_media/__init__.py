@@ -54,7 +54,7 @@ class CreateLiveCdOnRemovableMedia:
     def get_worker_script(self, rootfs_dir):
         assert rootfs_dir is not None
 
-        uuid = subprocess.check_output(["blkid", "-s", "UUID", "-o", "value", self._devPath]).rstrip("\n")
+        uuid = subprocess.check_output(["blkid", "-s", "UUID", "-o", "value", self._devPath], text=True).rstrip("\n")
         return _WorkerScript(rootfs_dir, self._devPath, uuid, self._name, self._label)
 
 
