@@ -31,11 +31,12 @@ from gstage4 import ScriptInChroot
 
 class CreateLiveCdAsIsoFile:
 
-    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_memtest=False):
+    def __init__(self, arch, filepath, cdrom_name, cdrom_vol_id, using_memtest=False):
         assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
         assert len(cdrom_vol_id) <= 32
 
         self._arch = arch
+        self._filepath = filepath
         self._name = cdrom_name
         self._volId = cdrom_vol_id
         self._memtest = using_memtest
@@ -57,20 +58,20 @@ class CreateLiveCdAsIsoFile:
         if self._memtest:
             world_set.add("sys-apps/memtest86+")
 
-    def get_worker_script(self, rootfs_dir, filepath):
+    def get_worker_script(self, rootfs_dir):
         assert rootfs_dir is not None
-        assert filepath is not None
 
-        return _WorkerScript(self._arch, rootfs_dir, filepath, self._name, self._volId, self._memtest)
+        return _WorkerScript(self._arch, rootfs_dir, self._filepath, self._name, self._volId, self._memtest)
 
 
 class CreateLiveCdOnCdrom:
 
-    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_memtest=False):
+    def __init__(self, arch, dev_path, cdrom_name, cdrom_vol_id, using_memtest=False):
         assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
         assert len(cdrom_vol_id) <= 32
 
         self._arch = arch
+        self._devPath = dev_path
         self._name = cdrom_name
         self._volId = cdrom_vol_id
         self._memtest = using_memtest
@@ -79,7 +80,7 @@ class CreateLiveCdOnCdrom:
         # FIXME
         assert False
 
-    def get_worker_script(self, rootfs_work_dir, dev_path):
+    def get_worker_script(self, rootfs_dir):
         # FIXME
         assert False
 
