@@ -99,70 +99,86 @@ class _WorkerScript(ScriptInChroot):
 
         # create rootfs dir
         fullfn = os.path.join(script_dir_hostpath, "rootfs")
-        subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
+        bootDir = os.path.join(fullfn, "boot")
+        os.mkdir(bootDir)
 
-        # generate script
-        if self._arch == "alpha":
-            self._generate_script(script_dir_hostpath, "main.sh.alpha.in")
-        elif self._arch == "hppa":
-            self._generate_script(script_dir_hostpath, "main.sh.hppa.in")
-        elif self._arch == "sparc":
-            self._generate_script(script_dir_hostpath, "main.sh.sparc.in")
-        elif self._arch == "mips":
-            self._generate_script(script_dir_hostpath, "main.sh.mips.in")
-        elif self._arch in ["amd64", "x86"]:
-            isolinuxDir = os.path.join(script_dir_hostpath, "isolinux")
-            os.mkdir(isolinuxDir)
+        # create rootfs.sqfs and rootfs.sqfs.sha512
+        sqfsFile = os.path.join(fullfn, "rootfs.sqfs")
+        sqfsSumFile = os.path.join(fullfn, "rootfs.sqfs.sha512")
+        shutil.copy(os.path.join(self._rootfsDir, "boot", "vmlinuz"), bootDir)
+        shutil.copy(os.path.join(self._rootfsDir, "boot", "initramfs.img"), bootDir)
+        subprocess.check_call("mksquashfs %s %s -no-progress -noappend -quiet -e boot/*" % (self._rootfsDir, sqfsFile), shell=True)
+        subprocess.check_call("sha512sum %s > %s" % (sqfsFile, sqfsSumFile), shell=True)
+        subprocess.check_call(["sed", "-i", "s#%s/\?##" % (fullfn), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
 
-            with open(os.path.join(isolinuxDir, "isolinux.cfg"), "w") as f:
-                f.write("default %s\n" % (self._name))
-                f.write("timeout 150\n")
-                f.write("ontimeout localhost\n")
-                f.write("prompt 1\n")
-                f.write("\n")
-                f.write("display boot.msg\n")
-                f.write("F1 kernels.msg\n")
-                f.write("F2 F2.msg\n")
-                f.write("F3 F3.msg\n")
-                f.write("F4 F4.msg\n")
-                f.write("F5 F5.msg\n")
-                f.write("F6 F6.msg\n")
-                f.write("F7 F7.msg\n")
-                f.write("\n")
-                f.write("label %s\n" % (self._name))
-                f.write("  kernel /boot/vmlinuz\n")
-                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img vga=791\n")
-                f.write("\n")
-                f.write("label %s-nofb\n" % (self._name))
-                f.write("  kernel /boot/vmlinuz\n")
-                f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img\n")
-                f.write("\n")
-                if self._memtest:
-                    f.write("label memtest86\n")
-                    f.write("  kernel memtest86\n")
-                    f.write("\n")
-                f.write("label localhost\n")
-                f.write("  localboot -1\n")
-                f.write("  MENU HIDE\n")
+        self._generate_script(script_dir_hostpath, "main.sh.grub.in")
 
-            with open(os.path.join(isolinuxDir, "boot.msg"), "w") as f:
-                f.write("%s\n" % (self._name))
-                f.write("Enter to boot; F1 for kernels  F2 for options.\n")
-                f.write("Press any key in the next 15 seconds or we'll try to boot from disk.\n")
 
-            with open(os.path.join(isolinuxDir, "kernels.msg"), "w") as f:
-                f.write("Available kernels:\n")
-                f.write("  %s\n" % (self._name))
-                f.write("  %s-nofb\n" % (self._name))
-                if self._memtest:
-                    f.write("  memtest86\n")
+        # subprocess.check_call(["cp", "-a", self._rootfsDir, fullfn])      # shutil.copytree() does not support device nodes
 
-            for fullfn in glob.glob(os.path.join(selfDir, "x86-F*.msg")):
-                shutil.copy(fullfn, os.path.join(isolinuxDir, os.path.basename(fullfn).replace("x86-", "")))
 
-            self._generate_script(script_dir_hostpath, "main.sh.isolinux.in")
-        else:
-            self._generate_script(script_dir_hostpath, "main.sh.grub.in")
+        # # generate script
+        # if self._arch == "alpha":
+        #     self._generate_script(script_dir_hostpath, "main.sh.alpha.in")
+        # elif self._arch == "hppa":
+        #     self._generate_script(script_dir_hostpath, "main.sh.hppa.in")
+        # elif self._arch == "sparc":
+        #     self._generate_script(script_dir_hostpath, "main.sh.sparc.in")
+        # elif self._arch == "mips":
+        #     self._generate_script(script_dir_hostpath, "main.sh.mips.in")
+        # elif self._arch in ["amd64", "x86"]:
+        #     isolinuxDir = os.path.join(script_dir_hostpath, "isolinux")
+        #     os.mkdir(isolinuxDir)
+
+        #     with open(os.path.join(isolinuxDir, "isolinux.cfg"), "w") as f:
+        #         f.write("default %s\n" % (self._name))
+        #         f.write("timeout 150\n")
+        #         f.write("ontimeout localhost\n")
+        #         f.write("prompt 1\n")
+        #         f.write("\n")
+        #         f.write("display boot.msg\n")
+        #         f.write("F1 kernels.msg\n")
+        #         f.write("F2 F2.msg\n")
+        #         f.write("F3 F3.msg\n")
+        #         f.write("F4 F4.msg\n")
+        #         f.write("F5 F5.msg\n")
+        #         f.write("F6 F6.msg\n")
+        #         f.write("F7 F7.msg\n")
+        #         f.write("\n")
+        #         f.write("label %s\n" % (self._name))
+        #         f.write("  kernel /boot/vmlinuz\n")
+        #         f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img vga=791\n")
+        #         f.write("\n")
+        #         f.write("label %s-nofb\n" % (self._name))
+        #         f.write("  kernel /boot/vmlinuz\n")
+        #         f.write("  append root=/dev/ram0 init=/linuxrc dokeymap looptype=squashfs loop=/image.squashfs cdroot initrd=/boot/initramfs.img\n")
+        #         f.write("\n")
+        #         if self._memtest:
+        #             f.write("label memtest86\n")
+        #             f.write("  kernel memtest86\n")
+        #             f.write("\n")
+        #         f.write("label localhost\n")
+        #         f.write("  localboot -1\n")
+        #         f.write("  MENU HIDE\n")
+
+        #     with open(os.path.join(isolinuxDir, "boot.msg"), "w") as f:
+        #         f.write("%s\n" % (self._name))
+        #         f.write("Enter to boot; F1 for kernels  F2 for options.\n")
+        #         f.write("Press any key in the next 15 seconds or we'll try to boot from disk.\n")
+
+        #     with open(os.path.join(isolinuxDir, "kernels.msg"), "w") as f:
+        #         f.write("Available kernels:\n")
+        #         f.write("  %s\n" % (self._name))
+        #         f.write("  %s-nofb\n" % (self._name))
+        #         if self._memtest:
+        #             f.write("  memtest86\n")
+
+        #     for fullfn in glob.glob(os.path.join(selfDir, "x86-F*.msg")):
+        #         shutil.copy(fullfn, os.path.join(isolinuxDir, os.path.basename(fullfn).replace("x86-", "")))
+
+        #     self._generate_script(script_dir_hostpath, "main.sh.isolinux.in")
+        # else:
+        #     self._generate_script(script_dir_hostpath, "main.sh.grub.in")
 
     def get_description(self):
         return "Generate %s" % (self._name)
