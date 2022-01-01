@@ -42,19 +42,20 @@ class CreateLiveCdAsIsoFile:
         self._memtest = using_memtest
 
     def update_world_set(self, world_set):
-        if self._arch == "alpha":
-            world_set.add("dev-libs/libisoburn")
-        elif self._arch == "ia64":
-            world_set.add("sys-fs/mtools")
-            world_set.add("dev-libs/libisoburn")
-            world_set.add("sys-boot/grub")
-        elif self._arch == "mips":
-            world_set.add("sys-boot/sgibootcd")
-        else:
-            world_set.add("sys-apps/hwdata")
-            world_set.add("sys-boot/syslinux")
-            world_set.add("app-cdr/cdrtools")
+        # if self._arch == "alpha":
+        #     world_set.add("dev-libs/libisoburn")
+        # elif self._arch == "ia64":
+        #     world_set.add("sys-fs/mtools")
+        #     world_set.add("dev-libs/libisoburn")
+        #     world_set.add("sys-boot/grub")
+        # elif self._arch == "mips":
+        #     world_set.add("sys-boot/sgibootcd")
+        # else:
+        #     world_set.add("sys-apps/hwdata")
+        #     world_set.add("sys-boot/syslinux")
+        #     world_set.add("app-cdr/cdrtools")
 
+        world_set.add("sys-boot/grub")
         if self._memtest:
             world_set.add("sys-apps/memtest86+")
 
