@@ -35,7 +35,7 @@ class CreateLiveCdOnRemovableMedia:
     This class needs "blkid", "parted", "mkfs.vfat" executables in host system.
     """
 
-    def __init__(self, dev_path, disk_name, disk_label):
+    def __init__(self, dev_path, disk_name, disk_label, using_memtest=False):
         assert dev_path is not None
         assert disk_name is not None
         assert disk_label is not None
@@ -43,9 +43,12 @@ class CreateLiveCdOnRemovableMedia:
         self._devPath = dev_path
         self._name = disk_name
         self._label = disk_label
+        self._memtest = using_memtest
 
     def update_world_set(self, world_set):
         world_set.add("sys-boot/grub")
+        if self._memtest:
+            world_set.add("sys-apps/memtest86+")
 
     def prepare_target_device(self):
         subprocess.check_call(["parted", "--script", self._devPath, "mklabel", "msdos", "mkpart", "primary", "fat32", r"0%", r"100%"])
@@ -55,17 +58,18 @@ class CreateLiveCdOnRemovableMedia:
         assert rootfs_dir is not None
 
         uuid = subprocess.check_output(["blkid", "-s", "UUID", "-o", "value", self._devPath], text=True).rstrip("\n")
-        return _WorkerScript(rootfs_dir, self._devPath, uuid, self._name, self._label)
+        return _WorkerScript(rootfs_dir, self._devPath, uuid, self._name, self._label, self._memtest)
 
 
 class _WorkerScript(ScriptInChroot):
 
-    def __init__(self, rootfs_dir, dev_path, dev_uuid, name, label):
+    def __init__(self, rootfs_dir, dev_path, dev_uuid, name, label, using_memtest):
         self._rootfsDir = rootfs_dir
         self._devPath = dev_path
         self._devUuid = dev_uuid
         self._name = name
         self._label = label
+        self._memtest = using_memtest
 
     def fill_script_dir(self, script_dir_hostpath):
         selfDir = os.path.dirname(os.path.realpath(__file__))
@@ -80,12 +84,48 @@ class _WorkerScript(ScriptInChroot):
         subprocess.check_call(["sed", "-i", "s#%s/\?##" % (script_dir_hostpath), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
 
         # create grub.cfg.in file
-        buf = self._grubCfgContent
-        buf = buf.replace(r"%NAME%", self._name)
-        buf = buf.replace(r"%ARCH%", "x86_64")   # FIXME
-        buf = buf.replace(r"%UUID%", self._devUuid)
         with open(os.path.join(script_dir_hostpath, "grub.cfg.in"), "w") as f:
-            f.write(buf)
+            f.write("set default=0\n")
+            f.write("set timeout=90\n")
+
+            f.write("set gfxmode=auto\n")
+            f.write("insmod efi_gop\n")
+            f.write("insmod efi_uga\n")
+            f.write("insmod gfxterm\n")
+            f.write("insmod all_video\n")
+            f.write("insmod videotest\n")
+            f.write("insmod videoinfo\n")
+            f.write("terminal_output gfxterm\n")
+
+            f.write("menuentry \"Boot %s\" {\n" % (self._name))
+            f.write("    search --no-floppy --fs-uuid --set %s\n" % (self._devUuid))
+            f.write("    linux /data/%s/vmlinuz dev_uuid=%s basedir=/data\n" % ("x86_64", self._devUuid))
+            f.write("    initrd /data/%s/initramfs.img\n" % (self._devUuid))
+            f.write("}\n")
+
+            f.write("menuentry \"Boot existing OS\" {\n")
+            f.write("    set root=(hd0)\n")
+            f.write("    chainloader +1\n")
+            f.write("}\n")
+
+            if self._memtest:
+                f.write("menuentry \"Run Memtest86+ (RAM test)\" {\n")
+                f.write("    linux /data/%ARCH%/memtest\n")
+                f.write("}\n")
+
+            # menuentry "Hardware Information (HDT)" {
+            #     linux /data/%ARCH%/hdt
+            # }
+
+            # Menu
+            f.write("menuentry \"Restart\" {\n")
+            f.write("    reboot\n")
+            f.write("}\n")
+
+            # Menu
+            f.write("menuentry \"Power Off\" {\n")
+            f.write("    halt\n")
+            f.write("}\n")
 
         # generate script content
         buf = pathlib.Path(os.path.join(selfDir, "main.sh.in")).read_text()
@@ -95,8 +135,8 @@ class _WorkerScript(ScriptInChroot):
         buf = buf.replace(r"%ARCH%", "x86_64")   # FIXME
 
         # create script file
-        fullfn = os.path.join(script_dir_hostpath, self._scriptDirScriptName)
-        with open(os.path.join(script_dir_hostpath, self._scriptDirScriptName), "w") as f:
+        fullfn = os.path.join(script_dir_hostpath, "main.sh")
+        with open(os.path.join(script_dir_hostpath, "main.sh"), "w") as f:
             f.write(buf)
         os.chmod(fullfn, 0o0755)
 
@@ -104,53 +144,4 @@ class _WorkerScript(ScriptInChroot):
         return "Generate %s" % (self._name)
 
     def get_script(self):
-        return self._scriptDirScriptName
-
-    _scriptDirScriptName = "main.sh"
-
-    _grubCfgContent = """
-# Global settings
-set default=0
-set timeout=90
-
-# Display settings
-set gfxmode=auto
-insmod efi_gop
-insmod efi_uga
-insmod gfxterm
-insmod all_video
-insmod videotest
-insmod videoinfo
-terminal_output gfxterm
-
-# Menu
-menuentry "Boot %NAME%" {
-    search --no-floppy --fs-uuid --set %UUID%
-    linux /data/%ARCH%/vmlinuz dev_uuid=%UUID% basedir=/data
-    initrd /data/%ARCH%/initramfs.img
-}
-
-# Menu
-menuentry "Boot existing OS" {
-    set root=(hd0)
-    chainloader +1
-}
-
-# menuentry "Run Memtest86+ (RAM test)" {
-#     linux /data/%ARCH%/memtest
-# }
-
-# menuentry "Hardware Information (HDT)" {
-#     linux /data/%ARCH%/hdt
-# }
-
-# Menu
-menuentry "Restart" {
-    reboot
-}
-
-# Menu
-menuentry "Power Off" {
-    halt
-}
-"""
+        return "main.sh"
