@@ -55,6 +55,7 @@ class CreateLiveCdAsIsoFile:
         #     world_set.add("sys-boot/syslinux")
         #     world_set.add("app-cdr/cdrtools")
 
+        world_set.add("dev-libs/libisoburn")
         world_set.add("sys-boot/grub")
         if self._memtest:
             world_set.add("sys-apps/memtest86+")
