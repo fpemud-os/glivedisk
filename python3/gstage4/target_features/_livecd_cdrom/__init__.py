@@ -96,21 +96,19 @@ class _WorkerScript(ScriptInChroot):
         self._memtest = using_memtest
 
     def fill_script_dir(self, script_dir_hostpath):
-        selfDir = os.path.dirname(os.path.realpath(__file__))
-
         # create rootfs dir
-        fullfn = os.path.join(script_dir_hostpath, "rootfs")
-        bootDir = os.path.join(fullfn, "boot")
-        os.mkdir(bootDir)
+        baseDir = os.path.join(script_dir_hostpath, "rootfs")
+        bootDir = os.path.join(baseDir, "boot")
+        os.makedirs(bootDir)
 
         # create rootfs.sqfs and rootfs.sqfs.sha512
-        sqfsFile = os.path.join(fullfn, "rootfs.sqfs")
-        sqfsSumFile = os.path.join(fullfn, "rootfs.sqfs.sha512")
+        sqfsFile = os.path.join(baseDir, "rootfs.sqfs")
+        sqfsSumFile = os.path.join(baseDir, "rootfs.sqfs.sha512")
         shutil.copy(os.path.join(self._rootfsDir, "boot", "vmlinuz"), bootDir)
         shutil.copy(os.path.join(self._rootfsDir, "boot", "initramfs.img"), bootDir)
         subprocess.check_call("mksquashfs %s %s -no-progress -noappend -quiet -e boot/*" % (self._rootfsDir, sqfsFile), shell=True)
         subprocess.check_call("sha512sum %s > %s" % (sqfsFile, sqfsSumFile), shell=True)
-        subprocess.check_call(["sed", "-i", "s#%s/\?##" % (fullfn), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
+        subprocess.check_call(["sed", "-i", "s#%s/\?##" % (baseDir), sqfsSumFile])   # remove directory prefix in rootfs.sqfs.sha512, sha512sum sucks
 
         self._generate_script(script_dir_hostpath, "main.sh.grub.in")
 
