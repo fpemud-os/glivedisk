@@ -31,12 +31,11 @@ from gstage4 import ScriptInChroot
 
 class CreateLiveCdAsIsoFile:
 
-    def __init__(self, arch, filepath, cdrom_name, cdrom_vol_id, using_memtest=False):
+    def __init__(self, arch, cdrom_name, cdrom_vol_id, using_memtest=False):
         assert arch in ["alpha", "amd64", "arm", "arm64", "hppa", "ia64", "m68k", "mips", "ppc", "riscv", "s390", "sh", "sparc", "x86"]
         assert len(cdrom_vol_id) <= 32
 
         self._arch = arch
-        self._filepath = filepath
         self._name = cdrom_name
         self._volId = cdrom_vol_id
         self._memtest = using_memtest
@@ -51,7 +50,8 @@ class CreateLiveCdAsIsoFile:
     def get_worker_script(self, rootfs_dir):
         assert rootfs_dir is not None
 
-        return _WorkerScript(self._arch, rootfs_dir, self._filepath, self._name, self._volId, self._memtest)
+        return _WorkerScript(self._arch, rootfs_dir, self._name, self._volId, self._memtest)
+
 
 
 class CreateLiveCdOnCdrom:
@@ -77,10 +77,9 @@ class CreateLiveCdOnCdrom:
 
 class _WorkerScript(ScriptInChroot):
 
-    def __init__(self, arch, rootfs_dir, filepath, name, vol_id, using_memtest):
+    def __init__(self, arch, rootfs_dir, name, vol_id, using_memtest):
         self._arch = arch
         self._rootfsDir = rootfs_dir
-        self._devPath = filepath
         self._name = name
         self._label = vol_id
         self._memtest = using_memtest
@@ -107,7 +106,6 @@ class _WorkerScript(ScriptInChroot):
         with open(fullfn, "w") as f:
             buf = pathlib.Path(os.path.join(selfDir, "main.sh.in")).read_text()
             buf = buf.replace(r"%VOL_ID%", self._label)
-            buf = buf.replace(r"%FILEPATH%", self._devPath)
             f.write(buf)
         os.chmod(fullfn, 0o0755)
 
