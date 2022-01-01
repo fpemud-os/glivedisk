@@ -1,5 +1,10 @@
 #!/bin/bash
 
+die() {
+    echo "$1"
+    exit 1
+}
+
 FILES_DIR=$(dirname $(realpath $0))
 
 UUID=`blkid %DEV_PATH% -s UUID -o value`
@@ -7,8 +12,8 @@ BASE_DIR=/mnt
 BOOT_DIR=${BASE_DIR}/boot
 DATA_DIR=${BASE_DIR}/data/%ARCH%
 
-mount %DEV_PATH%1 ${BASE_DIR}
-mkdir -p ${BOOT_DIR} ${DATA_DIR}
+mount %DEV_PATH%1 ${BASE_DIR} || die "mount failed"
+mkdir -p ${BOOT_DIR} ${DATA_DIR} || die "make directories failed"
 
 cp ${FILES_DIR}/vmlinuz ${BOOT_DIR}
 cp ${FILES_DIR}/initramfs.img ${BOOT_DIR}
@@ -16,5 +21,7 @@ cp ${FILES_DIR}/rootfs.sqfs ${DATA_DIR}
 cp ${FILES_DIR}/rootfs.sqfs.sha512 ${DATA_DIR}
 
 grub-install --removable --target=x86_64-efi --boot-directory=${BOOT_DIR} --efi-directory=${BASE_DIR} --no-nvram
-grub-install --removable --target=i386-pc --boot-directory=${BOOT_DIR}
+grub-install --removable --target=i386-pc --boot-directory=${BOOT_DIR} %DEV_PATH%
 sed "s/%UUID%/${UUID}/g" ${FILES_DIR}/grub.cfg.in > ${BOOT_DIR}/grub/grub.cfg
+
+umount /mnt
