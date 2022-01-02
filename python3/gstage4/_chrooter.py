@@ -99,7 +99,7 @@ class Chrooter:
         assert len(self._mountList) > 0
 
         # FIXME
-        env = "LANG=C.utf8 " + env
+        env = "LANG=C.utf8 PATH=/bin:/usr/bin:/sbin:/usr/sbin " + env
         assert self._detectArch() == platform.machine()
 
         return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
@@ -108,7 +108,7 @@ class Chrooter:
         assert len(self._mountList) > 0
 
         # FIXME
-        env = "LANG=C.utf8 " + env
+        env = "LANG=C.utf8 PATH=/bin:/usr/bin:/sbin:/usr/sbin " + env
         assert self._detectArch() == platform.machine()
 
         return Util.shellCallTestSuccess("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
@@ -117,7 +117,7 @@ class Chrooter:
         assert len(self._mountList) > 0
 
         # FIXME
-        env = "LANG=C.utf8 " + env
+        env = "LANG=C.utf8 PATH=/bin:/usr/bin:/sbin:/usr/sbin " + env
         assert self._detectArch() == platform.machine()
 
         if not quiet:
