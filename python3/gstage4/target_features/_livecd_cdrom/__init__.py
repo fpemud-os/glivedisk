@@ -52,6 +52,8 @@ class CreateLiveCdAsIsoFile:
 
         return _WorkerScript(self._arch, rootfs_dir, self._name, self._volId, self._memtest)
 
+    def get_result_filename(self):
+        return "/result.iso"
 
 
 class CreateLiveCdOnCdrom:
