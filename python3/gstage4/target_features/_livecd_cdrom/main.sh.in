@@ -1,5 +1,0 @@
-#!/bin/bash
-
-SRC_DIR=$(dirname $(realpath $0))/rootfs
-
-grub-mkrescue -o /result.iso ""${SRC_DIR}""
