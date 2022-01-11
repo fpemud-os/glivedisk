@@ -214,7 +214,7 @@ class ScriptPlacingFiles(ScriptInChroot):
                 os.chown(dstname, owner, group)
                 os.chmod(dstname, fmode)
 
-    _scriptContent = """
+    _scriptContent = r"""
 #!/bin/bash
 
 DATA_DIR=$(dirname $(realpath $0))/data
