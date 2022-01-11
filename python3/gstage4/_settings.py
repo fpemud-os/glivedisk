@@ -110,7 +110,7 @@ class TargetSettings:
         self.profile = None
 
         self.package_manager = "portage"
-        self.kernel_manager = "none"             # "none", "fake", "genkernel". kernel source and kernel config is select by emerge/pre-command
+        self.kernel_manager = "none"             # "none", "genkernel", "fake". kernel source and kernel config is select by emerge/pre-command
         self.service_manager = "none"            # "none", "systemd"
 
         self.pkg_use = dict()                    # dict<package-wildcard, use-flag-list>
