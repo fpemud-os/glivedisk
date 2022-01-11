@@ -167,6 +167,8 @@ class Builder:
 
             if self._ts.kernel_manager == "none":
                 pass
+            elif self._ts.kernel_manager == "fake":
+                pass
             elif self._ts.kernel_manager == "genkernel":
                 __worldNeeded("sys-kernel/genkernel")
             else:
@@ -223,6 +225,13 @@ class Builder:
 
         if self._ts.kernel_manager == "none":
             assert len(preprocess_script_list) == 0
+        elif self._ts.kernel_manager == "fake":
+            bootDir = os.path.join(self._workDirObj.chroot_dir_path, "boot")
+            os.makedirs(bootDir, exist_ok=True)
+            with open(os.path.join(bootDir, "vmlinuz"), "w") as f:
+                f.write("fake kernel")
+            with open(os.path.join(bootDir, "initramfs.img"), "w") as f:
+                f.write("fake initramfs")
         elif self._ts.kernel_manager == "genkernel":
             t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
             tj = t.get_make_conf_make_opts_jobs()
