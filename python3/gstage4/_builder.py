@@ -831,7 +831,7 @@ export CONFIG_PROTECT="-* .x"
 """
 
     _scriptContentSecondHalfVerboseLv0 = """
-emerge --color=y -1 @@PKG_NAME@@ > /var/log/portage/run-merge.log 2>&1" || exit 1
+emerge --color=y -1 @@PKG_NAME@@ > /var/log/portage/run-merge.log 2>&1 || exit 1
 """
 
     _scriptContentSecondHalfVerboseLv1 = """
@@ -844,7 +844,7 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
     _scriptContentSecondHalfVerboseLv2 = """
-emerge --color=y -1 @@PKG_NAME@@ 2>&1 | tee /var/log/portage/run-update.log"
+emerge --color=y -1 @@PKG_NAME@@ 2>&1 | tee /var/log/portage/run-update.log
 test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
@@ -881,7 +881,7 @@ export CONFIG_PROTECT="-* .x"
 """
 
     _scriptContentSecondHalfVerboseLv0 = """
-emerge --color=y -uDN --with-bdeps=y @world > /var/log/portage/run-update.log 2>&1" || exit 1
+emerge --color=y -uDN --with-bdeps=y @world > /var/log/portage/run-update.log 2>&1 || exit 1
 """
 
     _scriptContentSecondHalfVerboseLv1 = """
@@ -895,7 +895,7 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
     _scriptContentSecondHalfVerboseLv2 = """
-emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log"
+emerge --color=y -uDN --with-bdeps=y @world 2>&1 | tee /var/log/portage/run-update.log
 test ${PIPESTATUS[0]} -eq 0 || exit 1
 """
 
