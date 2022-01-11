@@ -220,6 +220,7 @@ class ScriptPlacingFiles(ScriptInChroot):
 DATA_DIR=$(dirname $(realpath $0))/data
 
 # merge directories and files
-find $DATA_DIR -name '*' -type d -exec mv -f {} / \\;
-find $DATA_DIR -name '*' -type f -exec mv -f {} / \\;
+cd $DATA_DIR
+find . -type d -exec mkdir -p /\{} \;
+find . -type f -exec mv -f \{} /\{} \;
 """

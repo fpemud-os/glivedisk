@@ -231,17 +231,8 @@ class Builder:
             with _MyChrooter(self) as m:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
-
                 m.shell_call("", "eselect kernel set 1")
-
-                if self._ts.build_opts.ccache:
-                    env = "CCACHE_DIR=/var/tmp/ccache"
-                    opt = "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc"
-                else:
-                    env = ""
-                    opt = ""
-                print("genkernel")
-                m.shell_exec(env, "genkernel --no-mountboot --kernel-filename=vmlinuz --initramfs-filename=initramfs.img --makeopts='-j%d -l%d' %s all" % (tj, tl, opt))
+                m.script_exec(ScriptGenkernel(self._s.verbose_level, tj, tl, self._ts.build_opts.ccache), quiet=self._getQuiet())
         else:
             assert False
 
@@ -902,6 +893,34 @@ test ${PIPESTATUS[0]} -eq 0 || exit 1
     _scriptContentThirdHalf = """
 perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, your seed stage is too old"
 """
+
+
+class ScriptGenkernel(ScriptFromBuffer):
+
+    def __init__(self, verbose_level, tj, tl, ccache):
+        buf = "#!/bin/bash\n"
+        buf += "\n"
+
+        if ccache:
+            buf += "export CCACHE_DIR=/var/tmp/ccache\n"
+
+        cmd = ""
+        if True:
+            cmd += "genkernel --color --no-mountboot "
+            cmd += "--kernel-filename=vmlinuz --initramfs-filename=initramfs.img "
+            cmd += "--makeopts='-j%d -l%d' " % (tj, tl)
+            if ccache:
+                cmd += "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc "
+            cmd += "all"
+
+        if verbose_level == 0:
+            buf += cmd + " > /var/log/portage/genkernel.log 2>&1\n"
+        elif verbose_level in [1, 2]:
+            buf += cmd + " 2>&1 | tee /var/log/portage/genkernel.log\n"
+        else:
+            assert False
+
+        super().__init__("Install kernel", buf)
 
 
 class ScriptDepClean(ScriptFromBuffer):
