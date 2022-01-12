@@ -26,6 +26,7 @@ from ._common import UseGenkernel
 from ._common import UseOpenrc
 from ._common import UseSystemd
 from ._common import DoNotUseDeprecatedPackagesAndFunctions
+from ._common import PreferGnuAndGpl
 from ._common import SshServer
 from ._common import ChronyDaemon
 from ._common import NetworkManager

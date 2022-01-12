@@ -66,8 +66,8 @@ class DoNotUseDeprecatedPackagesAndFunctions:
         assert "10-no-deprecated" not in target_settings.pkg_use_files
         assert "10-no-deprecated" not in target_settings.pkg_mask_files
 
-        target_settings.pkg_use_files["10-no-deprecated"] = self._useFileContent
-        target_settings.pkg_mask_files["10-no-deprecated"] = self._maskFileContent
+        target_settings.pkg_use_files["10-no-deprecated"] = self._useFileContent.strip("\n") + "\n"
+        target_settings.pkg_mask_files["10-no-deprecated"] = self._maskFileContent.strip("\n") + "\n"
 
     _useFileContent = """
 # disable deprecated functions
@@ -104,6 +104,32 @@ net-wireless/wpa_supplicant
 
 # libstdc++ is integrated in gcc
 sys-libs/libstdc++-v3
+"""
+
+
+class PreferGnuAndGpl:
+
+    def update_target_settings(self, target_settings):
+        assert "10-prefer-gnu-and-gpl" not in target_settings.pkg_use_files
+        assert "10-prefer-gnu-and-gpl" not in target_settings.pkg_mask_files
+
+        target_settings.pkg_use_files["10-prefer-gnu-and-gpl"] = self._useFileContent.strip("\n") + "\n"
+        target_settings.pkg_mask_files["10-prefer-gnu-and-gpl"] = self._maskFileContent.strip("\n") + "\n"
+
+    _useFileContent = """
+# no need to use dev-libs/libedit
+*/*         readline
+
+# use sys-libs/ncurses, why sys-libs/slang?
+*/*         -slang
+"""
+
+    _maskFileContent = """
+# no, we prefer sys-libs/readline
+dev-libs/libedit
+
+# why not use sys-libs/ncurses
+sys-libs/slang
 """
 
 
