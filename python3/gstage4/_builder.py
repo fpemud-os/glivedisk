@@ -252,22 +252,19 @@ class Builder:
         if self._ts.service_manager == "none":
             assert len(preprocess_script_list) == 0
             assert len(service_list) == 0
-        elif self._ts.service_manager == "openrc":
-            if len(preprocess_script_list) > 0 or len(service_list) > 0:
-                with _MyChrooter(self) as m:
-                    for s in preprocess_script_list:
-                        m.script_exec(s, quiet=self._getQuiet())
-                    for s in service_list:
+            return
+
+        if len(preprocess_script_list) > 0 or len(service_list) > 0:
+            with _MyChrooter(self) as m:
+                for s in preprocess_script_list:
+                    m.script_exec(s, quiet=self._getQuiet())
+                for s in service_list:
+                    if self._ts.service_manager == "openrc":
                         m.shell_exec("", "rc-update add %s default" % (s))
-        elif self._ts.service_manager == "systemd":
-            if len(preprocess_script_list) > 0 or len(service_list) > 0:
-                with _MyChrooter(self) as m:
-                    for s in preprocess_script_list:
-                        m.script_exec(s, quiet=self._getQuiet())
-                    for s in service_list:
+                    elif self._ts.service_manager == "systemd":
                         m.shell_exec("", "systemctl enable %s -q" % (s))
-        else:
-            assert False
+                    else:
+                        assert False
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED)
     def action_customize_system(self, custom_script_list=[]):
