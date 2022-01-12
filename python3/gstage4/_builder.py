@@ -184,7 +184,7 @@ class Builder:
                 assert False
 
             if self._ts.build_opts.ccache:
-                __worldNeeded("dev-util/ccache")
+                __pkgNeeded("dev-util/ccache")
 
         # create installList and write world file
         installList = []
