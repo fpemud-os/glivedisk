@@ -21,9 +21,10 @@
 # THE SOFTWARE.
 
 
-from ._common import Portage
-from ._common import Genkernel
-from ._common import Systemd
+from ._common import UsePortage
+from ._common import UseGenkernel
+from ._common import UseOpenrc
+from ._common import UseSystemd
 from ._common import DoNotUseDeprecatedPackagesAndFunctions
 from ._common import SshServer
 from ._common import ChronyDaemon
