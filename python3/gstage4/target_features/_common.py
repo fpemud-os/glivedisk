@@ -127,9 +127,6 @@ class PreferGnuAndGpl:
     _maskFileContent = """
 # no, we prefer sys-libs/readline
 dev-libs/libedit
-
-# why not use sys-libs/ncurses
-sys-libs/slang
 """
 
 
