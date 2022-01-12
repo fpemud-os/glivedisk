@@ -189,8 +189,7 @@ class TargetSettings:
             if obj.kernel_manager not in ["none", "genkernel", "fake"]:
                 raise SettingsError("invalid value of \"kernel_manager\"")
 
-            # if obj.service_manager not in ["none", "openrc", "systemd"]:
-            if obj.service_manager not in ["none", "systemd"]:
+            if obj.service_manager not in ["none", "openrc", "systemd"]:
                 raise SettingsError("invalid value of \"service_manager\"")
 
             if obj.pkg_use is None or not isinstance(obj.pkg_use, dict):

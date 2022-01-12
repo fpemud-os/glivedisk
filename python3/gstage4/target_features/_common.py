@@ -24,7 +24,7 @@
 from gstage4.scripts import ScriptPlacingFiles
 
 
-class Portage:
+class UsePortage:
 
     def update_target_settings(self, target_settings):
         target_settings.package_manager = "portage"
@@ -33,7 +33,7 @@ class Portage:
         world_set.add("sys-apps/portage")
 
 
-class Genkernel:
+class UseGenkernel:
 
     def update_target_settings(self, target_settings):
         target_settings.kernel_manager = "genkernel"
@@ -42,7 +42,16 @@ class Genkernel:
         world_set.add("sys-kernel/genkernel")
 
 
-class Systemd:
+class UseOpenrc:
+
+    def update_target_settings(self, target_settings):
+        target_settings.service_manager = "openrc"
+
+    def update_world_set(self, world_set):
+        world_set.add("sys-apps/openrc")
+
+
+class UseSystemd:
 
     def update_target_settings(self, target_settings):
         target_settings.service_manager = "systemd"
