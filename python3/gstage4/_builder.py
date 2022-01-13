@@ -260,7 +260,7 @@ class Builder:
                     m.script_exec(s, quiet=self._getQuiet())
                 for s in service_list:
                     if self._ts.service_manager == "openrc":
-                        m.shell_exec("", "rc-update add %s default" % (s))
+                        m.shell_exec("", "rc-update add %s default > /dev/null" % (s))
                     elif self._ts.service_manager == "systemd":
                         m.shell_exec("", "systemctl enable %s -q" % (s))
                     else:
