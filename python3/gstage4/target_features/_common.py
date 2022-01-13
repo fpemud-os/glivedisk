@@ -40,6 +40,7 @@ class UseGenkernel:
 
     def update_world_set(self, world_set):
         world_set.add("sys-kernel/genkernel")
+        world_set.add("sys-devel/bc")           # kernel build script needs it
 
 
 class UseOpenrc:
