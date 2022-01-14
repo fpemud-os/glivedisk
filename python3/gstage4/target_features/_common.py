@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 
+import crypt
 from gstage4.scripts import ScriptFromBuffer
 from gstage4.scripts import ScriptPlacingFiles
 
@@ -190,12 +191,12 @@ ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
 class SetPasswordForUserRoot:
 
     def __init__(self, password):
-        self._pwd = password
+        self._hash = crypt.crypt(password)
 
     def update_custom_script_list(self, custom_script_list):
         buf = ""
         buf += "#!/bin/sh\n"
-        buf += "echo 'root:%s' | chpasswd\n" % (self._pwd)
+        buf += "sed -i 's#^root:[^:]*:#root:%s:#' /etc/shadow\n" % (self._hash)      # modify /etc/shadow directly so that password complexity check won't be in our way
 
         s = ScriptFromBuffer("Set root's password", buf)
         assert s not in custom_script_list
