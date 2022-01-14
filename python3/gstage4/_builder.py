@@ -921,6 +921,7 @@ class ScriptGenkernel(ScriptFromBuffer):
         if True:
             cmd += "genkernel --color --no-mountboot "
             cmd += "--kernel-filename=vmlinuz --initramfs-filename=initramfs.img "
+            cmd += "--all-ramdisk-modules "
             cmd += "--makeopts='-j%d -l%d' " % (tj, tl)
             if ccache:
                 cmd += "--kernel-cc=/usr/lib/ccache/bin/gcc --utils-cc=/usr/lib/ccache/bin/gcc "
