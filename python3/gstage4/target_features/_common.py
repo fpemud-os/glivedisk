@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 
+from gstage4.scripts import ScriptFromBuffer
 from gstage4.scripts import ScriptPlacingFiles
 
 
@@ -184,3 +185,28 @@ class GettyAutoLogin:
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
 """
+
+
+class SetPasswordForUserRoot:
+
+    def __init__(self, password):
+        self._pwd = password
+
+    def update_custom_script_list(self, custom_script_list):
+        buf = ""
+        buf += "#!/bin/sh\n"
+        buf += "echo 'root:%s' | chpasswd\n" % (self._pwd)
+
+        s = ScriptFromBuffer("Set root's password", buf)
+        assert s not in custom_script_list
+        custom_script_list.append(s)
+
+
+class AddUser:
+
+    def __init__(self, username, password):
+        self._user = username
+        self._pwd = password
+
+    def update_custom_script_list(self, custom_script_list):
+        pass
