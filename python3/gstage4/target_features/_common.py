@@ -204,9 +204,10 @@ class SetPasswordForUserRoot:
 
 class AddUser:
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, comment=""):
         self._user = username
         self._pwd = password
+        self._comment = comment
 
     def update_custom_script_list(self, custom_script_list):
-        pass
+        assert False
