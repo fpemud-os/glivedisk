@@ -56,8 +56,9 @@ def Action(*progressStepTuple):
 class BuildStep(enum.IntEnum):
     INIT = enum.auto()
     UNPACKED = enum.auto()
-    REPOSITORIES_INITIALIZED = enum.auto()
+    GENTOO_REPOSITORY_CREATED = enum.auto()
     CONFDIR_INITIALIZED = enum.auto()
+    OVERLAYS_CREATED = enum.auto()
     WORLD_UPDATED = enum.auto()
     KERNEL_INSTALLED = enum.auto()
     SERVICES_ENABLED = enum.auto()
@@ -110,32 +111,23 @@ class Builder:
             f.write("")
 
     @Action(BuildStep.UNPACKED)
-    def action_init_repositories(self, repo_list):
-        assert repo_list is not None
-        assert all([Util.isInstanceList(x, ManualSyncRepository, EmergeSyncRepository, MountRepository) for x in repo_list])
-        assert len([x for x in repo_list if x.get_name() == "gentoo"]) == 1
-        assert len([x.get_name() for x in repo_list]) == len(set([x.get_name() for x in repo_list]))        # no duplication
+    def action_create_gentoo_repository(self, repo):
+        assert repo.get_name() == "gentoo"
 
-        for repo in repo_list:
-            repoOrOverlay = (repo.get_name() == "gentoo")
-            if isinstance(repo, ManualSyncRepository):
-                _MyRepoUtil.createFromManuSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
-            elif isinstance(repo, EmergeSyncRepository):
-                _MyRepoUtil.createFromEmergeSyncRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
-            elif isinstance(repo, MountRepository):
-                _MyRepoUtil.createFromMountRepo(repo, repoOrOverlay, self._workDirObj.chroot_dir_path)
-            else:
-                assert False
-
-        for repo in repo_list:
-            if isinstance(repo, ManualSyncRepository):
-                repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
-
-        if any([isinstance(repo, EmergeSyncRepository) for repo in repo_list]):
+        if isinstance(repo, ManualSyncRepository):
+            _MyRepoUtil.createFromManuSyncRepo(repo, True, self._workDirObj.chroot_dir_path)
+            repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
+        elif isinstance(repo, EmergeSyncRepository):
+            myRepo = _MyRepoUtil.createFromEmergeSyncRepo(repo, True, self._workDirObj.chroot_dir_path)
+            assert myRepo.get_sync_type() == "rsync"
             with _MyChrooter(self) as m:
                 m.script_exec(ScriptSync(), quiet=self._getQuiet())
+        elif isinstance(repo, MountRepository):
+            _MyRepoUtil.createFromMountRepo(repo, True, self._workDirObj.chroot_dir_path)
+        else:
+            assert False
 
-    @Action(BuildStep.REPOSITORIES_INITIALIZED)
+    @Action(BuildStep.GENTOO_REPOSITORY_CREATED)
     def action_init_confdir(self):
         t = TargetConfDirWriter(self._s, self._ts, self._workDirObj.chroot_dir_path)
         t.write_make_conf()
@@ -146,6 +138,49 @@ class Builder:
         t.write_package_license()
 
     @Action(BuildStep.CONFDIR_INITIALIZED)
+    def action_create_overlays(self, preprocess_script_list=[], overlay_list=[]):
+        assert overlay_list is not None
+        assert all([Util.isInstanceList(x, ManualSyncRepository, EmergeSyncRepository, MountRepository) for x in overlay_list])
+        assert not any([x.get_name() == "gentoo" for x in overlay_list])
+        assert len([x.get_name() for x in overlay_list]) == len(set([x.get_name() for x in overlay_list]))        # no duplication
+        if len(overlay_list) == 0:
+            assert len(preprocess_script_list) == 0
+
+        install_set = []
+        for repo in overlay_list:
+            if isinstance(repo, ManualSyncRepository):
+                _MyRepoUtil.createFromManuSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
+            elif isinstance(repo, EmergeSyncRepository):
+                myRepo = _MyRepoUtil.createFromEmergeSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
+                syncType = myRepo.get_sync_type()
+                if syncType == "rsync":
+                    pass
+                elif syncType == "git":
+                    install_set.add("dev-vcs/git")
+                else:
+                    assert False
+            elif isinstance(repo, MountRepository):
+                _MyRepoUtil.createFromMountRepo(repo, False, self._workDirObj.chroot_dir_path)
+            else:
+                assert False
+
+        if len(preprocess_script_list) > 0 or any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
+            with _MyChrooter(self) as m:
+                for s in preprocess_script_list:
+                    m.script_exec(s, quiet=self._getQuiet())
+                for pkg in install_set:
+                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                        m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+                if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
+                    m.script_exec(ScriptSync(), quiet=self._getQuiet())
+
+        for repo in overlay_list:
+            if isinstance(repo, ManualSyncRepository):
+                repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
+
+        # FIXME: should record package needed, and check world_set in next step
+
+    @Action(BuildStep.OVERLAYS_CREATED)
     def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=set()):
         assert len(world_set & set(install_list)) == 0
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
@@ -239,13 +274,15 @@ class Builder:
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
+        if len(service_list) == 0:
+            assert len(preprocess_script_list) == 0
 
         if self._ts.service_manager == "none":
             assert len(preprocess_script_list) == 0
             assert len(service_list) == 0
             return
 
-        if len(preprocess_script_list) > 0 or len(service_list) > 0:
+        if len(service_list) > 0:
             with _MyChrooter(self) as m:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
@@ -266,7 +303,7 @@ class Builder:
                 for s in custom_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
 
-    @Action(BuildStep.CONFDIR_INITIALIZED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
+    @Action(BuildStep.CONFDIR_INITIALIZED, BuildStep.OVERLAYS_CREATED, BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED, BuildStep.SERVICES_ENABLED, BuildStep.SYSTEM_CUSTOMIZED)
     def action_cleanup(self):
         with _MyChrooter(self) as m:
             if not self._ts.degentoo:
@@ -322,8 +359,6 @@ class _MyRepoUtil:
     def createFromMountRepo(cls, repo, repoOrOverlay, chrootDir):
         assert isinstance(repo, MountRepository)
 
-        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
-
         buf = ""
         buf += "[%s]\n" % (repo.get_name())
         buf += "auto-sync = no\n"
@@ -331,8 +366,9 @@ class _MyRepoUtil:
         if True:
             src, mntOpts = repo.get_mount_params()
             buf += "mount-params = \"%s\",\"%s\"\n" % (src, mntOpts)
-        cls._writeReposConfFile(myRepo, buf)
 
+        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
+        cls._writeReposConfFile(myRepo, buf)
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
@@ -341,11 +377,10 @@ class _MyRepoUtil:
     def createFromEmergeSyncRepo(cls, repo, repoOrOverlay, chrootDir):
         assert isinstance(repo, EmergeSyncRepository)
 
-        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
-
         buf = repo.get_repos_conf_file_content()
-        cls._writeReposConfFile(myRepo, buf)
 
+        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
+        cls._writeReposConfFile(myRepo, buf)
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
@@ -398,6 +433,10 @@ class _MyRepo:
     @property
     def datadir_path(self):
         return re.search(r'location = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M).group(1)
+
+    def get_sync_type(self):
+        m = re.search(r'sync-type = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M)
+        return m.group(1) if m is not None else None
 
     def get_mount_params(self):
         m = re.search(r'mount-params = "(.*)","(.*)"', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M)
