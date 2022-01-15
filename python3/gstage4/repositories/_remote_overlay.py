@@ -21,13 +21,34 @@
 # THE SOFTWARE.
 
 
-from ._gentoo import CloudGentoo
-from ._gentoo import CloudGentooSnapshot
-from ._gentoo import GentooSnapshot
-from ._gentoo import GentooSquashedSnapshot
-from ._gentoo import GentooFromHost
+from .. import EmergeSyncRepository
 
-from ._host_overlay import OverlayFromHost
-from ._host_overlay import OverlayFromHostLayman
 
-from ._remote_overlay import CustomOverlay
+class CustomOverlay(EmergeSyncRepository):
+
+    def __init__(self, overlay_name, sync_type, sync_url):
+        validGitUrlSchema = ["git", "http", "https"]
+
+        if sync_type == "git":
+            assert any([sync_url.startswith(x + "://") for x in validGitUrlSchema])
+        else:
+            assert False
+
+        self._name = overlay_name
+        self._syncType = sync_type
+        self._syncUrl = sync_url
+
+    def get_name(self):
+        assert self._name
+
+    def get_repos_conf_file_content(self):
+        buf = ""
+        buf += "[%s]\n" % (self._name)
+        buf += "auto-sync = yes\n"
+        buf += "location = %s\n" % (self.get_datadir_path())
+        buf += "sync-type = %s\n" % (self._syncType)
+        buf += "sync-uri = %s\n" % (self._syncUrl)
+        return buf
+
+    def get_datadir_path(self):
+        return "/var/db/overlays/%s" % (self._name)
