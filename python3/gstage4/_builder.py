@@ -23,6 +23,7 @@
 
 import os
 import re
+import json
 import enum
 import pathlib
 import robust_layer.simple_fops
@@ -146,7 +147,7 @@ class Builder:
         if len(overlay_list) == 0:
             assert len(preprocess_script_list) == 0
 
-        install_set = []
+        overlayRecord = {}
         for repo in overlay_list:
             if isinstance(repo, ManualSyncRepository):
                 _MyRepoUtil.createFromManuSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
@@ -154,9 +155,9 @@ class Builder:
                 myRepo = _MyRepoUtil.createFromEmergeSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
                 syncType = myRepo.get_sync_type()
                 if syncType == "rsync":
-                    pass
+                    overlayRecord[repo.get_name()] = syncType
                 elif syncType == "git":
-                    install_set.add("dev-vcs/git")
+                    overlayRecord[repo.get_name()] = syncType
                 else:
                     assert False
             elif isinstance(repo, MountRepository):
@@ -168,9 +169,17 @@ class Builder:
             with _MyChrooter(self) as m:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
-                for pkg in install_set:
-                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+
+                for syncType in set(overlayRecord.values()):
+                    if syncType == "rsync":
+                        pkg = None
+                    elif syncType == "git":
+                        pkg = "dev-vcs/git"
+                    else:
+                        assert False
+                    if pkg is not None and not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                         m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+
                 if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
                     m.script_exec(ScriptSync(), quiet=self._getQuiet())
 
@@ -178,7 +187,7 @@ class Builder:
             if isinstance(repo, ManualSyncRepository):
                 repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
 
-        # FIXME: should record package needed, and check world_set in next step
+        self._workDir.save_record("overlays", json.dumps(overlayRecord))
 
     @Action(BuildStep.OVERLAYS_CREATED)
     def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=set()):
@@ -219,6 +228,10 @@ class Builder:
 
         if self._ts.build_opts.ccache:
             __pkgNeeded("dev-util/ccache")
+
+        overlayRecord = json.loads(self._workDir.load_record("overlays", default_value=json.dumps({})))
+        if "git" in overlayRecord.values():
+            __worldNeeded("dev-vcs/git")
 
         # create installList
         ORDER = [

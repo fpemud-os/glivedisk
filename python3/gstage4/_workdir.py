@@ -23,6 +23,7 @@
 
 import os
 import stat
+import pathlib
 import robust_layer.simple_fops
 from ._errors import WorkDirError
 from ._util import Util
@@ -152,6 +153,7 @@ class WorkDir:
         assert os.path.lexists(curPath)
 
         if to_dir_name is not None:
+            assert not to_dir_name.endswith(".save")
             assert to_dir_name != self._CURRENT and to_dir_name not in self.get_old_chroot_dir_names()
             robust_layer.simple_fops.mv(curPath, os.path.join(self._path, to_dir_name))
         else:
@@ -182,12 +184,21 @@ class WorkDir:
         assert dir_name in self.get_old_chroot_dir_names()
         return os.path.join(self._path, dir_name)
 
-    def get_save_files(self):
-        ret = []
-        for fn in os.listdir(self._path):
-            if os.path.isfile(fn) and fn.endswith(".save"):
-                ret.append(fn)
-        return ret
+    def load_record(self, record_name, default_value=None):
+        fullfn = os.path.join(self._path, record_name + ".save")
+        if os.path.isfile(fullfn):
+            return pathlib.Path(fullfn).read_text()
+        else:
+            return default_value
+
+    def save_record(self, record_name, value):
+        fullfn = os.path.join(self._path, record_name + ".save")
+        with open(fullfn, "w") as f:
+            f.write(value)
+
+    def delete_record(self, record_name):
+        fullfn = os.path.join(self._path, record_name + ".save")
+        robust_layer.simple_fops.rm(fullfn)
 
     def _isSnapshotSupported(self):
         return False
