@@ -150,73 +150,64 @@ class Builder:
         assert len(world_set & set(install_list)) == 0
         assert all([isinstance(s, ScriptInChroot) for s in preprocess_script_list])
 
+        def __pkgNeeded(pkg):
+            if pkg not in install_list and pkg not in world_set:
+                raise SettingsError("package %s is needed" % (pkg))
+
+        def __worldNeeded(pkg):
+            if pkg not in world_set:
+                raise SettingsError("package %s is needed" % (pkg))
+
         # check
-        if True:
-            def __pkgNeeded(pkg):
-                if pkg not in install_list and pkg not in world_set:
-                    raise SettingsError("package %s is needed" % (pkg))
+        if self._ts.package_manager == "portage":
+            __worldNeeded("sys-apps/portage")
+        else:
+            assert False
 
-            def __worldNeeded(pkg):
-                if pkg not in world_set:
-                    raise SettingsError("package %s is needed" % (pkg))
+        if self._ts.kernel_manager == "none":
+            pass
+        elif self._ts.kernel_manager == "genkernel":
+            __pkgNeeded("sys-kernel/genkernel")
+        elif self._ts.kernel_manager == "fake":
+            pass
+        else:
+            assert False
 
-            if self._ts.package_manager == "portage":
-                __worldNeeded("sys-apps/portage")
-            else:
-                assert False
+        if self._ts.service_manager == "none":
+            pass
+        elif self._ts.service_manager == "openrc":
+            __worldNeeded("sys-apps/openrc")
+        elif self._ts.service_manager == "systemd":
+            __worldNeeded("sys-apps/systemd")
+        else:
+            assert False
 
-            if self._ts.kernel_manager == "none":
-                pass
-            elif self._ts.kernel_manager == "genkernel":
-                __worldNeeded("sys-kernel/genkernel")
-            elif self._ts.kernel_manager == "fake":
-                pass
-            else:
-                assert False
+        if self._ts.build_opts.ccache:
+            __pkgNeeded("dev-util/ccache")
 
-            if self._ts.service_manager == "none":
-                pass
-            elif self._ts.service_manager == "openrc":
-                __worldNeeded("sys-apps/openrc")
-            elif self._ts.service_manager == "systemd":
-                __worldNeeded("sys-apps/systemd")
-            else:
-                assert False
-
-            if self._ts.build_opts.ccache:
-                __pkgNeeded("dev-util/ccache")
-
-        # create installList and write world file
-        installList = []
-        if True:
-            # add from install_list
-            for pkg in install_list:
-                if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                    installList.append(pkg)
-        if True:
-            # add from world_set
-            t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
-            with open(t.world_file_hostpath, "w") as f:
-                for pkg in world_set:
-                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                        installList.append(pkg)
-                    f.write("%s\n" % (pkg))
-
-        # order installList
+        # create installList
         ORDER = [
             "dev-util/ccache",
         ]
+        installList = sorted(install_list + list(world_set))
         for pkg in reversed(ORDER):
             if pkg in installList:
                 installList.remove(pkg)
                 installList.insert(0, pkg)
+
+        # write world file
+        t = TargetFilesAndDirs(self._workDirObj.chroot_dir_path)
+        with open(t.world_file_hostpath, "w") as f:
+            for pkg in world_set:
+                f.write("%s\n" % (pkg))
 
         # preprocess, install packages, update @world
         with _MyChrooter(self) as m:
             for s in preprocess_script_list:
                 m.script_exec(s, quiet=self._getQuiet())
             for pkg in installList:
-                m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+                if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                    m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
             m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
