@@ -98,6 +98,9 @@ class OneLinerScript(ScriptInChroot):
         assert description is not None
         self._desc = description
 
+        assert cmd is not None
+        self._cmd = cmd
+
         if executor == "sh":
             self._executor = "/bin/sh"
         elif executor == "bash":
@@ -105,9 +108,6 @@ class OneLinerScript(ScriptInChroot):
         else:
             assert executor.startswith("/")
             self._executor = executor
-
-        assert cmd is not None
-        self._cmd = cmd
 
     def fill_script_dir(self, script_dir_hostpath):
         fullfn = os.path.join(script_dir_hostpath, _SCRIPT_FILE_NAME)
