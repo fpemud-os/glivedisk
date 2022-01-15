@@ -796,7 +796,7 @@ export CLEAN_DELAY=0
 export EBEEP_IGNORE=0
 export EPAUSE_IGNORE=0
 
-emerge --sync" || exit 1
+emerge --sync || exit 1
 """
 
 
