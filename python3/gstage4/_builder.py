@@ -147,7 +147,8 @@ class Builder:
         if len(overlay_list) == 0:
             assert len(preprocess_script_list) == 0
 
-        overlayRecord = {}
+        overlayRecord = dict()
+        pkgSet = set()
         for repo in overlay_list:
             if isinstance(repo, ManualSyncRepository):
                 _MyRepoUtil.createFromManuSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
@@ -155,11 +156,12 @@ class Builder:
                 myRepo = _MyRepoUtil.createFromEmergeSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
                 syncType = myRepo.get_sync_type()
                 if syncType == "rsync":
-                    overlayRecord[repo.get_name()] = syncType
+                    pass
                 elif syncType == "git":
-                    overlayRecord[repo.get_name()] = syncType
+                    pkgSet.add("dev-vcs/git")
                 else:
                     assert False
+                overlayRecord[repo.get_name()] = syncType
             elif isinstance(repo, MountRepository):
                 _MyRepoUtil.createFromMountRepo(repo, False, self._workDirObj.chroot_dir_path)
             else:
@@ -170,14 +172,8 @@ class Builder:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
 
-                for syncType in set(overlayRecord.values()):
-                    if syncType == "rsync":
-                        pkg = None
-                    elif syncType == "git":
-                        pkg = "dev-vcs/git"
-                    else:
-                        assert False
-                    if pkg is not None and not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                for pkg in pkgSet:
+                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
                         m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
 
                 if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
