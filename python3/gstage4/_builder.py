@@ -183,7 +183,7 @@ class Builder:
             if isinstance(repo, ManualSyncRepository):
                 repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
 
-        self._workDir.save_record("overlays", json.dumps(overlayRecord))
+        self._workDirObj.save_record("overlays", json.dumps(overlayRecord))
 
     @Action(BuildStep.OVERLAYS_CREATED)
     def action_update_world(self, preprocess_script_list=[], install_list=[], world_set=set()):
@@ -225,7 +225,7 @@ class Builder:
         if self._ts.build_opts.ccache:
             __pkgNeeded("dev-util/ccache")
 
-        overlayRecord = json.loads(self._workDir.load_record("overlays", default_value=json.dumps({})))
+        overlayRecord = json.loads(self._workDirObj.load_record("overlays", default_value=json.dumps({})))
         if "git" in overlayRecord.values():
             __worldNeeded("dev-vcs/git")
 
