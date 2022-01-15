@@ -56,11 +56,42 @@ class OverlayFromHostLayman(EmergeSyncRepository):
         assert False
 
 
-class WildOverlay(EmergeSyncRepository):
+class RegisteredOverlay(EmergeSyncRepository):
+
+    """Overlay in Gentoo Overlay Database (https://api.gentoo.org/overlays/repositories.xml)"""
+
+    def __init__(self, overlay_name):
+        self._name = overlay_name
+
+        # FIXME:
+        # 1. retrieve repositories.xml
+        # 2. get info by overlay_name
+        self._syncType = None
+        self._syncUrl = None
+        assert False
+
+    def get_name(self):
+        return self._name
+
+    def get_datadir_path(self):
+        return "/var/db/overlays/%s" % (self._name)
+
+    def get_repos_conf_file_content(self):
+        buf = ""
+        buf += "[%s]\n" % (self._name)
+        buf += "masters = gentoo\n"
+        buf += "auto-sync = yes\n"
+        buf += "location = %s\n" % (self.get_datadir_path())
+        buf += "sync-type = %s\n" % (self._syncType)
+        buf += "sync-uri = %s\n" % (self._syncUrl)
+        return buf
+
+
+class UserDefinedOverlay(EmergeSyncRepository):
 
     """Unofficial overlay managed by individuals"""
 
-    def __init__(self, overlay_name, sync_type, sync_url):
+    def __init__(self, overlay_name, sync_type, sync_url):      # FIXME: should change to using kwargs for each sync_type
         validUrlSchemas = {
             "git": ["git", "http", "https"],
         }

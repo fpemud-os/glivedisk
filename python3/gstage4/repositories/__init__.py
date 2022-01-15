@@ -29,4 +29,5 @@ from ._gentoo import GentooFromHost
 
 from ._overlay import OverlayFromHost
 from ._overlay import OverlayFromHostLayman
-from ._overlay import WildOverlay
+from ._overlay import RegisteredOverlay
+from ._overlay import UserDefinedOverlay
