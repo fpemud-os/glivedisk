@@ -72,7 +72,7 @@ class WildOverlay(EmergeSyncRepository):
         self._syncUrl = sync_url
 
     def get_name(self):
-        assert self._name
+        return self._name
 
     def get_datadir_path(self):
         return "/var/db/overlays/%s" % (self._name)
