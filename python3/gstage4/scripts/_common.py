@@ -77,11 +77,10 @@ class ScriptFromBuffer(ScriptInChroot):
         assert content_buffer is not None
 
         self._desc = description
-        self._filename = "main.sh"
         self._buf = content_buffer.strip("\n") + "\n"  # remove all redundant carrage returns
 
     def fill_script_dir(self, script_dir_hostpath):
-        fullfn = os.path.join(script_dir_hostpath, self._filename)
+        fullfn = os.path.join(script_dir_hostpath, _SCRIPT_FILE_NAME)
         with open(fullfn, "w") as f:
             f.write(self._buf)
         os.chmod(fullfn, 0o0755)
@@ -90,16 +89,46 @@ class ScriptFromBuffer(ScriptInChroot):
         return self._desc
 
     def get_script(self):
-        return self._filename
+        return _SCRIPT_FILE_NAME
 
 
-class ScriptPlacingFiles(ScriptInChroot):
+class OneLinerScript(ScriptInChroot):
+
+    def __init__(self, description, executor="sh", cmd=None):
+        assert description is not None
+        self._desc = description
+
+        if executor == "sh":
+            self._executor = "/bin/sh"
+        elif executor == "bash":
+            self._executor = "/bin/bash"
+        else:
+            assert executor.startswith("/")
+            self._executor = executor
+
+        assert cmd is not None
+        self._cmd = cmd
+
+    def fill_script_dir(self, script_dir_hostpath):
+        fullfn = os.path.join(script_dir_hostpath, _SCRIPT_FILE_NAME)
+        with open(fullfn, "w") as f:
+            f.write("#!%s\n" % (self._executor))
+            f.write("%s\n" % (self._cmd))
+        os.chmod(fullfn, 0o0755)
+
+    def get_description(self):
+        return self._desc
+
+    def get_script(self):
+        return _SCRIPT_FILE_NAME
+
+
+class PlacingFilesScript(ScriptInChroot):
 
     def __init__(self, description):
         assert description is not None
 
         self._desc = description
-        self._filename = "main.sh"
         self._infoList = []
 
     def append_file(self, target_filepath, owner, group, mode=None, buf=None, hostpath=None):
@@ -187,7 +216,7 @@ class ScriptPlacingFiles(ScriptInChroot):
                 assert False
 
         # create script file
-        fullfn = os.path.join(script_dir_hostpath, self._filename)
+        fullfn = os.path.join(script_dir_hostpath, _SCRIPT_FILE_NAME)
         with open(fullfn, "w") as f:
             f.write(self._scriptContent.strip("\n") + "\n")  # remove all redundant carrage returns
         os.chmod(fullfn, 0o0755)
@@ -196,7 +225,7 @@ class ScriptPlacingFiles(ScriptInChroot):
         return self._desc
 
     def get_script(self):
-        return self._filename
+        return _SCRIPT_FILE_NAME
 
     def _copytree(self, src, dst, owner, group, dmode, fmode):
         os.makedirs(dst)
@@ -224,3 +253,6 @@ cd $DATA_DIR
 find . -type d -exec mkdir -p /\{} \;
 find . -type f -exec mv -f \{} /\{} \;
 """
+
+
+_SCRIPT_FILE_NAME = "main.sh"

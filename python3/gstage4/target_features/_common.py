@@ -23,7 +23,7 @@
 
 import crypt
 from gstage4.scripts import ScriptFromBuffer
-from gstage4.scripts import ScriptPlacingFiles
+from gstage4.scripts import PlacingFilesScript
 
 
 class UsePortage:
@@ -170,7 +170,7 @@ class NetworkManager:
 class GettyAutoLogin:
 
     def update_custom_script_list(self, custom_script_list):
-        s = ScriptPlacingFiles("Place auto login file")
+        s = PlacingFilesScript("Place auto login file")
         s.append_dir("/etc", 0, 0)
         s.append_dir("/etc/systemd", 0, 0)
         s.append_dir("/etc/systemd/system", 0, 0)

@@ -24,4 +24,5 @@
 from ._common import ScriptFromHostFile
 from ._common import ScriptFromHostDir
 from ._common import ScriptFromBuffer
-from ._common import ScriptPlacingFiles
+from ._common import OneLinerScript
+from ._common import PlacingFilesScript
