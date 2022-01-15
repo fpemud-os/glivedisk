@@ -79,7 +79,6 @@ class RegisteredOverlay(EmergeSyncRepository):
     def get_repos_conf_file_content(self):
         buf = ""
         buf += "[%s]\n" % (self._name)
-        buf += "masters = gentoo\n"
         buf += "auto-sync = yes\n"
         buf += "location = %s\n" % (self.get_datadir_path())
         buf += "sync-type = %s\n" % (self._syncType)
@@ -111,7 +110,6 @@ class UserDefinedOverlay(EmergeSyncRepository):
     def get_repos_conf_file_content(self):
         buf = ""
         buf += "[%s]\n" % (self._name)
-        buf += "masters = gentoo\n"
         buf += "auto-sync = yes\n"
         buf += "location = %s\n" % (self.get_datadir_path())
         buf += "sync-type = %s\n" % (self._syncType)
