@@ -113,7 +113,7 @@ class Builder:
     def action_init_repositories(self, repo_list):
         assert repo_list is not None
         assert all([Util.isInstanceList(x, ManualSyncRepository, EmergeSyncRepository, MountRepository) for x in repo_list])
-        assert len([x.get_name() == "gentoo" for x in repo_list]) == 1
+        assert len([x for x in repo_list if x.get_name() == "gentoo"]) == 1
         assert len([x.get_name() for x in repo_list]) == len(set([x.get_name() for x in repo_list]))        # no duplication
 
         for repo in repo_list:
