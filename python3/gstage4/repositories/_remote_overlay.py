@@ -24,7 +24,7 @@
 from .. import EmergeSyncRepository
 
 
-class CustomOverlay(EmergeSyncRepository):
+class WildOverlay(EmergeSyncRepository):
 
     def __init__(self, overlay_name, sync_type, sync_url):
         validGitUrlSchema = ["git", "http", "https"]

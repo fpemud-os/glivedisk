@@ -30,4 +30,4 @@ from ._gentoo import GentooFromHost
 from ._host_overlay import OverlayFromHost
 from ._host_overlay import OverlayFromHostLayman
 
-from ._remote_overlay import CustomOverlay
+from ._remote_overlay import WildOverlay
