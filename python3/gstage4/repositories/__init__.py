@@ -27,7 +27,6 @@ from ._gentoo import GentooSnapshot
 from ._gentoo import GentooSquashedSnapshot
 from ._gentoo import GentooFromHost
 
-from ._host_overlay import OverlayFromHost
-from ._host_overlay import OverlayFromHostLayman
-
-from ._remote_overlay import WildOverlay
+from ._overlay import OverlayFromHost
+from ._overlay import OverlayFromHostLayman
+from ._overlay import WildOverlay

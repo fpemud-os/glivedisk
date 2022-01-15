@@ -49,8 +49,39 @@ class OverlayFromHostLayman(EmergeSyncRepository):
     def get_name(self):
         assert False
 
+    def get_datadir_path(self):
+        assert False
+
     def get_repos_conf_file_content(self):
         assert False
 
+
+class WildOverlay(EmergeSyncRepository):
+
+    """Unofficial overlay managed by individuals"""
+
+    def __init__(self, overlay_name, sync_type, sync_url):
+        validUrlSchemas = {
+            "git": ["git", "http", "https"],
+        }
+        assert sync_type in validUrlSchemas
+        assert any([sync_url.startswith(x + "://") for x in validUrlSchemas[sync_type]])
+
+        self._name = overlay_name
+        self._syncType = sync_type
+        self._syncUrl = sync_url
+
+    def get_name(self):
+        assert self._name
+
     def get_datadir_path(self):
-        assert False
+        return "/var/db/overlays/%s" % (self._name)
+
+    def get_repos_conf_file_content(self):
+        buf = ""
+        buf += "[%s]\n" % (self._name)
+        buf += "auto-sync = yes\n"
+        buf += "location = %s\n" % (self.get_datadir_path())
+        buf += "sync-type = %s\n" % (self._syncType)
+        buf += "sync-uri = %s\n" % (self._syncUrl)
+        return buf

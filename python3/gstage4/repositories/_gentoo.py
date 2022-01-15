@@ -32,10 +32,10 @@ from .. import MountRepository
 class CloudGentoo(EmergeSyncRepository):
 
     def get_name(self):
-        return "gentoo"
+        return _NAME
 
     def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
+        return _DATADIR_PATH
 
     def get_repos_conf_file_content(self):
         url = "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage"
@@ -72,10 +72,10 @@ class CloudGentooSnapshot(ManualSyncRepository):
             self._date = "latest"
 
     def get_name(self):
-        return "gentoo"
+        return _NAME
 
     def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
+        return _DATADIR_PATH
 
     def sync(self, datadir_hostpath):
         url = "rsync://mirrors.tuna.tsinghua.edu.cn/gentoo-portage"
@@ -95,10 +95,10 @@ class GentooSnapshot(ManualSyncRepository):
         self._hashPath = digest_filepath
 
     def get_name(self):
-        return "gentoo"
+        return _NAME
 
     def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
+        return _DATADIR_PATH
 
     def sync(self, datadir_hostpath):
         with tarfile.open(self._path, mode="r:xz") as tf:
@@ -112,10 +112,10 @@ class GentooSquashedSnapshot(MountRepository):
         self._path = filepath
 
     def get_name(self):
-        return "gentoo"
+        return _NAME
 
     def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
+        return _DATADIR_PATH
 
     def get_mount_params(self):
         return (self._path, "")
@@ -127,10 +127,15 @@ class GentooFromHost(MountRepository):
         self._hostDir = hostdir
 
     def get_name(self):
-        return "gentoo"
+        return _NAME
 
     def get_datadir_path(self):
-        return "/var/db/repos/gentoo"
+        return _DATADIR_PATH
 
     def get_mount_params(self):
         return (self._hostDir, "bind")
+
+
+_NAME = "gentoo"
+
+_DATADIR_PATH = "/var/db/repos/gentoo"
