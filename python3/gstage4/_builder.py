@@ -149,11 +149,11 @@ class Builder:
 
         overlayRecord = dict()
         pkgSet = set()
-        for repo in overlay_list:
-            if isinstance(repo, ManualSyncRepository):
-                _MyRepoUtil.createFromManuSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
-            elif isinstance(repo, EmergeSyncRepository):
-                myRepo = _MyRepoUtil.createFromEmergeSyncRepo(repo, False, self._workDirObj.chroot_dir_path)
+        for overlay in overlay_list:
+            if isinstance(overlay, ManualSyncRepository):
+                _MyRepoUtil.createFromManuSyncRepo(overlay, False, self._workDirObj.chroot_dir_path)
+            elif isinstance(overlay, EmergeSyncRepository):
+                myRepo = _MyRepoUtil.createFromEmergeSyncRepo(overlay, False, self._workDirObj.chroot_dir_path)
                 syncType = myRepo.get_sync_type()
                 if syncType == "rsync":
                     pass
@@ -161,9 +161,9 @@ class Builder:
                     pkgSet.add("dev-vcs/git")
                 else:
                     assert False
-                overlayRecord[repo.get_name()] = syncType
-            elif isinstance(repo, MountRepository):
-                _MyRepoUtil.createFromMountRepo(repo, False, self._workDirObj.chroot_dir_path)
+                overlayRecord[overlay.get_name()] = syncType
+            elif isinstance(overlay, MountRepository):
+                _MyRepoUtil.createFromMountRepo(overlay, False, self._workDirObj.chroot_dir_path)
             else:
                 assert False
 
@@ -179,9 +179,9 @@ class Builder:
                 if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
                     m.script_exec(ScriptSync(), quiet=self._getQuiet())
 
-        for repo in overlay_list:
-            if isinstance(repo, ManualSyncRepository):
-                repo.sync(os.path.join(self._workDirObj.chroot_dir_path, repo.get_datadir_path()[1:]))
+        for overlay in overlay_list:
+            if isinstance(overlay, ManualSyncRepository):
+                overlay.sync(os.path.join(self._workDirObj.chroot_dir_path, overlay.get_datadir_path()[1:]))
 
         self._workDirObj.save_record("overlays", json.dumps(overlayRecord))
 
@@ -356,14 +356,13 @@ class _MyRepoUtil:
     def createFromManuSyncRepo(cls, repo, repoOrOverlay, chrootDir):
         assert isinstance(repo, ManualSyncRepository)
 
-        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
-
         buf = ""
         buf += "[%s]\n" % (repo.get_name())
         buf += "auto-sync = no\n"
         buf += "location = %s\n" % (repo.get_datadir_path())
-        cls._writeReposConfFile(myRepo, buf)
 
+        myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
+        myRepo.write_repos_conf_file(buf)
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
@@ -381,7 +380,7 @@ class _MyRepoUtil:
             buf += "mount-params = \"%s\",\"%s\"\n" % (src, mntOpts)
 
         myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
-        cls._writeReposConfFile(myRepo, buf)
+        myRepo.write_repos_conf_file(buf)
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
@@ -393,7 +392,7 @@ class _MyRepoUtil:
         buf = repo.get_repos_conf_file_content()
 
         myRepo = _MyRepo(chrootDir, cls._getReposConfFilename(repo, repoOrOverlay))
-        cls._writeReposConfFile(myRepo, buf)
+        myRepo.write_repos_conf_file(buf)
         os.makedirs(myRepo.datadir_hostpath, exist_ok=True)
 
         return myRepo
@@ -418,12 +417,6 @@ class _MyRepoUtil:
             fullname = "overlay-" + repo.get_name()
         return fullname + ".conf"
 
-    @staticmethod
-    def _writeReposConfFile(myRepo, buf):
-        os.makedirs(os.path.dirname(myRepo.repos_conf_file_hostpath), exist_ok=True)
-        with open(myRepo.repos_conf_file_hostpath, "w") as f:
-            f.write(buf)
-
 
 class _MyRepo:
 
@@ -446,6 +439,11 @@ class _MyRepo:
     @property
     def datadir_path(self):
         return re.search(r'location = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M).group(1)
+
+    def write_repos_conf_file(self, buf):
+        os.makedirs(os.path.dirname(self.repos_conf_file_hostpath), exist_ok=True)
+        with open(self.repos_conf_file_hostpath, "w") as f:
+            f.write(buf)
 
     def get_sync_type(self):
         m = re.search(r'sync-type = (\S+)', pathlib.Path(self.repos_conf_file_hostpath).read_text(), re.M)
