@@ -91,7 +91,8 @@ class GentooSnapshot(ManualSyncRepository):
 
     def __init__(self, filepath, digest_filepath=None):
         assert any([filepath.endswith(x) for x in [".tar.xz", ".lzo.sqfs", ".xz.sqfs"]])
-        assert digest_filepath in [filepath + ".gpgsig", filepath + ".md5sum", filepath + ".umd5sum"]
+        if digest_filepath is not None:
+            assert any([digest_filepath == filepath + x for x in [".gpgsig", ".md5sum", ".umd5sum"]])
 
         self._path = filepath
         self._hashPath = digest_filepath
