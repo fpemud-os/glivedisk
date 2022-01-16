@@ -138,7 +138,7 @@ class Chrooter:
         if not quiet:
             print(scriptObj.get_description())
         scriptObj.fill_script_dir(hostPath)
-        self.shell_exec("", os.path.join(path, scriptObj.get_script()), quiet)
+        self.shell_exec("", "/bin/sh -c \"cd %s ; %s\"" % (path, scriptObj.get_script()), quiet)
 
     def _unbind(self, remove_scripts):
         assert isinstance(remove_scripts, bool)
