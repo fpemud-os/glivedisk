@@ -27,6 +27,8 @@ import urllib.request
 from .. import ManualSyncRepository
 from .. import EmergeSyncRepository
 from .. import MountRepository
+from .._util import Util
+from .._util import TmpMount
 
 
 class CloudGentoo(EmergeSyncRepository):
@@ -87,8 +89,8 @@ class CloudGentooSnapshot(ManualSyncRepository):
 
 class GentooSnapshot(ManualSyncRepository):
 
-    def __init__(self, filepath, digest_filepath):
-        assert filepath.endswith(".tar.xz")
+    def __init__(self, filepath, digest_filepath=None):
+        assert any([filepath.endswith(x) for x in [".tar.xz", ".lzo.sqfs", ".xz.sqfs"]])
         assert digest_filepath in [filepath + ".gpgsig", filepath + ".md5sum", filepath + ".umd5sum"]
 
         self._path = filepath
@@ -101,11 +103,17 @@ class GentooSnapshot(ManualSyncRepository):
         return _DATADIR_PATH
 
     def sync(self, datadir_hostpath):
-        with tarfile.open(self._path, mode="r:xz") as tf:
-            tf.extractall(datadir_hostpath)
+        if self._path.endswith(".tar.xz"):
+            with tarfile.open(self._path, mode="r:xz") as tf:
+                tf.extractall(datadir_hostpath)
+        elif self._path.endswith(".sqfs"):
+            with TmpMount(self._path) as mp:
+                Util.shellCall("cp -r %s/* %s" % (mp.mountpoint, datadir_hostpath))
+        else:
+            assert False
 
 
-class GentooSquashedSnapshot(MountRepository):
+class GentooSnapshotAsSquashfs(MountRepository):
 
     def __init__(self, filepath):
         assert filepath.endswith(".lzo.sqfs") or filepath.endswith(".xz.sqfs")
