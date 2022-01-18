@@ -251,16 +251,12 @@ class Builder:
 
         # preprocess, install packages, update @world
         with _MyChrooter(self) as m:
-            try:
-                for s in preprocess_script_list:
-                    m.script_exec(s, quiet=self._getQuiet())
-                for pkg in installList:
-                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                        m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
-                m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
-            except:
-                m.interactive_shell()       # FIXME: temp
-                raise
+            for s in preprocess_script_list:
+                m.script_exec(s, quiet=self._getQuiet())
+            for pkg in installList:
+                if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
+                    m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+            m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
     def action_install_kernel(self, preprocess_script_list=[]):
