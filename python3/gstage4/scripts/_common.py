@@ -224,6 +224,7 @@ class PlacingFilesScript(ScriptInChroot):
                     os.symlink(target, fullfn)
                 else:
                     os.symlink(os.readlink(hostpath), fullfn)
+                os.chown(fullfn, owner, group)
             else:
                 assert False
 
