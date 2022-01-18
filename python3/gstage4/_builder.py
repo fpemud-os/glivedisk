@@ -130,6 +130,10 @@ class Builder:
 
     @Action(BuildStep.GENTOO_REPOSITORY_CREATED)
     def action_init_confdir(self):
+        if self._ts.profile is not None:
+            with _MyChrooter(self) as m:
+                m.shell_call("", "eselect profile set %s" % (self._ts.profile))
+
         t = TargetConfDirWriter(self._s, self._ts, self._workDirObj.chroot_dir_path)
         t.write_make_conf()
         t.write_package_use()
