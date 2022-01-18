@@ -957,15 +957,20 @@ perl-cleaner --pretend --all >/dev/null 2>&1 || die "perl cleaning is needed, yo
 class ScriptGenkernel(ScriptFromBuffer):
 
     def __init__(self, verbose_level, tj, tl, ccache):
+        dotConfigFile = "/usr/src/dot-config"
+
         buf = "#!/bin/bash\n"
         buf += "\n"
 
         if ccache:
             buf += "export CCACHE_DIR=/var/tmp/ccache\n"
+            buf += "\n"
 
         cmd = ""
         if True:
             cmd += "genkernel --color --no-mountboot "
+            if os.path.exists(dotConfigFile):
+                cmd += "--kernel-config=%s " % (dotConfigFile)
             cmd += "--kernel-filename=vmlinuz --initramfs-filename=initramfs.img "
             cmd += "--all-ramdisk-modules "
             cmd += "--makeopts='-j%d -l%d' " % (tj, tl)
