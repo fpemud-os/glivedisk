@@ -171,12 +171,12 @@ class GettyAutoLogin:
 
     def update_custom_script_list(self, custom_script_list):
         s = PlacingFilesScript("Place auto login file")
-        s.append_dir("/etc", 0, 0)
-        s.append_dir("/etc/systemd", 0, 0)
-        s.append_dir("/etc/systemd/system", 0, 0)
-        s.append_dir("/etc/systemd/system/getty@.service.d", 0, 0)
-        s.append_file("/etc/systemd/system/getty@.service.d/getty-autologin.conf", 0, 0,
-                      buf=self._fileContent.strip("\n") + "\n")  # remove all redundant carrage returns)
+        s.append_dir("/etc")
+        s.append_dir("/etc/systemd")
+        s.append_dir("/etc/systemd/system")
+        s.append_dir("/etc/systemd/system/getty@.service.d")
+        s.append_file("/etc/systemd/system/getty@.service.d/getty-autologin.conf",
+                      self._fileContent.strip("\n") + "\n")  # remove all redundant carrage returns)
 
         assert s not in custom_script_list
         custom_script_list.append(s)

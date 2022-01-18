@@ -131,44 +131,57 @@ class PlacingFilesScript(ScriptInChroot):
         self._desc = description
         self._infoList = []
 
-    def append_file(self, target_filepath, owner, group, mode=None, buf=None, hostpath=None):
+    def append_file(self, target_filepath, buf, owner=0, group=0, mode=0o644):
         assert target_filepath.startswith("/")
-        assert isinstance(owner, int) and isinstance(group, int)
-        if mode is not None:
-            assert 0o000 <= mode <= 0o777
-        else:
-            mode = 0o644
-        if buf is not None:
-            assert hostpath is None
-            assert isinstance(buf, str) or isinstance(buf, bytes)
-        else:
-            assert hostpath is not None
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert 0o000 <= mode <= 0o777
+        assert isinstance(buf, str) or isinstance(buf, bytes)
 
-        self._infoList.append(("f", target_filepath, owner, group, mode, buf, hostpath))
+        self._infoList.append(("f", target_filepath, owner, group, mode, buf, None))
 
-    def append_dir(self, target_dirpath, owner, group, dmode=None, fmode=None, hostpath=None, recursive=False):
+    def append_host_file(self, target_filepath, hostpath, owner=0, group=0, mode=0o644):
+        assert target_filepath.startswith("/")
+        assert hostpath is not None
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert 0o000 <= mode <= 0o777
+
+        self._infoList.append(("f", target_filepath, owner, group, mode, None, hostpath))
+
+    def append_dir(self, target_dirpath, owner=0, group=0, mode=0o755):
         assert target_dirpath.startswith("/")
-        assert isinstance(owner, int) and isinstance(group, int)
-        assert isinstance(owner, int) and isinstance(group, int)
-        if dmode is not None:
-            assert 0o000 <= dmode <= 0o777
-        else:
-            dmode = 0o755
-        if fmode is not None:
-            assert 0o000 <= fmode <= 0o777
-        else:
-            fmode = 0o644
-        if hostpath is None:
-            assert not recursive
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert 0o000 <= mode <= 0o777
 
-        self._infoList.append(("d", target_dirpath, owner, group, dmode, fmode, hostpath, recursive))
+        self._infoList.append(("d", target_dirpath, owner, group, mode, None, None))
 
-    def append_symlink(self, target_linkpath, owner, group, target=None, hostpath=None):
+    def append_host_dir(self, target_dirpath, hostpath, owner=0, group=0, dmode=0o755, fmode=0o644):
+        assert target_dirpath.startswith("/")
+        assert hostpath is not None
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert 0o000 <= dmode <= 0o777
+        assert 0o000 <= fmode <= 0o777
+
+        self._infoList.append(("d", target_dirpath, owner, group, dmode, fmode, hostpath))
+
+    def append_symlink(self, target_linkpath, target, owner=0, group=0):
         assert target_linkpath.startswith("/")
-        assert isinstance(owner, int) and isinstance(group, int)
-        assert (target is not None and hostpath is None) or (target is None and hostpath is not None)
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert target is not None
 
-        self._infoList.append(("s", target_linkpath, owner, group, target, hostpath))
+        self._infoList.append(("s", target_linkpath, owner, group, target, None))
+
+    def append_host_symlink(self, target_linkpath, hostpath, owner=0, group=0):
+        assert target_linkpath.startswith("/")
+        assert isinstance(owner, int)
+        assert isinstance(group, int)
+        assert hostpath is not None
+
+        self._infoList.append(("s", target_linkpath, owner, group, None, hostpath))
 
     def fill_script_dir(self, script_dir_hostpath):
         # establish data directory
@@ -179,6 +192,7 @@ class PlacingFilesScript(ScriptInChroot):
                 t, target_filepath, owner, group, mode, buf, hostpath = info
                 fullfn = os.path.join(dataDir, target_filepath[1:])
                 if buf is not None:
+                    assert hostpath is None
                     if isinstance(buf, str):
                         with open(fullfn, "w") as f:
                             f.write(buf)
@@ -188,20 +202,18 @@ class PlacingFilesScript(ScriptInChroot):
                     else:
                         assert False
                 else:
+                    assert hostpath is not None
                     shutil.copy(hostpath, fullfn)
                 os.chown(fullfn, owner, group)
                 os.chmod(fullfn, mode)
             elif info[0] == "d":
-                t, target_dirpath, owner, group, dmode, fmode, hostpath, recursive = info
+                t, target_dirpath, owner, group, dmode, fmode, hostpath = info
                 fullfn = os.path.join(dataDir, target_dirpath[1:])
                 if hostpath is not None:
-                    if not recursive:
-                        os.mkdir(fullfn)
-                        os.chown(fullfn, owner, group)
-                        os.chmod(fullfn, dmode)
-                    else:
-                        self._copytree(hostpath, fullfn, owner, group, dmode, fmode)
+                    assert fmode is not None
+                    self._copytree(hostpath, fullfn, owner, group, dmode, fmode)
                 else:
+                    assert fmode is None
                     os.mkdir(fullfn)
                     os.chown(fullfn, owner, group)
                     os.chmod(fullfn, dmode)
@@ -228,7 +240,7 @@ class PlacingFilesScript(ScriptInChroot):
         return _SCRIPT_FILE_NAME
 
     def _copytree(self, src, dst, owner, group, dmode, fmode):
-        os.makedirs(dst)
+        os.mkdir(dst)
         os.chown(dst, owner, group)
         os.chmod(dst, dmode)
         for name in os.listdir(src):
