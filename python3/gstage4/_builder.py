@@ -178,7 +178,7 @@ class Builder:
 
                 for pkg in pkgSet:
                     if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                        m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+                        m.script_exec(ScriptInstallPackages(pkg, self._s.verbose_level), quiet=self._getQuiet())
 
                 if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
                     m.script_exec(ScriptSync(), quiet=self._getQuiet())
@@ -255,7 +255,7 @@ class Builder:
                 m.script_exec(s, quiet=self._getQuiet())
             for pkg in installList:
                 if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                    m.script_exec(ScriptInstallPackage(pkg, self._s.verbose_level), quiet=self._getQuiet())
+                    m.script_exec(ScriptInstallPackages(pkg, self._s.verbose_level), quiet=self._getQuiet())
             m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
@@ -851,9 +851,9 @@ emerge --sync || exit 1
 """
 
 
-class ScriptInstallPackage(ScriptFromBuffer):
+class ScriptInstallPackages(ScriptFromBuffer):
 
-    def __init__(self, pkg, verbose_level):
+    def __init__(self, pkgList, verbose_level):
         buf = self._scriptContentFirstHalf
         if verbose_level == 0:
             buf += self._scriptContentSecondHalfVerboseLv0
@@ -863,8 +863,14 @@ class ScriptInstallPackage(ScriptFromBuffer):
             buf += self._scriptContentSecondHalfVerboseLv2
         else:
             assert False
+        buf = buf.replace("@@PKG_NAME@@", " ".join(pkgList))
 
-        super().__init__("Install package %s" % (pkg), buf.replace("@@PKG_NAME@@", pkg))
+        if len(pkgList) > 1:
+            desc = "Install %d packages" % (len(pkgList))
+        else:
+            desc = "Install package %s" % (pkgList[0])
+
+        super().__init__(desc, buf)
 
     _scriptContentFirstHalf = """
 #!/bin/bash
