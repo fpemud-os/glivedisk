@@ -176,9 +176,8 @@ class Builder:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
 
-                for pkg in pkgSet:
-                    if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                        m.script_exec(ScriptInstallPackages(pkg, self._s.verbose_level), quiet=self._getQuiet())
+                installList = [x for x in pkgSet if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, x)]
+                m.script_exec(ScriptInstallPackages(installList, self._s.verbose_level), quiet=self._getQuiet())
 
                 if any([isinstance(repo, EmergeSyncRepository) for repo in overlay_list]):
                     m.script_exec(ScriptSync(), quiet=self._getQuiet())
@@ -253,9 +252,10 @@ class Builder:
         with _MyChrooter(self) as m:
             for s in preprocess_script_list:
                 m.script_exec(s, quiet=self._getQuiet())
-            for pkg in installList:
-                if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, pkg):
-                    m.script_exec(ScriptInstallPackages(pkg, self._s.verbose_level), quiet=self._getQuiet())
+
+            installList = [x for x in installList if not Util.portageIsPkgInstalled(self._workDirObj.chroot_dir_path, x)]
+            m.script_exec(ScriptInstallPackages(installList, self._s.verbose_level), quiet=self._getQuiet())
+
             m.script_exec(ScriptUpdateWorld(self._s.verbose_level), quiet=self._getQuiet())
 
     @Action(BuildStep.WORLD_UPDATED)
