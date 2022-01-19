@@ -50,6 +50,7 @@ class Chrooter:
 
         try:
             # copy resolv.conf
+            # FIMXE: can not adapt the network cfg of host system change
             Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._dir, "etc")))
 
             # mount /proc
