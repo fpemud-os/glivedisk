@@ -967,7 +967,7 @@ class ScriptGenkernel(ScriptFromBuffer):
             cmd += "genkernel --color --no-mountboot "
             if os.path.exists(dotConfigFile):
                 cmd += "--kernel-config=%s " % (dotConfigFile)
-            cmd += "--kernel-filename=vmlinuz --initramfs-filename=initramfs.img "
+            cmd += "--kernel-filename=vmlinuz --initramfs-filename=initramfs.img --kernel-config-filename=kernel-config "
             cmd += "--all-ramdisk-modules "
             cmd += "--makeopts='-j%d -l%d' " % (tj, tl)
             if ccache:
