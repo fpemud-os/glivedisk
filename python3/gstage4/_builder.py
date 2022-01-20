@@ -264,29 +264,36 @@ class Builder:
 
         if self._ts.kernel_manager == "none":
             assert len(preprocess_script_list) == 0
-        elif self._ts.kernel_manager == "genkernel":
+            return
+
+        if self._ts.kernel_manager == "genkernel":
             t = TargetConfDirParser(self._workDirObj.chroot_dir_path)
             tj = t.get_make_conf_make_opts_jobs()
             tl = t.get_make_conf_load_average()
 
-            dotConfigFile = "/usr/src/dot-config"
-            if not os.path.exists(os.path.join(self._workDirObj.chroot_dir_path, dotConfigFile[1:])):
-                dotConfigFile = None
-
             with _MyChrooter(self) as m:
                 for s in preprocess_script_list:
                     m.script_exec(s, quiet=self._getQuiet())
+
                 m.shell_call("", "eselect kernel set 1")
+
+                dotConfigFile = "/usr/src/dot-config"
+                if not os.path.exists(os.path.join(self._workDirObj.chroot_dir_path, dotConfigFile[1:])):
+                    dotConfigFile = None
                 m.script_exec(ScriptGenkernel(self._s.verbose_level, tj, tl, self._ts.build_opts.ccache, dotConfigFile), quiet=self._getQuiet())
-        elif self._ts.kernel_manager == "fake":
+
+            return
+
+        if self._ts.kernel_manager == "fake":
             bootDir = os.path.join(self._workDirObj.chroot_dir_path, "boot")
             os.makedirs(bootDir, exist_ok=True)
             with open(os.path.join(bootDir, "vmlinuz"), "w") as f:
                 f.write("fake kernel")
             with open(os.path.join(bootDir, "initramfs.img"), "w") as f:
                 f.write("fake initramfs")
-        else:
-            assert False
+            return
+
+        assert False
 
     @Action(BuildStep.WORLD_UPDATED, BuildStep.KERNEL_INSTALLED)
     def action_enable_services(self, preprocess_script_list=[], service_list=[]):
