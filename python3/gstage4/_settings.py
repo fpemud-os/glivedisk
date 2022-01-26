@@ -118,6 +118,7 @@ class TargetSettings:
         self.pkg_unmask = []                     # list<package-wildcard>
         self.pkg_accept_keywords = dict()        # dict<package-wildcard, accept-keyword-list>
         self.pkg_license = dict()                # dict<package-wildcard, license-list>
+        self.use_mask = []                       # list<use-flag>
 
         self.pkg_use_files = dict()              # dict<file-name, file-content>
         self.pkg_mask_files = dict()             # dict<file-name, file-content>
@@ -202,6 +203,8 @@ class TargetSettings:
                 raise SettingsError("invalid value for \"pkg_accept_keywords\"")
             if obj.pkg_license is None or not isinstance(obj.pkg_license, dict):
                 raise SettingsError("invalid value for \"pkg_license\"")
+            if obj.use_mask is None or not isinstance(obj.use_mask, list):
+                raise SettingsError("invalid value for \"use_mask\"")
 
             if obj.install_mask is None or not isinstance(obj.install_mask, list):
                 raise SettingsError("invalid value for \"install_mask\"")

@@ -110,6 +110,40 @@ sys-libs/libstdc++-v3
 """
 
 
+class UsrMerge:
+
+    def update_target_settings(self, target_settings):
+        if "split-usr" not in target_settings.use_mask:
+            target_settings.use_mask.append("split-usr")
+
+    def update_preprocess_script_list_for_update_world(self, preprocess_script_list):
+        buf = ""
+        buf += "#!/bin/sh\n"
+        buf += "\n"
+        buf += "# copy root directories to /usr counterparts and create\n"
+        buf += "# the /usr merge compatibility symlinks\n"
+        buf += "for dir in /bin /lib* /sbin; do\n"
+        buf += '    cp -a -i "${dir}"/* /usr/"${dir}" || exit 1\n'
+        buf += '    rm -rf "${dir}" || exit 1\n'
+        buf += '    ln -snf usr/"${dir}" "${dir}" || exit 1\n'
+        buf += "done\n"
+        buf += "\n"
+        buf += "# merge /usr/sbin into /usr/bin\n"
+        buf += "cp -a -i /usr/sbin/* /usr/bin || exit 1\n"
+        buf += "rm -rf /usr/sbin || exit 1\n"
+        buf += "ln -snf bin /usr/sbin || exit 1\n"
+        buf += "\n"
+        buf += "# fix /usr/bin/awk\n"
+        buf += "rm -f /usr/bin/awk || exit 1\n"
+        buf += "ln -snf gawk /usr/bin/awk || exit 1\n"
+
+        s = ScriptFromBuffer("Merge /bin, /sbin, /lib, /lib64 and their /usr counterparts", buf)
+        assert s not in preprocess_script_list
+        preprocess_script_list.append(s)
+
+        # UNINSTALL_IGNORE="/bin /lib /lib64 /sbin /usr/sbin"
+
+
 class PreferGnuAndGpl:
 
     def update_target_settings(self, target_settings):

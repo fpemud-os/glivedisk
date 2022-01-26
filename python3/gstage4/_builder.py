@@ -141,6 +141,7 @@ class Builder:
         t.write_package_unmask()
         t.write_package_accept_keywords()
         t.write_package_license()
+        t.write_use_mask()
 
     @Action(BuildStep.CONFDIR_INITIALIZED)
     def action_create_overlays(self, preprocess_script_list=[], overlay_list=[]):
@@ -697,6 +698,7 @@ class TargetConfDirWriter:
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
             with open(os.path.join(fpath, "90-main"), "w") as myf:
+                # create this file even if content is empty
                 myf.write(buf)
             with open(os.path.join(fpath, "99-autouse"), "w") as myf:
                 myf.write("")
@@ -722,6 +724,7 @@ class TargetConfDirWriter:
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
             with open(os.path.join(fpath, "90-main"), "w") as myf:
+                # create this file even if content is empty
                 myf.write(buf)
             with open(os.path.join(fpath, "99-bugmask"), "w") as myf:
                 myf.write("")
@@ -747,6 +750,7 @@ class TargetConfDirWriter:
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
             with open(os.path.join(fpath, "90-main"), "w") as myf:
+                # create this file even if content is empty
                 myf.write(buf)
         else:
             # create file
@@ -770,11 +774,12 @@ class TargetConfDirWriter:
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
             with open(os.path.join(fpath, "90-main"), "w") as myf:
+                # create this file even if content is empty
                 myf.write(buf)
             with open(os.path.join(fpath, "99-autokeyword"), "w") as myf:
                 myf.write("")
         else:
-            # create file
+            # create this file only if content is not empty
             with open(fpath, "w") as myf:
                 myf.write(buf)
 
@@ -795,13 +800,24 @@ class TargetConfDirWriter:
                 with open(os.path.join(fpath, file_name), "w") as myf:
                     myf.write(file_content)
             with open(os.path.join(fpath, "90-main"), "w") as myf:
+                # create this file even if content is empty
                 myf.write(buf)
             with open(os.path.join(fpath, "99-autolicense"), "w") as myf:
                 myf.write("")
         else:
-            # create file
+            # create this file only if content is not empty
+            if buf != "":
+                with open(fpath, "w") as myf:
+                    myf.write(buf)
+
+    def write_use_mask(self):
+        # Modify and write out use.mask (in chroot)
+        if len(self._ts.use_mask) > 0:
+            fpath = os.path.join(self._dir, "profile", "use.mask")
+            os.makedirs(os.path.dirname(fpath), exist_ok=True)
             with open(fpath, "w") as myf:
-                myf.write(buf)
+                for use_flag in self._ts.use_mask:
+                    myf.write("%s\n" % (use_flag))
 
 
 class TargetConfDirParser:
