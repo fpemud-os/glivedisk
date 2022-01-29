@@ -415,7 +415,7 @@ class _MyRepoUtil:
 
     @classmethod
     def cleanupReposConfDir(cls, chrootDir):
-        Util.shellCall("/bin/sed '/mount-params = /d' %s/*" % (cls._getReposConfDir(chrootDir)))
+        Util.shellCall("sed '/mount-params = /d' %s/*" % (cls._getReposConfDir(chrootDir)))
 
     @staticmethod
     def _getReposConfDir(chrootDir):
@@ -482,25 +482,25 @@ class _MyChrooter(Chrooter):
             # log directory mount point
             if self._p._s.log_dir is not None:
                 assert os.path.exists(t.logdir_hostpath) and not Util.isMount(t.logdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.log_dir, t.logdir_hostpath))
+                Util.shellCall("mount --bind \"%s\" \"%s\"" % (self._p._s.log_dir, t.logdir_hostpath))
                 self._bindMountList.append(t.logdir_hostpath)
 
             # distdir mount point
             if self._p._s.host_distfiles_dir is not None:
                 assert os.path.exists(t.distdir_hostpath) and not Util.isMount(t.distdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_distfiles_dir, t.distdir_hostpath))
+                Util.shellCall("mount --bind \"%s\" \"%s\"" % (self._p._s.host_distfiles_dir, t.distdir_hostpath))
                 self._bindMountList.append(t.distdir_hostpath)
 
             # pkgdir mount point
             if self._p._s.host_packages_dir is not None:
                 assert os.path.exists(t.binpkgdir_hostpath) and not Util.isMount(t.binpkgdir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_packages_dir, t.binpkgdir_hostpath))
+                Util.shellCall("mount --bind \"%s\" \"%s\"" % (self._p._s.host_packages_dir, t.binpkgdir_hostpath))
                 self._bindMountList.append(t.binpkgdir_hostpath)
 
             # ccachedir mount point
             if self._p._s.host_ccache_dir is not None and os.path.exists(t.ccachedir_hostpath):
                 assert os.path.exists(t.ccachedir_hostpath) and not Util.isMount(t.ccachedir_hostpath)
-                Util.shellCall("/bin/mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccache_dir, t.ccachedir_hostpath))
+                Util.shellCall("mount --bind \"%s\" \"%s\"" % (self._p._s.host_ccache_dir, t.ccachedir_hostpath))
                 self._bindMountList.append(t.ccachedir_hostpath)
 
             # mount points for MountRepository
@@ -508,7 +508,7 @@ class _MyChrooter(Chrooter):
                 mp = myRepo.get_mount_params()
                 if mp is not None:
                     assert os.path.exists(myRepo.datadir_hostpath) and not Util.isMount(myRepo.datadir_hostpath)
-                    Util.shellCall("/bin/mount \"%s\" \"%s\" -o %s" % (mp[0], myRepo.datadir_hostpath, (mp[1] + ",ro") if mp[1] != "" else "ro"))
+                    Util.shellCall("mount \"%s\" \"%s\" -o %s" % (mp[0], myRepo.datadir_hostpath, (mp[1] + ",ro") if mp[1] != "" else "ro"))
                     self._bindMountList.append(myRepo.datadir_hostpath)
         except BaseException:
             self.unbind(remove_scripts=False)
@@ -516,7 +516,7 @@ class _MyChrooter(Chrooter):
 
     def unbind(self):
         for fullfn in reversed(self._bindMountList):
-            Util.cmdCall("/bin/umount", "-l", fullfn)
+            Util.cmdCall("umount", "-l", fullfn)
         self._bindMountList = []
         super().unbind()
 
@@ -852,13 +852,13 @@ class TargetConfDirCleaner:
         self._dir = TargetFilesAndDirs(chrootDir).confdir_hostpath
 
     def cleanup_repos_conf_dir(self):
-        Util.shellCall("/bin/sed -i '/mount-params = /d' %s/repos.conf/*" % (self._dir))
+        Util.shellCall("sed -i '/mount-params = /d' %s/repos.conf/*" % (self._dir))
 
     def cleanup_make_conf(self):
         # FIXME: remove remaining spaces
-        Util.shellCall("/bin/sed -i 's/--autounmask-continue//g' %s/make.conf" % (self._dir))
-        Util.shellCall("/bin/sed -i 's/--autounmask-license=y//g' %s/make.conf" % (self._dir))
-        Util.shellCall("/bin/sed -i 's/--autounmask//g' %s/make.conf" % (self._dir))
+        Util.shellCall("sed -i 's/--autounmask-continue//g' %s/make.conf" % (self._dir))
+        Util.shellCall("sed -i 's/--autounmask-license=y//g' %s/make.conf" % (self._dir))
+        Util.shellCall("sed -i 's/--autounmask//g' %s/make.conf" % (self._dir))
 
 
 class ScriptSync(ScriptFromBuffer):

@@ -59,9 +59,9 @@ class ScriptFromHostDir(ScriptInChroot):
         self._filename = script_filename
 
     def fill_script_dir(self, script_dir_hostpath):
-        Util.shellCall("/bin/cp %s/* %s" % (self._dirpath, script_dir_hostpath))
-        Util.shellCall("/usr/bin/find \"%s\" -type f | xargs /bin/chmod 644" % (script_dir_hostpath))
-        Util.shellCall("/usr/bin/find \"%s\" -type d | xargs /bin/chmod 755" % (script_dir_hostpath))
+        Util.shellCall("cp %s/* %s" % (self._dirpath, script_dir_hostpath))
+        Util.shellCall("find \"%s\" -type f | xargs chmod 644" % (script_dir_hostpath))
+        Util.shellCall("find \"%s\" -type d | xargs chmod 755" % (script_dir_hostpath))
 
     def get_description(self):
         return self._desc
@@ -100,14 +100,7 @@ class OneLinerScript(ScriptInChroot):
 
         assert cmd is not None
         self._cmd = cmd
-
-        if executor == "sh":
-            self._executor = "/bin/sh"
-        elif executor == "bash":
-            self._executor = "/bin/bash"
-        else:
-            assert executor.startswith("/")
-            self._executor = executor
+        self._executor = executor
 
     def fill_script_dir(self, script_dir_hostpath):
         fullfn = os.path.join(script_dir_hostpath, _SCRIPT_FILE_NAME)

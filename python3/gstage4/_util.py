@@ -163,7 +163,7 @@ class TmpMount:
         self._tmppath = tempfile.mkdtemp()
 
         try:
-            cmd = ["/bin/mount"]
+            cmd = ["mount"]
             if options is not None:
                 cmd.append("-o")
                 cmd.append(options)
@@ -185,7 +185,7 @@ class TmpMount:
         return self._tmppath
 
     def close(self):
-        subprocess.run(["/bin/umount", self._tmppath], check=True, universal_newlines=True)
+        subprocess.run(["umount", self._tmppath], check=True, universal_newlines=True)
         os.rmdir(self._tmppath)
 
 
@@ -253,7 +253,7 @@ class TmpMount:
 #     @staticmethod
 #     def create_image(imageFilePath, imageSize):
 #         assert imageSize % (1024 * 1024) == 0
-#         Util.shellCall("/bin/dd if=/dev/zero of=%s bs=%d count=%d conv=sparse" % (imageFilePath, 1024 * 1024, imageSize // (1024 * 1024)))
+#         Util.shellCall("dd if=/dev/zero of=%s bs=%d count=%d conv=sparse" % (imageFilePath, 1024 * 1024, imageSize // (1024 * 1024)))
 #         Util.shellCall("/sbin/mkfs.ext4 -O ^has_journal %s" % (imageFilePath))
 
 #     def __init__(self, imageFilePath, iAmRoot, mountDir):
@@ -263,10 +263,10 @@ class TmpMount:
 
 #         try:
 #             if self._iAmRoot:
-#                 Util.shellCall("/bin/mount -t ext4 %s %s" % (self._imageFile, self._mntdir))
+#                 Util.shellCall("mount -t ext4 %s %s" % (self._imageFile, self._mntdir))
 #                 self._fuseProc = None
 #             else:
-#                 self._fuseProc = subprocess.Popen(["/bin/fuse2fs", "-f", self._imageFile, self._mntdir])
+#                 self._fuseProc = subprocess.Popen(["fuse2fs", "-f", self._imageFile, self._mntdir])
 #         except BaseException:
 #             self.dispose()
 #             raise
@@ -274,7 +274,7 @@ class TmpMount:
 #     def dispose(self):
 #         if self._iAmRoot:
 #             if Util.ismount(self._mntdir):
-#                 Util.shellCall("/bin/umount %s" % (self._mntdir))
+#                 Util.shellCall("umount %s" % (self._mntdir))
 #         else:
 #             if self._fuseProc is not None:
 #                 self._fuseProc.terminate()

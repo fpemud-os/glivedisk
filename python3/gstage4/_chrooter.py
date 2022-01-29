@@ -51,26 +51,26 @@ class Chrooter:
         try:
             # copy resolv.conf
             # FIMXE: can not adapt the network cfg of host system change
-            Util.shellCall("/bin/cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._dir, "etc")))
+            Util.shellCall("cp -L /etc/resolv.conf \"%s\"" % (os.path.join(self._dir, "etc")))
 
             # mount /proc
             fullfn = os.path.join(self._dir, "proc")
             assert os.path.exists(fullfn) and not Util.isMount(fullfn)
-            Util.shellCall("/bin/mount -t proc proc \"%s\"" % (fullfn))
+            Util.shellCall("mount -t proc proc \"%s\"" % (fullfn))
             self._mountList.append(fullfn)
 
             # mount /sys
             fullfn = os.path.join(self._dir, "sys")
             assert os.path.exists(fullfn) and not Util.isMount(fullfn)
-            Util.shellCall("/bin/mount --rbind /sys \"%s\"" % (fullfn))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (fullfn))
+            Util.shellCall("mount --rbind /sys \"%s\"" % (fullfn))
+            Util.shellCall("mount --make-rslave \"%s\"" % (fullfn))
             self._mountList.append(fullfn)
 
             # mount /dev
             fullfn = os.path.join(self._dir, "dev")
             assert os.path.exists(fullfn) and not Util.isMount(fullfn)
-            Util.shellCall("/bin/mount --rbind /dev \"%s\"" % (fullfn))
-            Util.shellCall("/bin/mount --make-rslave \"%s\"" % (fullfn))
+            Util.shellCall("mount --rbind /dev \"%s\"" % (fullfn))
+            Util.shellCall("mount --make-rslave \"%s\"" % (fullfn))
             self._mountList.append(fullfn)
 
             # FIXME: mount /run
@@ -79,7 +79,7 @@ class Chrooter:
             # mount /tmp
             fullfn = os.path.join(self._dir, "tmp")
             assert os.path.exists(fullfn) and not Util.isMount(fullfn)
-            Util.shellCall("/bin/mount -t tmpfs tmpfs \"%s\"" % (fullfn))
+            Util.shellCall("mount -t tmpfs tmpfs \"%s\"" % (fullfn))
             self._mountList.append(fullfn)
         except BaseException:
             self._unbind(False)
@@ -92,18 +92,18 @@ class Chrooter:
     def interactive_shell(self):
         assert len(self._mountList) > 0
 
-        cmd = "/bin/bash"       # FIXME: change to read shell
-        return Util.shellExec("/usr/bin/chroot \"%s\" %s" % (self._dir, cmd))
+        cmd = "bash"       # FIXME: change to read shell
+        return Util.shellExec("chroot \"%s\" %s" % (self._dir, cmd))
 
     def shell_call(self, env, cmd):
-        # "CLEAN_DELAY=0 /usr/bin/emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 /usr/bin/chroot /usr/bin/emerge -C sys-fs/eudev"
+        # "CLEAN_DELAY=0 emerge -C sys-fs/eudev" -> "CLEAN_DELAY=0 chroot emerge -C sys-fs/eudev"
         assert len(self._mountList) > 0
 
         # FIXME
         env = "LANG=C.utf8 PATH=/bin:/usr/bin:/sbin:/usr/sbin " + env
         assert self._detectArch() == platform.machine()
 
-        return Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
+        return Util.shellCall("%s chroot \"%s\" %s" % (env, self._dir, cmd))
 
     def shell_test(self, env, cmd):
         assert len(self._mountList) > 0
@@ -112,7 +112,7 @@ class Chrooter:
         env = "LANG=C.utf8 PATH=/bin:/usr/bin:/sbin:/usr/sbin " + env
         assert self._detectArch() == platform.machine()
 
-        return Util.shellCallTestSuccess("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
+        return Util.shellCallTestSuccess("%s chroot \"%s\" %s" % (env, self._dir, cmd))
 
     def shell_exec(self, env, cmd, quiet=False):
         assert len(self._mountList) > 0
@@ -122,9 +122,9 @@ class Chrooter:
         assert self._detectArch() == platform.machine()
 
         if not quiet:
-            Util.shellExec("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
+            Util.shellExec("%s chroot \"%s\" %s" % (env, self._dir, cmd))
         else:
-            Util.shellCall("%s /usr/bin/chroot \"%s\" %s" % (env, self._dir, cmd))
+            Util.shellCall("%s chroot \"%s\" %s" % (env, self._dir, cmd))
 
     def script_exec(self, scriptObj, quiet=False):
         assert len(self._mountList) > 0
@@ -139,14 +139,14 @@ class Chrooter:
         if not quiet:
             print(scriptObj.get_description())
         scriptObj.fill_script_dir(hostPath)
-        self.shell_exec("", "/bin/sh -c \"cd %s ; ./%s\"" % (path, scriptObj.get_script()), quiet)
+        self.shell_exec("", "sh -c \"cd %s ; ./%s\"" % (path, scriptObj.get_script()), quiet)
 
     def _unbind(self, remove_scripts):
         assert isinstance(remove_scripts, bool)
 
         for fullfn in reversed(self._mountList):
             if os.path.exists(fullfn) and Util.isMount(fullfn):
-                Util.cmdCall("/bin/umount", "-l", fullfn)
+                Util.cmdCall("umount", "-l", fullfn)
         self._mountList = []
 
         robust_layer.simple_fops.rm(os.path.join(self._dir, "etc", "resolv.conf"))

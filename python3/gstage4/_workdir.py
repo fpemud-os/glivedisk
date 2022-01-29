@@ -134,7 +134,7 @@ class WorkDir:
                     assert False
                 else:
                     # copy the old chroot directory
-                    Util.cmdCall("/bin/cp", "-r", os.path.join(self._path, from_dir_name), curPath)
+                    Util.cmdCall("cp", "-r", os.path.join(self._path, from_dir_name), curPath)
             else:
                 # FIXME: change to use python-renameat2
                 os.rename(os.path.join(self._path, from_dir_name), curPath)
