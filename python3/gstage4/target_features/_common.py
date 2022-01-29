@@ -117,32 +117,38 @@ class UsrMerge:
             target_settings.use_mask.append("split-usr")
 
     def update_preprocess_script_list_for_update_world(self, preprocess_script_list):
-        buf = ""
-        buf += "#!/bin/sh\n"
-        buf += "\n"
-        buf += "# fix /bin/awk\n"
-        buf += "rm -f /bin/awk || exit 1\n"
-        buf += "\n"
-        buf += "# copy root directories to /usr counterparts and create\n"
-        buf += "# the /usr merge compatibility symlinks\n"
-        buf += "for dir in /bin /lib* /sbin; do\n"
-        buf += '    cp -a --remove-destination "${dir}"/* /usr/"${dir}" || exit 1\n'
-        buf += '    rm -rf "${dir}" || exit 1\n'
-        buf += '    ln -snf usr/"${dir}" "${dir}" || exit 1\n'
-        buf += "done\n"
-        buf += "\n"
-        buf += "# merge /usr/sbin into /usr/bin\n"
-        buf += "cp -a --remove-destination /usr/sbin/* /usr/bin || exit 1\n"
-        buf += "rm -rf /usr/sbin || exit 1\n"
-        buf += "ln -snf bin /usr/sbin || exit 1\n"
-        buf += "\n"
-
-        s = ScriptFromBuffer("Merge /bin, /sbin, /lib, /lib64 and their /usr counterparts", buf)
+        # we use python script to do this work
+        # it is because new process can not be created when moving /lib*
+        s = ScriptFromBuffer("Merge /bin, /sbin, /lib, /lib64 and their /usr counterparts", self._scriptFileContent)
         assert s not in preprocess_script_list
         preprocess_script_list.append(s)
 
         # UNINSTALL_IGNORE="/bin /lib /lib64 /sbin /usr/sbin"
 
+    _scriptFileContent = """
+#!/usr/bin/python
+
+import os
+import glob
+import shutil
+import subprocess
+
+# fix /bin/awk
+os.unlink("/bin/awk")
+
+# copy root directories to /usr counterparts and create
+# the /usr merge compatibility symlinks
+for dir in ["/bin", "/sbin"] + glob.glob("/lib*"):
+    subprocess.run("cp -a --remove-destination %s/* /usr/%s" % (dir, dir[1:]), shell=True)
+    shutil.rmtree(dir)
+    os.symlink("usr/%s" % (dir[1:]), dir)
+
+# merge /usr/sbin into /usr/bin
+if True:
+    subprocess.run("cp -a --remove-destination /usr/sbin/* /usr/bin", shell=True)
+    shutil.rmtree("/usr/sbin")
+    os.symlink("bin", "/usr/sbin")
+"""
 
 class PreferGnuAndGpl:
 

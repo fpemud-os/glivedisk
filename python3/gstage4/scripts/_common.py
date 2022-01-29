@@ -261,4 +261,4 @@ find . -type f -exec mv -f \{} /\{} \;
 """
 
 
-_SCRIPT_FILE_NAME = "main.sh"
+_SCRIPT_FILE_NAME = "main.script"
