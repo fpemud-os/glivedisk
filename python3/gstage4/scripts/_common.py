@@ -94,7 +94,7 @@ class ScriptFromBuffer(ScriptInChroot):
 
 class OneLinerScript(ScriptInChroot):
 
-    def __init__(self, description, cmd, executor="sh"):
+    def __init__(self, description, cmd, executor="/bin/sh"):
         assert description is not None
         self._desc = description
 
