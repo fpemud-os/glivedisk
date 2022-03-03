@@ -47,5 +47,5 @@ setup(
     },
     packages=find_packages("python3"),
     include_package_data=True,
-    scripts=['tools/gstage4-chroot'],
+    scripts=['tools/gstage4-run'],
 )

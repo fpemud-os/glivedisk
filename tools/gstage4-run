@@ -30,5 +30,5 @@ if __name__ == '__main__':
         print('Usage: gstage4-chroot <dir>')
         sys.exit(1)
 
-    with gstage4.Chrooter(sys.argv[2]) as c:
+    with gstage4.Runner(sys.argv[2]) as c:
         c.interactive_shell()
