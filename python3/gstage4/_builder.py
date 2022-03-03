@@ -36,7 +36,7 @@ from ._prototype import ScriptInChroot
 from ._errors import SettingsError
 from ._settings import Settings
 from ._settings import TargetSettings
-from ._chrooter import Chrooter
+from ._runner import Runner
 from .scripts import ScriptFromBuffer
 
 
@@ -466,7 +466,7 @@ class _MyRepo:
         return (m.group(1), m.group(2)) if m is not None else None
 
 
-class _MyChrooter(Chrooter):
+class _MyChrooter(Runner):
 
     def __init__(self, parent):
         super().__init__(parent._workDirObj.chroot_dir_path)

@@ -27,7 +27,7 @@ import robust_layer.simple_fops
 from ._util import Util
 
 
-class Chrooter:
+class Runner:
 
     def __init__(self, chroot_dir_path):
         self._dir = chroot_dir_path
