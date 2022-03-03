@@ -27,7 +27,7 @@ import gstage4
 
 if __name__ == '__main__':
     if len(sys.argv) <= 2:
-        print('Usage: gstage4-chroot <dir>')
+        print('Usage: gstage4-run <dir>')
         sys.exit(1)
 
     with gstage4.Runner(sys.argv[2]) as c:
