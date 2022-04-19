@@ -4,12 +4,7 @@ import os
 import sys
 import email.utils
 import distutils.util
-try:
-    # First try to load most advanced setuptools setup.
-    from setuptools import setup, find_packages
-except:
-    # Fall back if setuptools is not installed.
-    from distutils.core import setup, find_packages
+from setuptools import setup, find_packages
 
 # package metadata
 __package__ = 'gstage4'
